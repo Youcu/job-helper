@@ -1,0 +1,2225 @@
+{
+ "_comment": "채용 사이트 공통 기술 corpus. build_corpus.py 가 만든다. 손으로 고치지 마라.",
+ "_kinds": {
+  "language": "프로그래밍 언어",
+  "framework": "프레임워크",
+  "library": "라이브러리",
+  "tool": "도구",
+  "platform": "플랫폼·런타임",
+  "database": "데이터베이스",
+  "concept": "설계·방법론 (OOP, TDD, 마이크로서비스)",
+  "protocol": "통신 규약·표준 (TCP, HTTP, OAuth)"
+ },
+ "_counts": {
+  "devskill_seed": 271,
+  "observed_added": 78,
+  "total": 349
+ },
+ "tech": [
+  {
+   "name": ".NET",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": ".NET MAUI",
+   "kind": "framework",
+   "devtypes": [
+    "모바일"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "ABAP",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Access",
+   "kind": "database",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "ActionScript",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Ada",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "AIX",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Ajax",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Amazon Bedrock",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Android",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Android SDK",
+   "kind": "framework",
+   "devtypes": [
+    "모바일"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "Angular",
+   "kind": "framework",
+   "devtypes": [
+    "프론트엔드"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "AngularJS",
+   "kind": "framework",
+   "devtypes": [
+    "프론트엔드"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "Ansible",
+   "kind": "framework",
+   "devtypes": [
+    "DevOps 엔지니어"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "Apache",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Apache Airflow",
+   "kind": "framework",
+   "devtypes": [
+    "데이터 엔지니어"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "Apache Spark",
+   "kind": "framework",
+   "devtypes": [
+    "데이터 엔지니어"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "APT",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "ArcGIS",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Arduino",
+   "kind": "framework",
+   "devtypes": [
+    "임베디드 / 디바이스"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "ASIC",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "ASP",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "ASP.NET",
+   "kind": "framework",
+   "devtypes": [
+    "백엔드"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "ASP.NET Core",
+   "kind": "framework",
+   "devtypes": [
+    "백엔드"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "Assembly",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Asterisk",
+   "kind": "framework",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "Astro",
+   "kind": "framework",
+   "devtypes": [
+    "풀스택"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "AWS",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Axios",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Axum",
+   "kind": "framework",
+   "devtypes": [
+    "백엔드"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "Azure",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Bash/Shell",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "BDD",
+   "kind": "concept",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "BGP",
+   "kind": "protocol",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "BigQuery",
+   "kind": "database",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Blazor",
+   "kind": "framework",
+   "devtypes": [
+    "풀스택"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "Bootstrap",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Bucket4j",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Bun",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "C",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "C#",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "C++",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Caddy",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Caffeine",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "CAN",
+   "kind": "protocol",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "Cargo",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Cassandra",
+   "kind": "database",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "CentOS",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Chocolatey",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "ClickHouse",
+   "kind": "database",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Cloudflare",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "CMS",
+   "kind": "concept",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "COBOL",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "CockroachDB",
+   "kind": "database",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Composer",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Confluence",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "Cosmos DB",
+   "kind": "database",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "CSS",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "CSS3",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "CUDA",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "Dart",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Databricks SQL",
+   "kind": "database",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Datadog",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Datomic",
+   "kind": "database",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "DB2",
+   "kind": "database",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Delphi",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Deno",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "DevOps",
+   "kind": "concept",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "DigitalOcean",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "DirectX",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Django",
+   "kind": "framework",
+   "devtypes": [
+    "풀스택"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "DNS",
+   "kind": "protocol",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "Docker",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Drupal",
+   "kind": "framework",
+   "devtypes": [
+    "풀스택"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "DuckDB",
+   "kind": "database",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "DynamoDB",
+   "kind": "database",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Eclipse",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "ECMAScript",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "EDA",
+   "kind": "concept",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "Elastic Stack",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Elasticsearch",
+   "kind": "database",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Electron",
+   "kind": "framework",
+   "devtypes": [
+    "데스크톱 / 엔터프라이즈"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "Elixir",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Embedded Linux",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "EMR",
+   "kind": "database",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "Erlang",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "ES6",
+   "kind": "language",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "ETL",
+   "kind": "concept",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "Express",
+   "kind": "framework",
+   "devtypes": [
+    "백엔드"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "F#",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "FastAPI",
+   "kind": "framework",
+   "devtypes": [
+    "백엔드"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "Fastify",
+   "kind": "framework",
+   "devtypes": [
+    "백엔드"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "Firebase",
+   "kind": "database",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Firestore",
+   "kind": "database",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Flask",
+   "kind": "framework",
+   "devtypes": [
+    "백엔드"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "Flex",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Flutter",
+   "kind": "framework",
+   "devtypes": [
+    "모바일"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "Fortran",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "FPGA",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "GCC",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "Gdb",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "GDScript",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Git",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "GitHub",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "GitLab",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "Gleam",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Gnuboard",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Go",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Godot",
+   "kind": "framework",
+   "devtypes": [
+    "게임 / 그래픽스"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "Google Cloud",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Google Generative AI",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "GPU",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "Gradle",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Grafana",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "GraphQL",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Groovy",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "GUI",
+   "kind": "concept",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "H2",
+   "kind": "database",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Hadoop",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "HBase",
+   "kind": "database",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Heroku",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Hilt",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Homebrew",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "HTML",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "HTML/CSS",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "HTML5",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "HTTP",
+   "kind": "protocol",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "I2C",
+   "kind": "protocol",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "IaaS",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "iBATIS",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "IBM Cloud",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "InfluxDB",
+   "kind": "database",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "iOS",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "IoT",
+   "kind": "concept",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "IPC",
+   "kind": "protocol",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "Java",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "JavaScript",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Jenkins",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Jetpack Compose",
+   "kind": "framework",
+   "devtypes": [
+    "모바일"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "JIRA",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "JPA",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "jQuery",
+   "kind": "framework",
+   "devtypes": [
+    "프론트엔드"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "JSP",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "JWT",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Kafka",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Keras",
+   "kind": "framework",
+   "devtypes": [
+    "AI/ML 엔지니어"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "Kotlin",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Kubeflow",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "Kubernetes",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "LabVIEW",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "LangChain",
+   "kind": "framework",
+   "devtypes": [
+    "AI/ML 엔지니어"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "Langchain4j",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "LangGraph",
+   "kind": "framework",
+   "devtypes": [
+    "AI/ML 엔지니어"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "Laravel",
+   "kind": "framework",
+   "devtypes": [
+    "풀스택"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "Linux",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Lisp",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Logstash",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Lua",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Lucene",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "macOS",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Make",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "MariaDB",
+   "kind": "database",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "MATLAB",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Maven",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "MFC",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "MicroPython",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "ML",
+   "kind": "concept",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "Mojo",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "MongoDB",
+   "kind": "database",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "MSBuild",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "MVVM",
+   "kind": "concept",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "MyBatis",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "MySQL",
+   "kind": "database",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Neo4j",
+   "kind": "database",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "NestJS",
+   "kind": "framework",
+   "devtypes": [
+    "백엔드"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "Netlify",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "New Relic",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Next.js",
+   "kind": "framework",
+   "devtypes": [
+    "풀스택"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "nginx",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Ninja",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "NLP",
+   "kind": "concept",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "Node.js",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "NoSQL",
+   "kind": "database",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "npm",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "NuGet",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "NumPy",
+   "kind": "library",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "Nuxt.js",
+   "kind": "framework",
+   "devtypes": [
+    "풀스택"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "OAuth",
+   "kind": "protocol",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "Objective-C",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "OCaml",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Odoo",
+   "kind": "framework",
+   "devtypes": [
+    "백엔드",
+    "데스크톱 / 엔터프라이즈"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "Ollama",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "ONNX Runtime",
+   "kind": "framework",
+   "devtypes": [
+    "AI/ML 엔지니어",
+    "데이터 사이언티스트"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "OOP",
+   "kind": "concept",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "OpenAI",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "OpenCL",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "OpenCV",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "OpenGL",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "OpenStack",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "Oracle",
+   "kind": "database",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "ORM",
+   "kind": "concept",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "OSS",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "PaaS",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "pacman",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "pandas",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Perl",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Phoenix",
+   "kind": "framework",
+   "devtypes": [
+    "풀스택"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "PHP",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "pip",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "PL/SQL",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "pnpm",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "PocketBase",
+   "kind": "database",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Podman",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Poetry",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "PostgreSQL",
+   "kind": "database",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "PowerBuilder",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "PowerShell",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Prisma",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Pro*C",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Prolog",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Prometheus",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Pydantic",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Python",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "PyTorch",
+   "kind": "framework",
+   "devtypes": [
+    "AI/ML 엔지니어",
+    "데이터 사이언티스트"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "QGIS",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Qt",
+   "kind": "framework",
+   "devtypes": [
+    "데스크톱 / 엔터프라이즈"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "QueryDSL",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "R",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "RabbitMQ",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "RAG",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Railway",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Raspberry Pi",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "RDBMS",
+   "kind": "database",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "React",
+   "kind": "framework",
+   "devtypes": [
+    "프론트엔드"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "React Hook Form",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "React Native",
+   "kind": "framework",
+   "devtypes": [
+    "모바일"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "Redis",
+   "kind": "database",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Redisson",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Redshift",
+   "kind": "database",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Redux",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "REST API",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Retrofit",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "RFID",
+   "kind": "protocol",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "Room",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "ROS",
+   "kind": "framework",
+   "devtypes": [
+    "임베디드 / 디바이스"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "Ruby",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Ruby on Rails",
+   "kind": "framework",
+   "devtypes": [
+    "풀스택"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "Rust",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "SaaS",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "SAS",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Scala",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "scikit-learn",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "SDLC",
+   "kind": "concept",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "SDN",
+   "kind": "concept",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "SEO",
+   "kind": "concept",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "Servlet",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Shell Script",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Simulink",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "SIP",
+   "kind": "protocol",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "Slack",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "Smart Contract",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Snowflake",
+   "kind": "database",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "SoC",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "Solaris",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Solidity",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Spark",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "SPI",
+   "kind": "protocol",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "Splunk",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Spring",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Spring Boot",
+   "kind": "framework",
+   "devtypes": [
+    "백엔드"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "SQL",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "SQL Server",
+   "kind": "database",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "SQLAlchemy",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "SQLite",
+   "kind": "database",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "SSO",
+   "kind": "protocol",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "Struts",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Supabase",
+   "kind": "database",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Svelte",
+   "kind": "framework",
+   "devtypes": [
+    "프론트엔드"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "SVN",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Swift",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "SwiftUI",
+   "kind": "framework",
+   "devtypes": [
+    "모바일"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "Sybase",
+   "kind": "database",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Symfony",
+   "kind": "framework",
+   "devtypes": [
+    "백엔드"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "SystemVerilog",
+   "kind": "language",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "Tableau",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "TanStack Query",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Tauri",
+   "kind": "framework",
+   "devtypes": [
+    "데스크톱 / 엔터프라이즈"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "TCL",
+   "kind": "language",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "TCP",
+   "kind": "protocol",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "TDD",
+   "kind": "concept",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "TensorFlow",
+   "kind": "framework",
+   "devtypes": [
+    "AI/ML 엔지니어",
+    "데이터 사이언티스트"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "Teradata",
+   "kind": "database",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "Terraform",
+   "kind": "framework",
+   "devtypes": [
+    "DevOps 엔지니어",
+    "클라우드 인프라 엔지니어"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "Tomcat",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "TypeScript",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "UART",
+   "kind": "protocol",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "Ubuntu",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "UDP",
+   "kind": "protocol",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "UIKit",
+   "kind": "framework",
+   "devtypes": [
+    "모바일"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "Unity",
+   "kind": "framework",
+   "devtypes": [
+    "게임 / 그래픽스"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "Unix",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Unreal Engine",
+   "kind": "framework",
+   "devtypes": [
+    "게임 / 그래픽스"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "Valkey",
+   "kind": "database",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "VBA",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Vercel",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Verilog",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Vert.x",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Visual Basic",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Visual Basic .NET",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Visual C++",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Vite",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "VoIP",
+   "kind": "protocol",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "Vue.js",
+   "kind": "framework",
+   "devtypes": [
+    "프론트엔드"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "WAS",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "WCF",
+   "kind": "framework",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "Web Socket",
+   "kind": "protocol",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "WebGL",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "webpack",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "WebRTC",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "WinForm",
+   "kind": "framework",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "Wireshark",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "WordPress",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "WPF",
+   "kind": "framework",
+   "devtypes": [
+    "데스크톱 / 엔터프라이즈"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "Xen",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "XGBoost",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "XML",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Yandex Cloud",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Yarn",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Zephyr",
+   "kind": "framework",
+   "devtypes": [
+    "임베디드 / 디바이스"
+   ],
+   "source": "devskill"
+  },
+  {
+   "name": "Zig",
+   "kind": "language",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Zod",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "Zustand",
+   "kind": "library",
+   "devtypes": [],
+   "source": "devskill"
+  },
+  {
+   "name": "가상화",
+   "kind": "concept",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "객체지향",
+   "kind": "concept",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "네트워크 보안",
+   "kind": "concept",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "대용량 트래픽",
+   "kind": "concept",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "딥러닝",
+   "kind": "concept",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "마이크로서비스",
+   "kind": "concept",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "머신러닝",
+   "kind": "concept",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "분산처리",
+   "kind": "concept",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "소켓 프로그래밍",
+   "kind": "concept",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "웹 개발",
+   "kind": "concept",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "임베디드",
+   "kind": "concept",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "자연어처리",
+   "kind": "concept",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "추천 시스템",
+   "kind": "concept",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "컨테이너",
+   "kind": "concept",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "클라우드 네이티브",
+   "kind": "concept",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "클라우드 보안",
+   "kind": "concept",
+   "devtypes": [],
+   "source": "observed"
+  },
+  {
+   "name": "클라우드 컴퓨팅",
+   "kind": "concept",
+   "devtypes": [],
+   "source": "observed"
+  }
+ ]
+}

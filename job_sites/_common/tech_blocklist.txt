@@ -1,0 +1,53 @@
+# 산문에서 기술 이름을 찾을 때 걸러 낼 말. 한 줄에 하나, `#` 뒤는 주석.
+# 사이트 공통이다 — 어느 채용사이트에서든 기술이 아닌 말들이다.
+# 오탐을 보면 여기 한 줄 추가하고 다시 돌린다.
+
+# --- 사업·도메인 용어 ---
+SaaS
+B2B
+B2C
+FMCG
+ERP
+CRM
+SCM
+POS
+IR          # Investor Relations
+ROI
+KPI
+OKR
+BM
+
+# --- 일반 영단어라 문장에서 그냥 걸린다 ---
+Communication
+Processing
+Navigation
+Policy
+Edge
+Flow
+Spine
+Storage
+Problem Solving
+Data Analysis
+FAR
+COM
+CEO
+PC
+SD
+Spa         # 본문의 SPA(Single Page Application)가 corpus 의 '스파'와 겹친다
+TPM         # 직무 이름(Technical Program Manager). "PM, TPM, Software Engineer와 협업"
+
+# --- 협업 도구. 기술스택으로 보긴 어렵다 ---
+Notion
+Slack
+JIRA
+Confluence
+Figma
+Word
+Excel
+PowerPoint
+
+# --- 너무 흔해 변별력이 없다 ---
+API
+UI
+UX
+HCI

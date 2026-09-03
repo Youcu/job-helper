@@ -1,0 +1,588 @@
+{
+    "popular_tags": [
+        {
+            "id": 10675,
+            "name": "글로벌 TOP 기업",
+            "slug": "geulrobeolgieob",
+            "tag_category_id": 14
+        },
+        {
+            "id": 10564,
+            "name": "대규모 채용 중",
+            "slug": "daegyumocaeyongjung",
+            "tag_category_id": 29
+        },
+        {
+            "id": 10537,
+            "name": "응답률 높은 기업",
+            "slug": "jeoggeugcaeyongjung",
+            "tag_category_id": 15
+        },
+        {
+            "id": 10597,
+            "name": "누적투자100억이상",
+            "slug": "nujeogtuja_100eogisang",
+            "tag_category_id": 17
+        },
+        {
+            "id": 10521,
+            "name": "예비 유니콘",
+            "slug": "yebiyunikon",
+            "tag_category_id": 17
+        },
+        {
+            "id": 10405,
+            "name": "1,001~10,000명",
+            "slug": "1001_10000myeong",
+            "tag_category_id": 31
+        },
+        {
+            "id": 10410,
+            "name": "퇴사율5%이하",
+            "slug": "toesayul5_iha",
+            "tag_category_id": 5
+        },
+        {
+            "id": 10426,
+            "name": "보너스",
+            "slug": "boneoseu",
+            "tag_category_id": 1
+        }
+    ],
+    "data": [
+        {
+            "id": 29,
+            "translated_name": "대규모 채용 중",
+            "background_img": "images/tag-categories/29/74b7cc00726e442e9c81397ec59bd171.jpg",
+            "background_color": "#412705",
+            "seq": 1,
+            "tag_types": [
+                {
+                    "id": 10564,
+                    "name": "대규모 채용 중",
+                    "slug": "daegyumocaeyongjung",
+                    "tag_category_id": null
+                }
+            ]
+        },
+        {
+            "id": 17,
+            "translated_name": "성장하는 기업",
+            "background_img": "images/tag-categories/17/9f5ed816785f48f1abbdd9009e294dce.png",
+            "background_color": "#28435b",
+            "seq": 2,
+            "tag_types": [
+                {
+                    "id": 10492,
+                    "name": "아기 유니콘",
+                    "slug": "agiyunikon",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10521,
+                    "name": "예비 유니콘",
+                    "slug": "yebiyunikon",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10597,
+                    "name": "누적투자100억이상",
+                    "slug": "nujeogtuja_100eogisang",
+                    "tag_category_id": null
+                }
+            ]
+        },
+        {
+            "id": 30,
+            "translated_name": "AI유망기업",
+            "background_img": "images/tag-categories/30/1c72339e03d44004b9c2cfa4dd4bd5ae.jpg",
+            "background_color": "#14345b",
+            "seq": 3,
+            "tag_types": [
+                {
+                    "id": 10706,
+                    "name": "엔비디아생태계",
+                    "slug": "enbidiasaengtaegye",
+                    "tag_category_id": null
+                }
+            ]
+        },
+        {
+            "id": 15,
+            "translated_name": "적극 채용 중",
+            "background_img": "images/tag-categories/15/65c75620c6d542a4bc42a39e4e231a70.png",
+            "background_color": "#063359",
+            "seq": 4,
+            "tag_types": [
+                {
+                    "id": 10401,
+                    "name": "인원 급성장",
+                    "slug": "inweongeubseongjang",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10537,
+                    "name": "응답률 높은 기업",
+                    "slug": "jeoggeugcaeyongjung",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10712,
+                    "name": "유리한 지원 경쟁률",
+                    "slug": "yurihanjiweon",
+                    "tag_category_id": null
+                }
+            ]
+        },
+        {
+            "id": 6,
+            "translated_name": "워라밸",
+            "background_img": "images/tag-categories/6/dbf35c21679b4ba1919178eb1fa69a68.jpg",
+            "background_color": "#604034",
+            "seq": 5,
+            "tag_types": [
+                {
+                    "id": 10441,
+                    "name": "수평적 조직",
+                    "slug": "supyeongjeogjojig",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10414,
+                    "name": "주35시간",
+                    "slug": "ju35sigan",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10416,
+                    "name": "자유로운 휴가",
+                    "slug": "jayurounhyuga",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10417,
+                    "name": "리프레시 휴가",
+                    "slug": "ripeuresihyuga",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10421,
+                    "name": "무제한 연차",
+                    "slug": "mujehanyeonca",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10508,
+                    "name": "재택근무",
+                    "slug": "jaetaeggeunmu2",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10509,
+                    "name": "유연근무",
+                    "slug": "yuyeongeunmu2",
+                    "tag_category_id": null
+                }
+            ]
+        },
+        {
+            "id": 19,
+            "translated_name": "유니콘브릿지",
+            "background_img": "images/tag-categories/19/8995800b773f4decaa5104120788d8d7.png",
+            "background_color": "#22176d",
+            "seq": 6,
+            "tag_types": [
+                {
+                    "id": 10705,
+                    "name": "유니콘브릿지",
+                    "slug": "yunikonbeurisji",
+                    "tag_category_id": null
+                }
+            ]
+        },
+        {
+            "id": 32,
+            "translated_name": "피지컬AI",
+            "background_img": "images/tag-categories/32/0d67b8a132d9475d9653cd4381d6afda.png",
+            "background_color": "#1C4964",
+            "seq": 7,
+            "tag_types": [
+                {
+                    "id": 10708,
+                    "name": "로봇",
+                    "slug": "pijikeolai",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10709,
+                    "name": "드론",
+                    "slug": "jayuljuhaeng",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10710,
+                    "name": "자율주행",
+                    "slug": "jayuljuhaengsaneob",
+                    "tag_category_id": null
+                }
+            ]
+        },
+        {
+            "id": 1,
+            "translated_name": "연봉·보상",
+            "background_img": "images/tag-categories/1/1401703b36924ce585a8bc2f3e99c69d.png",
+            "background_color": "#07617D",
+            "seq": 8,
+            "tag_types": [
+                {
+                    "id": 10395,
+                    "name": "업계 평균 이상 연봉",
+                    "slug": "yeonbongeobgyepyeonggyunisang",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10396,
+                    "name": "연봉상위1%",
+                    "slug": "yeonbongsangwi1",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10397,
+                    "name": "연봉상위2~5%",
+                    "slug": "yeonbongsangwi2_5",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10398,
+                    "name": "연봉상위6~10%",
+                    "slug": "yeonbongsangwi6_10",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10426,
+                    "name": "보너스",
+                    "slug": "boneoseu",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10431,
+                    "name": "스톡옵션",
+                    "slug": "seutogobsyeon",
+                    "tag_category_id": null
+                }
+            ]
+        },
+        {
+            "id": 14,
+            "translated_name": "요즘 뜨는 산업",
+            "background_img": "images/tag-categories/14/78fc4010d6854476ad1996b153c3d2b0.png",
+            "background_color": "#37577e",
+            "seq": 9,
+            "tag_types": [
+                {
+                    "id": 10486,
+                    "name": "AI 선도 기업",
+                    "slug": "ingongjineungai",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10598,
+                    "name": "뷰티산업",
+                    "slug": "byutisaneob",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10675,
+                    "name": "글로벌 TOP 기업",
+                    "slug": "geulrobeolgieob",
+                    "tag_category_id": null
+                }
+            ]
+        },
+        {
+            "id": 13,
+            "translated_name": "글로벌",
+            "background_img": "images/tag-categories/13/e4381eb1743d42a0863d25ab67c0e23e.jpg",
+            "background_color": "#84523c",
+            "seq": 10,
+            "tag_types": [
+                {
+                    "id": 10524,
+                    "name": "일본어 가능자",
+                    "slug": "ilbongwanryeoneobmu_geunmujihangug",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10525,
+                    "name": "일본 현지 취업",
+                    "slug": "ilbongwanryeoneobmu_geunmujiilbon",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10526,
+                    "name": "외국어 능통자 우대",
+                    "slug": "oegugincaeyong",
+                    "tag_category_id": null
+                }
+            ]
+        },
+        {
+            "id": 31,
+            "translated_name": "안정성",
+            "background_img": "images/tag-categories/31/aa2d54fafedb450e91af90ece366d281.jpg",
+            "background_color": "#042024",
+            "seq": 11,
+            "tag_types": [
+                {
+                    "id": 10409,
+                    "name": "설립10년이상",
+                    "slug": "seolrib10nyeonisang",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10405,
+                    "name": "1,001~10,000명",
+                    "slug": "1001_10000myeong",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10406,
+                    "name": "10,001명이상",
+                    "slug": "10001myeongisang",
+                    "tag_category_id": null
+                }
+            ]
+        },
+        {
+            "id": 7,
+            "translated_name": "혜택 및 복지",
+            "background_img": "images/tag-categories/7/9bc1e0df4c424a3d920760dfcbcc0569.jpg",
+            "background_color": "#2D5A6E",
+            "seq": 12,
+            "tag_types": [
+                {
+                    "id": 10423,
+                    "name": "건강검진지원",
+                    "slug": "geonganggeomjinjiweon",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10424,
+                    "name": "단체보험",
+                    "slug": "danceboheom",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10427,
+                    "name": "복지포인트",
+                    "slug": "bogjipointeu",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10430,
+                    "name": "대출지원",
+                    "slug": "daeculjiweon",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10432,
+                    "name": "임직원할인",
+                    "slug": "imjigweonhalin",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10433,
+                    "name": "자기계발지원",
+                    "slug": "jagigyebaljiweon",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10437,
+                    "name": "식대지원",
+                    "slug": "sigdaejiweon",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10438,
+                    "name": "휴가비지급",
+                    "slug": "hyugabi",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10439,
+                    "name": "장비지원",
+                    "slug": "jangbijiweon",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10440,
+                    "name": "편의시설",
+                    "slug": "pyeonyisiseol",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10484,
+                    "name": "일·가정 양립",
+                    "slug": "ilgajeongyangrib",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10510,
+                    "name": "차량 및 유류비 지원",
+                    "slug": "caryangjiweon2",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10511,
+                    "name": "통신비 지원",
+                    "slug": "tongsinbi2",
+                    "tag_category_id": null
+                }
+            ]
+        },
+        {
+            "id": 10,
+            "translated_name": "산업군",
+            "background_img": "images/tag-categories/10/ff5356b49b28492ca819fc5dfba462cf.jpg",
+            "background_color": "#3B4A68",
+            "seq": 13,
+            "tag_types": [
+                {
+                    "id": 10466,
+                    "name": "금융업계",
+                    "slug": "geumyung",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10599,
+                    "name": "미디어산업",
+                    "slug": "midieosaneob",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10600,
+                    "name": "이커머스산업",
+                    "slug": "ikeomeoseusaneob",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10601,
+                    "name": "유통산업",
+                    "slug": "yutongsaneob",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10602,
+                    "name": "모빌리티산업",
+                    "slug": "mobilritisaneob",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10603,
+                    "name": "대기업",
+                    "slug": "daegieob",
+                    "tag_category_id": null
+                }
+            ]
+        },
+        {
+            "id": 4,
+            "translated_name": "업력",
+            "background_img": "images/tag-categories/4/88274165bec24df3aeb5233c38386c02.jpg",
+            "background_color": "#154352",
+            "seq": 15,
+            "tag_types": [
+                {
+                    "id": 10407,
+                    "name": "설립3년이하",
+                    "slug": "seolrib3nyeoniha",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10408,
+                    "name": "설립4~9년",
+                    "slug": "seolrib4_9nyeon",
+                    "tag_category_id": null
+                }
+            ]
+        },
+        {
+            "id": 3,
+            "translated_name": "회사 규모",
+            "background_img": "images/tag-categories/3/7f803926fd5342cca00e54ce51abd76d.jpg",
+            "background_color": "#335178",
+            "seq": 16,
+            "tag_types": [
+                {
+                    "id": 10402,
+                    "name": "50명이하",
+                    "slug": "50myeongiha",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10403,
+                    "name": "51~300명",
+                    "slug": "51_300myeong",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10404,
+                    "name": "301~1,000명",
+                    "slug": "301_1000myeong",
+                    "tag_category_id": null
+                }
+            ]
+        },
+        {
+            "id": 20,
+            "translated_name": "채용 형태",
+            "background_img": "images/tag-categories/20/38883c8112bb426fb1d59568c642b4ee.jpg",
+            "background_color": "#523a32",
+            "seq": 17,
+            "tag_types": [
+                {
+                    "id": 10512,
+                    "name": "산업기능요원",
+                    "slug": "saneobgineungyoweon2",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10513,
+                    "name": "전문연구요원",
+                    "slug": "jeonmunyeonguyoweon2",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10519,
+                    "name": "장애인전형",
+                    "slug": "jangaeinjeonhyeong",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10592,
+                    "name": "병역특례",
+                    "slug": "alternativemilitary",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10522,
+                    "name": "인턴",
+                    "slug": "inteo",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10593,
+                    "name": "장애인우대",
+                    "slug": "disabledperson",
+                    "tag_category_id": null
+                },
+                {
+                    "id": 10574,
+                    "name": "계약직",
+                    "slug": "contract",
+                    "tag_category_id": null
+                }
+            ]
+        }
+    ]
+}

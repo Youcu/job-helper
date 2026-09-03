@@ -1,0 +1,1173 @@
+{
+  "years": [
+    {
+      "key": "-1",
+      "display": "전체"
+    },
+    {
+      "key": "0",
+      "display": "신입"
+    },
+    {
+      "key": "1",
+      "display": "1년"
+    },
+    {
+      "key": "2",
+      "display": "2년"
+    },
+    {
+      "key": "3",
+      "display": "3년"
+    },
+    {
+      "key": "4",
+      "display": "4년"
+    },
+    {
+      "key": "5",
+      "display": "5년"
+    },
+    {
+      "key": "6",
+      "display": "6년"
+    },
+    {
+      "key": "7",
+      "display": "7년"
+    },
+    {
+      "key": "8",
+      "display": "8년"
+    },
+    {
+      "key": "9",
+      "display": "9년"
+    },
+    {
+      "key": "10",
+      "display": "10년 이상"
+    }
+  ],
+  "employment_types": [
+    {
+      "key": "job.employment_type.regular",
+      "display": "정규직"
+    },
+    {
+      "key": "job.employment_type.contract",
+      "display": "계약직"
+    },
+    {
+      "key": "job.employment_type.intern",
+      "display": "인턴"
+    }
+  ],
+  "job_sort": [
+    {
+      "key": "job.latest_order",
+      "display": "최신순"
+    },
+    {
+      "key": "job.recommend_order",
+      "display": "추천순"
+    },
+    {
+      "key": "job.popularity_order",
+      "display": "인기순"
+    }
+  ],
+  "locations": [
+    {
+      "key": "all",
+      "display": "전국",
+      "districts": []
+    },
+    {
+      "key": "seoul",
+      "display": "서울",
+      "districts": [
+        {
+          "key": "seoul.all",
+          "display": "전체"
+        },
+        {
+          "key": "seoul.gangnam-gu",
+          "display": "강남구"
+        },
+        {
+          "key": "seoul.gangdong-gu",
+          "display": "강동구"
+        },
+        {
+          "key": "seoul.gangbuk-gu",
+          "display": "강북구"
+        },
+        {
+          "key": "seoul.gangseo-gu",
+          "display": "강서구"
+        },
+        {
+          "key": "seoul.gwanak-gu",
+          "display": "관악구"
+        },
+        {
+          "key": "seoul.gwangjin-gu",
+          "display": "광진구"
+        },
+        {
+          "key": "seoul.guro-gu",
+          "display": "구로구"
+        },
+        {
+          "key": "seoul.geumcheon-gu",
+          "display": "금천구"
+        },
+        {
+          "key": "seoul.nowon-gu",
+          "display": "노원구"
+        },
+        {
+          "key": "seoul.dobong-gu",
+          "display": "도봉구"
+        },
+        {
+          "key": "seoul.dongdaemun-gu",
+          "display": "동대문구"
+        },
+        {
+          "key": "seoul.dongjak-gu",
+          "display": "동작구"
+        },
+        {
+          "key": "seoul.mapo-gu",
+          "display": "마포구"
+        },
+        {
+          "key": "seoul.seodaemun-gu",
+          "display": "서대문구"
+        },
+        {
+          "key": "seoul.seocho-gu",
+          "display": "서초구"
+        },
+        {
+          "key": "seoul.seongdong-gu",
+          "display": "성동구"
+        },
+        {
+          "key": "seoul.seongbuk-gu",
+          "display": "성북구"
+        },
+        {
+          "key": "seoul.songpa-gu",
+          "display": "송파구"
+        },
+        {
+          "key": "seoul.yangcheon-gu",
+          "display": "양천구"
+        },
+        {
+          "key": "seoul.yeongdeungpo-gu",
+          "display": "영등포구"
+        },
+        {
+          "key": "seoul.yongsan-gu",
+          "display": "용산구"
+        },
+        {
+          "key": "seoul.eunpyeong-gu",
+          "display": "은평구"
+        },
+        {
+          "key": "seoul.jongno-gu",
+          "display": "종로구"
+        },
+        {
+          "key": "seoul.jung-gu",
+          "display": "중구"
+        },
+        {
+          "key": "seoul.jungnang-gu",
+          "display": "중랑구"
+        }
+      ]
+    },
+    {
+      "key": "busan",
+      "display": "부산",
+      "districts": [
+        {
+          "key": "busan.all",
+          "display": "전체"
+        },
+        {
+          "key": "busan.gangseo-gu",
+          "display": "강서구"
+        },
+        {
+          "key": "busan.gumjung-gu",
+          "display": "금정구"
+        },
+        {
+          "key": "busan.nam-gu",
+          "display": "남구"
+        },
+        {
+          "key": "busan.dong-gu",
+          "display": "동구"
+        },
+        {
+          "key": "busan.dongnae-gu",
+          "display": "동래구"
+        },
+        {
+          "key": "busan.busanjin-gu",
+          "display": "부산진구"
+        },
+        {
+          "key": "busan.buk-gu",
+          "display": "북구"
+        },
+        {
+          "key": "busan.sasang-gu",
+          "display": "사상구"
+        },
+        {
+          "key": "busan.saha-gu",
+          "display": "사하구"
+        },
+        {
+          "key": "busan.seo-gu",
+          "display": "서구"
+        },
+        {
+          "key": "busan.suyeong-gu",
+          "display": "수영구"
+        },
+        {
+          "key": "busan.yeonje-gu",
+          "display": "연제구"
+        },
+        {
+          "key": "busan.yeongdo-gu",
+          "display": "영도구"
+        },
+        {
+          "key": "busan.jung-gu",
+          "display": "중구"
+        },
+        {
+          "key": "busan.haeundae-gu",
+          "display": "해운대구"
+        },
+        {
+          "key": "busan.gijang-gun",
+          "display": "기장군"
+        }
+      ]
+    },
+    {
+      "key": "daegu",
+      "display": "대구",
+      "districts": [
+        {
+          "key": "daegu.all",
+          "display": "전체"
+        },
+        {
+          "key": "daegu.nam-gu",
+          "display": "남구"
+        },
+        {
+          "key": "daegu.dalseo-gu",
+          "display": "달서구"
+        },
+        {
+          "key": "daegu.dong-gu",
+          "display": "동구"
+        },
+        {
+          "key": "daegu.buk-gu",
+          "display": "북구"
+        },
+        {
+          "key": "daegu.seo-gu",
+          "display": "서구"
+        },
+        {
+          "key": "daegu.suseong-gu",
+          "display": "수성구"
+        },
+        {
+          "key": "daegu.jung-gu",
+          "display": "중구"
+        },
+        {
+          "key": "daegu.dalseong-gun",
+          "display": "달성군"
+        }
+      ]
+    },
+    {
+      "key": "incheon",
+      "display": "인천",
+      "districts": [
+        {
+          "key": "incheon.all",
+          "display": "전체"
+        },
+        {
+          "key": "incheon.gyeyang-gu",
+          "display": "계양구"
+        },
+        {
+          "key": "incheon.michuhol-gu",
+          "display": "미추홀구"
+        },
+        {
+          "key": "incheon.namdong-gu",
+          "display": "남동구"
+        },
+        {
+          "key": "incheon.dong-gu",
+          "display": "동구"
+        },
+        {
+          "key": "incheon.bupyeong-gu",
+          "display": "부평구"
+        },
+        {
+          "key": "incheon.seo-gu",
+          "display": "서구"
+        },
+        {
+          "key": "incheon.yeonsu-gu",
+          "display": "연수구"
+        },
+        {
+          "key": "incheon.jung-gu",
+          "display": "중구"
+        },
+        {
+          "key": "incheon.ganghwa-gun",
+          "display": "강화군"
+        },
+        {
+          "key": "incheon.ongjin-gun",
+          "display": "옹진군"
+        }
+      ]
+    },
+    {
+      "key": "gwangju",
+      "display": "광주",
+      "districts": [
+        {
+          "key": "gwangju.all",
+          "display": "전체"
+        },
+        {
+          "key": "gwangju.gwangsan-gu",
+          "display": "광산구"
+        },
+        {
+          "key": "gwangju.nam-gu",
+          "display": "남구"
+        },
+        {
+          "key": "gwangju.dong-gu",
+          "display": "동구"
+        },
+        {
+          "key": "gwangju.buk-gu",
+          "display": "북구"
+        },
+        {
+          "key": "gwangju.seo-gu",
+          "display": "서구"
+        }
+      ]
+    },
+    {
+      "key": "daejeon",
+      "display": "대전",
+      "districts": [
+        {
+          "key": "daejeon.all",
+          "display": "전체"
+        },
+        {
+          "key": "daejeon.daedeok-gu",
+          "display": "대덕구"
+        },
+        {
+          "key": "daejeon.dong-gu",
+          "display": "동구"
+        },
+        {
+          "key": "daejeon.seo-gu",
+          "display": "서구"
+        },
+        {
+          "key": "daejeon.yuseong-gu",
+          "display": "유성구"
+        },
+        {
+          "key": "daejeon.jung-gu",
+          "display": "중구"
+        }
+      ]
+    },
+    {
+      "key": "ulsan",
+      "display": "울산",
+      "districts": [
+        {
+          "key": "ulsan.all",
+          "display": "전체"
+        },
+        {
+          "key": "ulsan.nam-gu",
+          "display": "남구"
+        },
+        {
+          "key": "ulsan.dong-gu",
+          "display": "동구"
+        },
+        {
+          "key": "ulsan.buk-gu",
+          "display": "북구"
+        },
+        {
+          "key": "ulsan.jung-gu",
+          "display": "중구"
+        },
+        {
+          "key": "ulsan.ulju-gun",
+          "display": "울주군"
+        }
+      ]
+    },
+    {
+      "key": "sejong",
+      "display": "세종",
+      "districts": [
+        {
+          "key": "sejong.all",
+          "display": "전체"
+        }
+      ]
+    },
+    {
+      "key": "gyeonggi",
+      "display": "경기",
+      "districts": [
+        {
+          "key": "gyeonggi.all",
+          "display": "전체"
+        },
+        {
+          "key": "gyeonggi.suwon-si",
+          "display": "수원시"
+        },
+        {
+          "key": "gyeonggi.goyang-si",
+          "display": "고양시"
+        },
+        {
+          "key": "gyeonggi.seongnam-si",
+          "display": "성남시"
+        },
+        {
+          "key": "gyeonggi.yongin-si",
+          "display": "용인시"
+        },
+        {
+          "key": "gyeonggi.bucheon-si",
+          "display": "부천시"
+        },
+        {
+          "key": "gyeonggi.ansan-si",
+          "display": "안산시"
+        },
+        {
+          "key": "gyeonggi.namyangju-si",
+          "display": "남양주시"
+        },
+        {
+          "key": "gyeonggi.anyang-si",
+          "display": "안양시"
+        },
+        {
+          "key": "gyeonggi.hwaseong-si",
+          "display": "화성시"
+        },
+        {
+          "key": "gyeonggi.pyeongtaek-si",
+          "display": "평택시"
+        },
+        {
+          "key": "gyeonggi.uijeongbu-si",
+          "display": "의정부시"
+        },
+        {
+          "key": "gyeonggi.siheung-si",
+          "display": "시흥시"
+        },
+        {
+          "key": "gyeonggi.paju-si",
+          "display": "파주시"
+        },
+        {
+          "key": "gyeonggi.gimpo-si",
+          "display": "김포시"
+        },
+        {
+          "key": "gyeonggi.gwangmyeong-si",
+          "display": "광명시"
+        },
+        {
+          "key": "gyeonggi.gwangju-si",
+          "display": "광주시"
+        },
+        {
+          "key": "gyeonggi.gunpo-si",
+          "display": "군포시"
+        },
+        {
+          "key": "gyeonggi.osan-si",
+          "display": "오산시"
+        },
+        {
+          "key": "gyeonggi.icheon-si",
+          "display": "이천시"
+        },
+        {
+          "key": "gyeonggi.yangju-si",
+          "display": "양주시"
+        },
+        {
+          "key": "gyeonggi.anseong-si",
+          "display": "안성시"
+        },
+        {
+          "key": "gyeonggi.guri-si",
+          "display": "구리시"
+        },
+        {
+          "key": "gyeonggi.pocheon-si",
+          "display": "포천시"
+        },
+        {
+          "key": "gyeonggi.uiwang-si",
+          "display": "의왕시"
+        },
+        {
+          "key": "gyeonggi.hanam-si",
+          "display": "하남시"
+        },
+        {
+          "key": "gyeonggi.yeoju-si",
+          "display": "여주시"
+        },
+        {
+          "key": "gyeonggi.yangpyeong-gun",
+          "display": "양평군"
+        },
+        {
+          "key": "gyeonggi.dongducheon-si",
+          "display": "동두천시"
+        },
+        {
+          "key": "gyeonggi.gwacheon-si",
+          "display": "과천시"
+        },
+        {
+          "key": "gyeonggi.gapyeong-gun",
+          "display": "가평군"
+        },
+        {
+          "key": "gyeonggi.yeoncheon-gun",
+          "display": "연천군"
+        }
+      ]
+    },
+    {
+      "key": "gangwon",
+      "display": "강원",
+      "districts": [
+        {
+          "key": "gangwon.all",
+          "display": "전체"
+        },
+        {
+          "key": "gangwon.gangneung-si",
+          "display": "강릉시"
+        },
+        {
+          "key": "gangwon.donghae-si",
+          "display": "동해시"
+        },
+        {
+          "key": "gangwon.samcheok-si",
+          "display": "삼척시"
+        },
+        {
+          "key": "gangwon.sokcho-si",
+          "display": "속초시"
+        },
+        {
+          "key": "gangwon.wonju-si",
+          "display": "원주시"
+        },
+        {
+          "key": "gangwon.chuncheon-si",
+          "display": "춘천시"
+        },
+        {
+          "key": "gangwon.taebaek-si",
+          "display": "태백시"
+        },
+        {
+          "key": "gangwon.goseong-gun",
+          "display": "고성군"
+        },
+        {
+          "key": "gangwon.yanggu-gun",
+          "display": "양구군"
+        },
+        {
+          "key": "gangwon.yangyang-gun",
+          "display": "양양군"
+        },
+        {
+          "key": "gangwon.yeongwol-gun",
+          "display": "영월군"
+        },
+        {
+          "key": "gangwon.inje-gun",
+          "display": "인제군"
+        },
+        {
+          "key": "gangwon.jeongseon-gun",
+          "display": "정선군"
+        },
+        {
+          "key": "gangwon.cheorwon-gun",
+          "display": "철원군"
+        },
+        {
+          "key": "gangwon.pyeongchang-gun",
+          "display": "평창군"
+        },
+        {
+          "key": "gangwon.hongcheon-gun",
+          "display": "홍천군"
+        },
+        {
+          "key": "gangwon.hwacheon-gun",
+          "display": "화천군"
+        },
+        {
+          "key": "gangwon.hoengseong-gun",
+          "display": "횡성군"
+        }
+      ]
+    },
+    {
+      "key": "n-chungcheong",
+      "display": "충북",
+      "districts": [
+        {
+          "key": "n-chungcheong.all",
+          "display": "전체"
+        },
+        {
+          "key": "n-chungcheong.jecheon-si",
+          "display": "제천시"
+        },
+        {
+          "key": "n-chungcheong.cheongju-si",
+          "display": "청주시"
+        },
+        {
+          "key": "n-chungcheong.chungju-si",
+          "display": "충주시"
+        },
+        {
+          "key": "n-chungcheong.goesan-gun",
+          "display": "괴산군"
+        },
+        {
+          "key": "n-chungcheong.danyang-gun",
+          "display": "단양군"
+        },
+        {
+          "key": "n-chungcheong.boeun-gun",
+          "display": "보은군"
+        },
+        {
+          "key": "n-chungcheong.yeongdong-gun",
+          "display": "영동군"
+        },
+        {
+          "key": "n-chungcheong.okcheon-gun",
+          "display": "옥천군"
+        },
+        {
+          "key": "n-chungcheong.eumseong-gun",
+          "display": "음성군"
+        },
+        {
+          "key": "n-chungcheong.jincheon-gun",
+          "display": "진천군"
+        },
+        {
+          "key": "n-chungcheong.jeungpyeong-gun",
+          "display": "증평군"
+        },
+        {
+          "key": "n-chungcheong.cheongwon-gun",
+          "display": "청원군"
+        }
+      ]
+    },
+    {
+      "key": "s-chungcheong",
+      "display": "충남",
+      "districts": [
+        {
+          "key": "s-chungcheong.all",
+          "display": "전체"
+        },
+        {
+          "key": "s-chungcheong.gongju-si",
+          "display": "공주시"
+        },
+        {
+          "key": "s-chungcheong.nonsan-si",
+          "display": "논산시"
+        },
+        {
+          "key": "s-chungcheong.boryeong-si",
+          "display": "보령시"
+        },
+        {
+          "key": "s-chungcheong.seosan-si",
+          "display": "서산시"
+        },
+        {
+          "key": "s-chungcheong.asan-si",
+          "display": "아산시"
+        },
+        {
+          "key": "s-chungcheong.cheonan-si",
+          "display": "천안시"
+        },
+        {
+          "key": "s-chungcheong.geumsan-gun",
+          "display": "금산군"
+        },
+        {
+          "key": "s-chungcheong.dangjin-si",
+          "display": "당진시"
+        },
+        {
+          "key": "s-chungcheong.buyeo-gun",
+          "display": "부여군"
+        },
+        {
+          "key": "s-chungcheong.seocheon-gun",
+          "display": "서천군"
+        },
+        {
+          "key": "s-chungcheong.yeongi-gun",
+          "display": "연기군"
+        },
+        {
+          "key": "s-chungcheong.yesan-gun",
+          "display": "예산군"
+        },
+        {
+          "key": "s-chungcheong.cheongyang-gun",
+          "display": "청양군"
+        },
+        {
+          "key": "s-chungcheong.taean-gun",
+          "display": "태안군"
+        },
+        {
+          "key": "s-chungcheong.hongseong-gun",
+          "display": "홍성군"
+        }
+      ]
+    },
+    {
+      "key": "n-jeolla",
+      "display": "전북",
+      "districts": [
+        {
+          "key": "n-jeolla.all",
+          "display": "전체"
+        },
+        {
+          "key": "n-jeolla.gunsan-si",
+          "display": "군산시"
+        },
+        {
+          "key": "n-jeolla.gimje-si",
+          "display": "김제시"
+        },
+        {
+          "key": "n-jeolla.namwon-si",
+          "display": "남원시"
+        },
+        {
+          "key": "n-jeolla.iksan-si",
+          "display": "익산시"
+        },
+        {
+          "key": "n-jeolla.jeonju-si",
+          "display": "전주시"
+        },
+        {
+          "key": "n-jeolla.jeongeup-si",
+          "display": "정읍시"
+        },
+        {
+          "key": "n-jeolla.gochang-gun",
+          "display": "고창군"
+        },
+        {
+          "key": "n-jeolla.muju-gun",
+          "display": "무주군"
+        },
+        {
+          "key": "n-jeolla.buan-gun",
+          "display": "부안군"
+        },
+        {
+          "key": "n-jeolla.sunchang-gun",
+          "display": "순창군"
+        },
+        {
+          "key": "n-jeolla.wanju-gun",
+          "display": "완주군"
+        },
+        {
+          "key": "n-jeolla.imsil-gun",
+          "display": "임실군"
+        },
+        {
+          "key": "n-jeolla.jangsu-gun",
+          "display": "장수군"
+        },
+        {
+          "key": "n-jeolla.jinan-gun",
+          "display": "진안군"
+        }
+      ]
+    },
+    {
+      "key": "s-jeolla",
+      "display": "전남",
+      "districts": [
+        {
+          "key": "s-jeolla.all",
+          "display": "전체"
+        },
+        {
+          "key": "s-jeolla.gwangyang-si",
+          "display": "광양시"
+        },
+        {
+          "key": "s-jeolla.naju-si",
+          "display": "나주시"
+        },
+        {
+          "key": "s-jeolla.mokpo-si",
+          "display": "목포시"
+        },
+        {
+          "key": "s-jeolla.suncheon-si",
+          "display": "순천시"
+        },
+        {
+          "key": "s-jeolla.yeosu-si",
+          "display": "여수시"
+        },
+        {
+          "key": "s-jeolla.gangjin-gun",
+          "display": "강진군"
+        },
+        {
+          "key": "s-jeolla.goheung-gun",
+          "display": "고흥군"
+        },
+        {
+          "key": "s-jeolla.gokseong-gun",
+          "display": "곡성군"
+        },
+        {
+          "key": "s-jeolla.gurye-gun",
+          "display": "구례군"
+        },
+        {
+          "key": "s-jeolla.damyang-gun",
+          "display": "담양군"
+        },
+        {
+          "key": "s-jeolla.muan-gun",
+          "display": "무안군"
+        },
+        {
+          "key": "s-jeolla.boseong-gun",
+          "display": "보성군"
+        },
+        {
+          "key": "s-jeolla.sinan-gun",
+          "display": "신안군"
+        },
+        {
+          "key": "s-jeolla.yeonggwang-gun",
+          "display": "영광군"
+        },
+        {
+          "key": "s-jeolla.yeongam-gun",
+          "display": "영암군"
+        },
+        {
+          "key": "s-jeolla.wando-gun",
+          "display": "완도군"
+        },
+        {
+          "key": "s-jeolla.jangseong-gun",
+          "display": "장성군"
+        },
+        {
+          "key": "s-jeolla.jangheung-gun",
+          "display": "장흥군"
+        },
+        {
+          "key": "s-jeolla.jindo-gun",
+          "display": "진도군"
+        },
+        {
+          "key": "s-jeolla.hampyeong-gun",
+          "display": "함평군"
+        },
+        {
+          "key": "s-jeolla.haenam-gun",
+          "display": "해남군"
+        },
+        {
+          "key": "s-jeolla.hwasun-gun",
+          "display": "화순군"
+        }
+      ]
+    },
+    {
+      "key": "n-gyeongsang",
+      "display": "경북",
+      "districts": [
+        {
+          "key": "n-gyeongsang.all",
+          "display": "전체"
+        },
+        {
+          "key": "n-gyeongsang.gyeongsan-si",
+          "display": "경산시"
+        },
+        {
+          "key": "n-gyeongsang.gyeongju-si",
+          "display": "경주시"
+        },
+        {
+          "key": "n-gyeongsang.gumi-si",
+          "display": "구미시"
+        },
+        {
+          "key": "n-gyeongsang.gimcheon-si",
+          "display": "김천시"
+        },
+        {
+          "key": "n-gyeongsang.mungyeong-si",
+          "display": "문경시"
+        },
+        {
+          "key": "n-gyeongsang.sangju-si",
+          "display": "상주시"
+        },
+        {
+          "key": "n-gyeongsang.andong-si",
+          "display": "안동시"
+        },
+        {
+          "key": "n-gyeongsang.yeongju-si",
+          "display": "영주시"
+        },
+        {
+          "key": "n-gyeongsang.yeongcheon-si",
+          "display": "영천시"
+        },
+        {
+          "key": "n-gyeongsang.pohang-si",
+          "display": "포항시"
+        },
+        {
+          "key": "n-gyeongsang.goryeong-gun",
+          "display": "고령군"
+        },
+        {
+          "key": "n-gyeongsang.gunwi-gun",
+          "display": "군위군"
+        },
+        {
+          "key": "n-gyeongsang.bonghwa-gun",
+          "display": "봉화군"
+        },
+        {
+          "key": "n-gyeongsang.seongju-gun",
+          "display": "성주군"
+        },
+        {
+          "key": "n-gyeongsang.yeongdeok-gun",
+          "display": "영덕군"
+        },
+        {
+          "key": "n-gyeongsang.yeongyang-gun",
+          "display": "영양군"
+        },
+        {
+          "key": "n-gyeongsang.yecheon-gun",
+          "display": "예천군"
+        },
+        {
+          "key": "n-gyeongsang.ulleung-gun",
+          "display": "울릉군"
+        },
+        {
+          "key": "n-gyeongsang.uljin-gun",
+          "display": "울진군"
+        },
+        {
+          "key": "n-gyeongsang.uiseong-gun",
+          "display": "의성군"
+        },
+        {
+          "key": "n-gyeongsang.cheongdo-gun",
+          "display": "청도군"
+        },
+        {
+          "key": "n-gyeongsang.cheongsong-gun",
+          "display": "청송군"
+        },
+        {
+          "key": "n-gyeongsang.chilgok-gun",
+          "display": "칠곡군"
+        }
+      ]
+    },
+    {
+      "key": "s-gyeongsang",
+      "display": "경남",
+      "districts": [
+        {
+          "key": "s-gyeongsang.all",
+          "display": "전체"
+        },
+        {
+          "key": "s-gyeongsang.geoje-si",
+          "display": "거제시"
+        },
+        {
+          "key": "s-gyeongsang.gimhae-si",
+          "display": "김해시"
+        },
+        {
+          "key": "s-gyeongsang.miryang-si",
+          "display": "밀양시"
+        },
+        {
+          "key": "s-gyeongsang.sacheon-si",
+          "display": "사천시"
+        },
+        {
+          "key": "s-gyeongsang.yangsan-si",
+          "display": "양산시"
+        },
+        {
+          "key": "s-gyeongsang.jinju-si",
+          "display": "진주시"
+        },
+        {
+          "key": "s-gyeongsang.changwon-si",
+          "display": "창원시"
+        },
+        {
+          "key": "s-gyeongsang.tongyeong-si",
+          "display": "통영시"
+        },
+        {
+          "key": "s-gyeongsang.geochang-gun",
+          "display": "거창군"
+        },
+        {
+          "key": "s-gyeongsang.goseong-gun",
+          "display": "고성군"
+        },
+        {
+          "key": "s-gyeongsang.namhae-gun",
+          "display": "남해군"
+        },
+        {
+          "key": "s-gyeongsang.sancheong-gun",
+          "display": "산청군"
+        },
+        {
+          "key": "s-gyeongsang.uiryeong-gun",
+          "display": "의령군"
+        },
+        {
+          "key": "s-gyeongsang.changnyeong-gun",
+          "display": "창녕군"
+        },
+        {
+          "key": "s-gyeongsang.hadong-gun",
+          "display": "하동군"
+        },
+        {
+          "key": "s-gyeongsang.haman-gun",
+          "display": "함안군"
+        },
+        {
+          "key": "s-gyeongsang.hamyang-gun",
+          "display": "함양군"
+        },
+        {
+          "key": "s-gyeongsang.hapcheon-gun",
+          "display": "합천군"
+        }
+      ]
+    },
+    {
+      "key": "jeju",
+      "display": "제주",
+      "districts": [
+        {
+          "key": "jeju.all",
+          "display": "전체"
+        },
+        {
+          "key": "jeju.seogwipo-si",
+          "display": "서귀포시"
+        },
+        {
+          "key": "jeju.jeju-si",
+          "display": "제주시"
+        }
+      ]
+    }
+  ]
+}
