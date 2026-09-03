@@ -1,0 +1,62 @@
+{
+  "_comment": "별칭 → tech_corpus.json 의 표준 이름. 사이트가 뭐라 적든 여기서 한 이름으로 모은다.",
+  "_why_not_fuzzy": "편집거리(rapidfuzz)로 자동 매칭하면 REST→Rust, Apache Kafka→Apache Spark, MSSQL→MySQL, ML→XML 처럼 다른 기술로 붙는다. 기술 약어는 짧고 서로 닮아서 문자열 거리를 믿을 수 없다. 그래서 손으로 적는다.",
+  "aliases": {
+    "GCP": "Google Cloud",
+    "Google Cloud Platform": "Google Cloud",
+    "AWS Cloud": "AWS",
+    "Amazon Web Services": "AWS",
+
+    "Spring Framework": "Spring",
+    "SpringBoot": "Spring Boot",
+    "Spring boot": "Spring Boot",
+
+    "Apache Kafka": "Kafka",
+    "Apache Spark": "Spark",
+    "Apache Airflow": "Airflow",
+
+    "REST": "REST API",
+    "Restful API": "REST API",
+    "RESTful API": "REST API",
+    "RESTful": "REST API",
+
+    "Nest.js": "NestJS",
+    "Nest": "NestJS",
+    "NextJS": "Next.js",
+    "ExpressJS": "Express",
+    "React.js": "React",
+    "Vue": "Vue.js",
+    "Vue.JS": "Vue.js",
+    "VueJS": "Vue.js",
+    "Node": "Node.js",
+    "NodeJS": "Node.js",
+    "AngularJS": "Angular",
+
+    "Github": "GitHub",
+    "Gitlab": "GitLab",
+
+    "K8s": "Kubernetes",
+    "k8s": "Kubernetes",
+
+    "Postgres": "PostgreSQL",
+    "MSSQL": "SQL Server",
+    "MS SQL": "SQL Server",
+    "Oracle Database": "Oracle",
+    "ElasticSearch": "Elasticsearch",
+
+    "Pytorch": "PyTorch",
+    "Tensorflow": "TensorFlow",
+    "Golang": "Go",
+    "Bash": "Shell Script",
+    "Shell": "Shell Script",
+    "scikit-learn": "scikit-learn",
+    "Scikit-Learn": "scikit-learn",
+
+    "머신 러닝": "머신러닝",
+    "딥 러닝": "딥러닝",
+    "객체 지향": "객체지향",
+    "분산 처리": "분산처리",
+    "마이크로 서비스": "마이크로서비스",
+    "자연어 처리": "자연어처리"
+  }
+}
