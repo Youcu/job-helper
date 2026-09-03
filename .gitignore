@@ -1,0 +1,26 @@
+# Environments
+.env
+.env.*
+.venv
+
+# 편집기 임시 파일 — .env 를 열면 값이 그대로 담긴 스왑본이 남는다
+*.swp
+*.swo
+*~
+.DS_Store
+
+**/__pycache__/
+*.py[cod]
+
+# Agent Context Logs
+**/context/
+
+# Docs
+# 루트 docs 만 추적한다. 각 파이프라인 단계의 docs 는 그 단계를 만들어 가는
+# 중간 확인용이라 완제품을 쓰는 사람에게는 쓸모가 없다.
+**/docs/
+!/docs/
+
+# 수집 산출물
+# 사람마다 스크랩 대상이 다르다. 남의 조건으로 뽑은 CSV 를 받을 이유가 없다.
+**/csv/
