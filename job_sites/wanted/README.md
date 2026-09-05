@@ -78,8 +78,8 @@ touch ../../.env
 **값은 본인 것을 채운다. 이 문서에는 남기지 않는다** — 공개 저장소에 구직 조건이 그대로 남는다.
 
 ```bash
-JOB_GROUP_IDS=       # 필수. 직군 코드 (아래 "직군 코드" 표)
-JOB_IDS=             # 직무 코드. 비우면 직군 전체
+WANTED_JOB_GROUP_IDS=       # 필수. 직군 코드 (아래 "직군 코드" 표)
+WANTED_JOB_IDS=             # 직무 코드. 비우면 직군 전체
 EMPLOYMENT_TYPES=    # regular / contract / intern. 비우면 regular,intern
 YOE=                 # 신입=0, N년차=N(1~10), 전체=-1. 비우면 -1
 HOME_LOCATIONS=      # 희망근무지. 비우면 전국
@@ -95,8 +95,8 @@ HOPE_ANNUAL_SALARY=  # Wanted 는 연봉 미공개라 미적용
 
 | 항목 | 필수 | 뜻 |
 |---|---|---|
-| `JOB_GROUP_IDS` | O | 직군 코드. comma 구분. 예 `518` |
-| `JOB_IDS` | | 직무 코드. comma 구분. **비우면 그 직군 전체** |
+| `WANTED_JOB_GROUP_IDS` | O | 직군 코드. comma 구분. 예 `518` |
+| `WANTED_JOB_IDS` | | 직무 코드. comma 구분. **비우면 그 직군 전체** |
 | `EMPLOYMENT_TYPES` | | `regular`(정규직) `contract`(계약직) `intern`(인턴). 기본값 `regular,intern` |
 | `YOE` | | 경력. 신입=`0`, N년차=`N`(1~10), 전체=`-1`. 기본값 `-1` |
 | `HOME_LOCATIONS` | | 희망근무지. 한글 이름 또는 slug. **비우면 전국** |
@@ -108,10 +108,10 @@ HOPE_ANNUAL_SALARY=  # Wanted 는 연봉 미공개라 미적용
 
 ```bash
 # 직군 코드
-JOB_GROUP_IDS=518
+WANTED_JOB_GROUP_IDS=518
 
 # 직무 코드
-JOB_IDS=872,873
+WANTED_JOB_IDS=872,873
 
 # 고용형태
 EMPLOYMENT_TYPES=regular,intern
@@ -127,10 +127,10 @@ TECH_STACKS=
 HOPE_ANNUAL_SALARY=
 ```
 
-`JOB_GROUP_IDS` 에 여러 직군을 적으면 직군마다 따로 수집해 합친다 —
+`WANTED_JOB_GROUP_IDS` 에 여러 직군을 적으면 직군마다 따로 수집해 합친다 —
 Wanted API 가 `job_group_id` 를 하나만 받기 때문이다.
 
-## 직군 코드 (`JOB_GROUP_IDS`)
+## 직군 코드 (`WANTED_JOB_GROUP_IDS`)
 
 | 코드 | 직군 | 직무 수 |
 |---|---|---|
@@ -155,9 +155,9 @@ Wanted API 가 `job_group_id` 를 하나만 받기 때문이다.
 | `515` | 의료·제약·바이오 | 30 |
 | `514` | 공공·복지 | 12 |
 
-## 직무 코드 (`JOB_IDS`)
+## 직무 코드 (`WANTED_JOB_IDS`)
 
-직무는 직군 안에서만 뜻이 있다. `JOB_GROUP_IDS` 에 넣은 직군의 표에서 고른다.
+직무는 직군 안에서만 뜻이 있다. `WANTED_JOB_GROUP_IDS` 에 넣은 직군의 표에서 고른다.
 
 <details><summary><b>518 개발</b> — 직무 38개</summary>
 

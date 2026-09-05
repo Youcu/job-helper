@@ -1,5 +1,5 @@
 {
- "_comment": "채용 사이트 공통 기술 corpus. build_corpus.py 가 만든다. 손으로 고치지 마라.",
+ "_comment": "채용 사이트 공통 기술 corpus. 표준 이름과 분류. 새 사이트를 붙이며 관측된 기술은 source 를 그 사이트 이름으로 달아 손으로 더한다.",
  "_kinds": {
   "language": "프로그래밍 언어",
   "framework": "프레임워크",
@@ -11,9 +11,10 @@
   "protocol": "통신 규약·표준 (TCP, HTTP, OAuth)"
  },
  "_counts": {
-  "devskill_seed": 271,
-  "observed_added": 78,
-  "total": 349
+  "devskill": 270,
+  "saramin": 49,
+  "observed": 73,
+  "total": 392
  },
  "tech": [
   {
@@ -55,6 +56,20 @@
    "source": "devskill"
   },
   {
+   "name": "After Effects",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "saramin"
+  },
+  {
+   "name": "Airflow",
+   "kind": "framework",
+   "devtypes": [
+    "데이터 엔지니어"
+   ],
+   "source": "devskill"
+  },
+  {
    "name": "AIX",
    "kind": "platform",
    "devtypes": [],
@@ -67,10 +82,40 @@
    "source": "devskill"
   },
   {
+   "name": "Amazon Aurora",
+   "kind": "database",
+   "devtypes": [],
+   "source": "saramin"
+  },
+  {
    "name": "Amazon Bedrock",
    "kind": "library",
    "devtypes": [],
    "source": "devskill"
+  },
+  {
+   "name": "Amazon EC2",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "saramin"
+  },
+  {
+   "name": "Amazon EKS",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "saramin"
+  },
+  {
+   "name": "Amazon RDS",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "saramin"
+  },
+  {
+   "name": "Amazon S3",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "saramin"
   },
   {
    "name": "Android",
@@ -117,20 +162,10 @@
    "source": "devskill"
   },
   {
-   "name": "Apache Airflow",
-   "kind": "framework",
-   "devtypes": [
-    "데이터 엔지니어"
-   ],
-   "source": "devskill"
-  },
-  {
-   "name": "Apache Spark",
-   "kind": "framework",
-   "devtypes": [
-    "데이터 엔지니어"
-   ],
-   "source": "devskill"
+   "name": "Apex",
+   "kind": "language",
+   "devtypes": [],
+   "source": "saramin"
   },
   {
    "name": "APT",
@@ -151,6 +186,12 @@
     "임베디드 / 디바이스"
    ],
    "source": "devskill"
+  },
+  {
+   "name": "ARM",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "saramin"
   },
   {
    "name": "ASIC",
@@ -181,6 +222,12 @@
    "source": "devskill"
   },
   {
+   "name": "ASP.NET MVC",
+   "kind": "framework",
+   "devtypes": [],
+   "source": "saramin"
+  },
+  {
    "name": "Assembly",
    "kind": "language",
    "devtypes": [],
@@ -205,6 +252,12 @@
    "kind": "platform",
    "devtypes": [],
    "source": "devskill"
+  },
+  {
+   "name": "AWS Lambda",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "saramin"
   },
   {
    "name": "Axios",
@@ -355,6 +408,12 @@
    "source": "observed"
   },
   {
+   "name": "CNN",
+   "kind": "concept",
+   "devtypes": [],
+   "source": "saramin"
+  },
+  {
    "name": "COBOL",
    "kind": "language",
    "devtypes": [],
@@ -371,12 +430,6 @@
    "kind": "tool",
    "devtypes": [],
    "source": "devskill"
-  },
-  {
-   "name": "Confluence",
-   "kind": "tool",
-   "devtypes": [],
-   "source": "observed"
   },
   {
    "name": "Cosmos DB",
@@ -431,6 +484,12 @@
    "kind": "database",
    "devtypes": [],
    "source": "devskill"
+  },
+  {
+   "name": "Debian",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "saramin"
   },
   {
    "name": "Delphi",
@@ -607,6 +666,12 @@
    "source": "devskill"
   },
   {
+   "name": "Figma",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "saramin"
+  },
+  {
    "name": "Firebase",
    "kind": "database",
    "devtypes": [],
@@ -677,16 +742,10 @@
    "source": "devskill"
   },
   {
-   "name": "GitHub",
+   "name": "GitHub Actions",
    "kind": "tool",
    "devtypes": [],
-   "source": "observed"
-  },
-  {
-   "name": "GitLab",
-   "kind": "tool",
-   "devtypes": [],
-   "source": "observed"
+   "source": "saramin"
   },
   {
    "name": "Gleam",
@@ -713,6 +772,12 @@
     "게임 / 그래픽스"
    ],
    "source": "devskill"
+  },
+  {
+   "name": "Google ADK",
+   "kind": "framework",
+   "devtypes": [],
+   "source": "saramin"
   },
   {
    "name": "Google Cloud",
@@ -757,10 +822,22 @@
    "source": "devskill"
   },
   {
+   "name": "gRPC",
+   "kind": "framework",
+   "devtypes": [],
+   "source": "saramin"
+  },
+  {
    "name": "GUI",
    "kind": "concept",
    "devtypes": [],
    "source": "observed"
+  },
+  {
+   "name": "Gulp",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "saramin"
   },
   {
    "name": "H2",
@@ -823,6 +900,12 @@
    "source": "observed"
   },
   {
+   "name": "Hugging Face",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "saramin"
+  },
+  {
    "name": "I2C",
    "kind": "protocol",
    "devtypes": [],
@@ -847,10 +930,24 @@
    "source": "devskill"
   },
   {
+   "name": "Illustrator",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "saramin"
+  },
+  {
    "name": "InfluxDB",
    "kind": "database",
    "devtypes": [],
    "source": "devskill"
+  },
+  {
+   "name": "Ionic",
+   "kind": "framework",
+   "devtypes": [
+    "모바일"
+   ],
+   "source": "saramin"
   },
   {
    "name": "iOS",
@@ -895,12 +992,6 @@
     "모바일"
    ],
    "source": "devskill"
-  },
-  {
-   "name": "JIRA",
-   "kind": "tool",
-   "devtypes": [],
-   "source": "observed"
   },
   {
    "name": "JPA",
@@ -1015,6 +1106,12 @@
    "source": "devskill"
   },
   {
+   "name": "LoRA",
+   "kind": "concept",
+   "devtypes": [],
+   "source": "saramin"
+  },
+  {
    "name": "Lua",
    "kind": "language",
    "devtypes": [],
@@ -1025,6 +1122,12 @@
    "kind": "library",
    "devtypes": [],
    "source": "devskill"
+  },
+  {
+   "name": "LWC",
+   "kind": "framework",
+   "devtypes": [],
+   "source": "saramin"
   },
   {
    "name": "macOS",
@@ -1087,6 +1190,12 @@
    "source": "devskill"
   },
   {
+   "name": "MQTT",
+   "kind": "protocol",
+   "devtypes": [],
+   "source": "saramin"
+  },
+  {
    "name": "MSBuild",
    "kind": "tool",
    "devtypes": [],
@@ -1109,6 +1218,12 @@
    "kind": "database",
    "devtypes": [],
    "source": "devskill"
+  },
+  {
+   "name": "Naver Cloud Platform",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "saramin"
   },
   {
    "name": "Neo4j",
@@ -1273,16 +1388,40 @@
    "source": "devskill"
   },
   {
+   "name": "OpenSearch",
+   "kind": "database",
+   "devtypes": [],
+   "source": "saramin"
+  },
+  {
    "name": "OpenStack",
    "kind": "platform",
    "devtypes": [],
    "source": "observed"
   },
   {
+   "name": "OpenTelemetry",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "saramin"
+  },
+  {
    "name": "Oracle",
    "kind": "database",
    "devtypes": [],
    "source": "devskill"
+  },
+  {
+   "name": "Oracle APEX",
+   "kind": "framework",
+   "devtypes": [],
+   "source": "saramin"
+  },
+  {
+   "name": "Oracle Cloud",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "saramin"
   },
   {
    "name": "ORM",
@@ -1327,6 +1466,12 @@
     "풀스택"
    ],
    "source": "devskill"
+  },
+  {
+   "name": "Photoshop",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "saramin"
   },
   {
    "name": "PHP",
@@ -1377,6 +1522,12 @@
    "source": "devskill"
   },
   {
+   "name": "Power BI",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "saramin"
+  },
+  {
    "name": "PowerBuilder",
    "kind": "library",
    "devtypes": [],
@@ -1411,6 +1562,12 @@
    "kind": "tool",
    "devtypes": [],
    "source": "devskill"
+  },
+  {
+   "name": "Protobuf",
+   "kind": "protocol",
+   "devtypes": [],
+   "source": "saramin"
   },
   {
    "name": "Pydantic",
@@ -1484,6 +1641,12 @@
    "source": "devskill"
   },
   {
+   "name": "RCS",
+   "kind": "protocol",
+   "devtypes": [],
+   "source": "saramin"
+  },
+  {
    "name": "RDBMS",
    "kind": "database",
    "devtypes": [],
@@ -1554,6 +1717,12 @@
    "source": "observed"
   },
   {
+   "name": "RNN",
+   "kind": "concept",
+   "devtypes": [],
+   "source": "saramin"
+  },
+  {
    "name": "Room",
    "kind": "library",
    "devtypes": [],
@@ -1566,6 +1735,12 @@
     "임베디드 / 디바이스"
    ],
    "source": "devskill"
+  },
+  {
+   "name": "RS232",
+   "kind": "protocol",
+   "devtypes": [],
+   "source": "saramin"
   },
   {
    "name": "Ruby",
@@ -1588,10 +1763,28 @@
    "source": "devskill"
   },
   {
+   "name": "S/4HANA",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "saramin"
+  },
+  {
    "name": "SaaS",
    "kind": "platform",
    "devtypes": [],
    "source": "devskill"
+  },
+  {
+   "name": "Salesforce",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "saramin"
+  },
+  {
+   "name": "SAP",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "saramin"
   },
   {
    "name": "SAS",
@@ -1624,6 +1817,18 @@
    "source": "observed"
   },
   {
+   "name": "Selenium",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "saramin"
+  },
+  {
+   "name": "Sentry",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "saramin"
+  },
+  {
    "name": "SEO",
    "kind": "concept",
    "devtypes": [],
@@ -1634,6 +1839,12 @@
    "kind": "library",
    "devtypes": [],
    "source": "devskill"
+  },
+  {
+   "name": "SGLang",
+   "kind": "framework",
+   "devtypes": [],
+   "source": "saramin"
   },
   {
    "name": "Shell Script",
@@ -1650,12 +1861,6 @@
   {
    "name": "SIP",
    "kind": "protocol",
-   "devtypes": [],
-   "source": "observed"
-  },
-  {
-   "name": "Slack",
-   "kind": "tool",
    "devtypes": [],
    "source": "observed"
   },
@@ -1750,6 +1955,12 @@
    "kind": "protocol",
    "devtypes": [],
    "source": "observed"
+  },
+  {
+   "name": "Storm",
+   "kind": "tool",
+   "devtypes": [],
+   "source": "saramin"
   },
   {
    "name": "Struts",
@@ -1859,6 +2070,12 @@
    "source": "devskill"
   },
   {
+   "name": "TensorRT-LLM",
+   "kind": "library",
+   "devtypes": [],
+   "source": "saramin"
+  },
+  {
    "name": "Teradata",
    "kind": "database",
    "devtypes": [],
@@ -1878,6 +2095,12 @@
    "kind": "platform",
    "devtypes": [],
    "source": "devskill"
+  },
+  {
+   "name": "Transformer",
+   "kind": "concept",
+   "devtypes": [],
+   "source": "saramin"
   },
   {
    "name": "TypeScript",
@@ -1988,6 +2211,12 @@
    "source": "devskill"
   },
   {
+   "name": "vLLM",
+   "kind": "framework",
+   "devtypes": [],
+   "source": "saramin"
+  },
+  {
    "name": "VoIP",
    "kind": "protocol",
    "devtypes": [],
@@ -2000,6 +2229,12 @@
     "프론트엔드"
    ],
    "source": "devskill"
+  },
+  {
+   "name": "VxWorks",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "saramin"
   },
   {
    "name": "WAS",
@@ -2036,6 +2271,24 @@
    "kind": "library",
    "devtypes": [],
    "source": "devskill"
+  },
+  {
+   "name": "WebSocket",
+   "kind": "protocol",
+   "devtypes": [],
+   "source": "saramin"
+  },
+  {
+   "name": "WFP",
+   "kind": "framework",
+   "devtypes": [],
+   "source": "saramin"
+  },
+  {
+   "name": "Windows",
+   "kind": "platform",
+   "devtypes": [],
+   "source": "saramin"
   },
   {
    "name": "WinForm",
@@ -2220,6 +2473,12 @@
    "kind": "concept",
    "devtypes": [],
    "source": "observed"
+  },
+  {
+   "name": "풀스택",
+   "kind": "concept",
+   "devtypes": [],
+   "source": "saramin"
   }
  ]
 }

@@ -1,0 +1,131 @@
+# 기술스택이 아니라고 **사람이 판단한** 이름. 다시 후보로 올리지 않는다.
+#
+# ── 기준: 개념이냐 아니냐가 아니라, **변별력이 있느냐** ──
+#
+# 처음에는 "개념이면 뺀다" 로 갈랐는데 그건 틀린 기준이었다.
+# 개념이라서 빼는 게 아니라 **모두가 갖다 붙일 수 있어서** 빼는 것이다.
+#
+#   물어볼 것 하나 — **"이걸 다룰 줄 아느냐"에 사람마다 답이 갈리는가.**
+#
+#   갈린다  → 남긴다.  형태가 개념이어도 상관없다.
+#             `Transformer` `CNN` `RAG` `LoRA` 는 구조·기법이지만 구현에 실력 차가 난다.
+#             AI 쪽에서는 이런 것을 **구체적으로 다룰 수 있느냐**를 묻는다.
+#   안 갈린다 → 뺀다.
+#             `CI/CD` `MSA` `AI/ML` 은 안 한다고 말하는 회사가 없다.
+#             `GitHub` `Slack` 은 계정만 있으면 된다. `MCP` 는 개나 소나 쓴다.
+#
+# 그래서 `Transformer` 는 남고 `CI/CD` 는 빠진다. 둘 다 형태는 개념이다.
+# 가르는 것은 **깊이**다 — 익히는 데 시간이 드는가, 잘하고 못하고가 있는가.
+#
+# 이 파일은 tech_blocklist.txt 와 다르다.
+#   blocklist  : 진짜 기술이지만 **산문에서 오탐**이 되는 이름 (Lambda, Storm, S3)
+#   rejected   : 애초에 **기술스택이 아닌** 이름
+#
+# 판단이 바뀌면 여기서 지우고 tech_corpus.json 으로 옮기면 된다.
+
+# 협업 · 편집 도구
+# Slack·JIRA·Confluence 는 wanted 작업 때 산문에서 관측돼 corpus 에 들어가 있었다.
+# 같은 기준이면 이것들도 기술스택이 아니다 — 두면 "Notion 은 빼고 Slack 은 두는"
+# 자기모순이 되어, 다음 사이트를 붙일 때 어느 쪽인지 판단할 근거가 없어진다.
+Claude Code
+Cursor
+Notion
+MS-Teams
+Microsoft Teams
+Slack
+JIRA
+Jira
+Confluence
+
+# 형상관리 호스팅 — 계정이 있는 것이지 익힌 기술이 아니다.
+# "깃허브를 안 쓰는 게 어떻게 개발자야" — 모두가 쓰면 변별력이 없다.
+# 다만 Git 자체는 남긴다. 브랜치 전략·충돌 해결처럼 **깊이가 있는** 도구다.
+GitHub
+Github
+GitLab
+Gitlab
+깃허브
+깃랩
+
+# 회사 · 서비스 브랜드 이름 — 만든 게 아니라 쓰는 것이다
+Anthropic
+Gemini
+ChatGPT
+Claude
+Claude Max
+Copilot
+GPT
+Codex
+Llama3
+HyperclovaX
+DeepAgents
+
+# 분야 · 범주 이름 — "이걸 다룰 줄 아느냐"에 답이 안 갈린다
+LLM
+LLM API
+VectorDB
+Vector DB
+벡터DB
+Graph DB
+Graph RAG
+GraphRAG
+Embedding
+Prompt Engineering
+AI/ML
+AI-OCR
+Maas(Model as a Service)
+Hybrid-Multi 클라우드
+CI/CD
+MSA
+RPA
+CAD
+MCU
+Open API
+A2A
+OCI
+
+# 업무 시스템 · 보안 장비의 갈래 이름 — 제품이 아니라 분야다
+CRM
+ERP
+MES
+OMS
+WMS
+HTS
+MTS
+DLP
+IPS
+NAC
+웹방화벽
+
+# 너무 흔해서 변별력이 없다
+MCP
+JSON
+SMS
+MS Office
+Google Workspace
+
+# 이슈 트래커 · 편집기 — 위 협업 도구와 같은 갈래다
+Clickup
+Redmine
+IntelliJ
+DtaGrip
+DataGrip
+
+# 하드웨어 제품
+메타퀘스트
+AVR
+
+# corpus 후보에서 직접 걷어낸 것 (2026-09-04).
+# 이것들은 **깊이가 없어서가 아니라 범위 밖**이라 뺐다 — 특정 벤더 제품군(SAP 계열),
+# 화면 부품 라이브러리, OS 제품 같은 것들이다. 위 기준과 다른 축이므로 따로 적어 둔다.
+# 범위가 바뀌면 여기서 지우고 tech_corpus.json 으로 옮기면 된다.
+Android WebView
+Chart.js
+DevExpress
+ECharts
+MiniFilter
+SAP BTP
+SAP Business One
+SAP HANA
+SuccessFactors
+Windows Server
