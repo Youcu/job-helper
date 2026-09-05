@@ -12,7 +12,7 @@ def test_BOUNDARY_duplicate_config_values_collapse():
     """같은 직군을 두 번 적어도 두 번 크롤하지 않는다."""
     import tempfile
     with tempfile.TemporaryDirectory() as d:
-        env = write_env(Path(d), "JOB_GROUP_IDS=518,518,559\nJOB_IDS=872,872\n")
+        env = write_env(Path(d), "WANTED_JOB_GROUP_IDS=518,518,559\nWANTED_JOB_IDS=872,872\n")
         cfg = load_config(env)
         assert cfg.job_group_ids == [518, 559] and cfg.job_ids == [872]
 
@@ -32,7 +32,7 @@ def test_EXCEPTION_env_does_not_leak_from_shell_environment():
         os.environ["HOME_LOCATIONS"] = "부산"
         os.environ["YOE"] = "9"
         with tempfile.TemporaryDirectory() as d:
-            cfg = load_config(write_env(Path(d), "JOB_GROUP_IDS=518\n"))
+            cfg = load_config(write_env(Path(d), "WANTED_JOB_GROUP_IDS=518\n"))
         assert cfg.tech_stacks == [], cfg.tech_stacks
         assert cfg.home_locations == [], cfg.home_locations
         assert cfg.yoe == -1, cfg.yoe            # .env 에 없으면 기본값
@@ -48,7 +48,7 @@ def test_EXCEPTION_env_empty_value_does_not_swallow_comment():
     """결함: 값이 비면 python-dotenv 가 다음 줄 주석을 값으로 읽어 온 적이 있다."""
     import tempfile
     with tempfile.TemporaryDirectory() as d:
-        env = write_env(Path(d), "JOB_GROUP_IDS=518\n# 희망근무지\nHOME_LOCATIONS=\n")
+        env = write_env(Path(d), "WANTED_JOB_GROUP_IDS=518\n# 희망근무지\nHOME_LOCATIONS=\n")
         assert load_config(env).home_locations == []
 
 
@@ -56,7 +56,7 @@ def test_EXCEPTION_env_inline_comment_after_space_is_still_stripped():
     """값 뒤에 공백을 두고 붙인 주석은 여전히 걷어내야 한다 (dotenv 관례)."""
     import tempfile
     with tempfile.TemporaryDirectory() as d:
-        env = write_env(Path(d), "JOB_GROUP_IDS=518\nTECH_STACKS=Python,Java   # 보유 스택\n")
+        env = write_env(Path(d), "WANTED_JOB_GROUP_IDS=518\nTECH_STACKS=Python,Java   # 보유 스택\n")
         assert load_config(env).tech_stacks == ["Python", "Java"]
 
 
@@ -65,24 +65,24 @@ def test_EXCEPTION_env_missing_or_invalid():
     assert_raises(ConfigError, load_config, Path("/tmp/절대_없는_파일.env"))
     with tempfile.TemporaryDirectory() as d:
         # 직군이 없으면 무엇을 긁을지 알 수 없다 — 조용히 전체를 긁으면 안 된다
-        assert_raises(ConfigError, load_config, write_env(Path(d), "JOB_GROUP_IDS=\n"))
+        assert_raises(ConfigError, load_config, write_env(Path(d), "WANTED_JOB_GROUP_IDS=\n"))
         # 숫자가 아닌 직군
-        assert_raises(ConfigError, load_config, write_env(Path(d), "JOB_GROUP_IDS=개발\n"))
+        assert_raises(ConfigError, load_config, write_env(Path(d), "WANTED_JOB_GROUP_IDS=개발\n"))
         # 모르는 고용형태를 조용히 무시하면 조건과 다른 결과가 나온다
         assert_raises(ConfigError, load_config,
-                      write_env(Path(d), "JOB_GROUP_IDS=518\nEMPLOYMENT_TYPES=정규직\n"))
+                      write_env(Path(d), "WANTED_JOB_GROUP_IDS=518\nEMPLOYMENT_TYPES=정규직\n"))
         # 경력이 정수가 아니거나 범위 밖
-        assert_raises(ConfigError, load_config, write_env(Path(d), "JOB_GROUP_IDS=518\nYOE=신입\n"))
-        assert_raises(ConfigError, load_config, write_env(Path(d), "JOB_GROUP_IDS=518\nYOE=99\n"))
-        assert_raises(ConfigError, load_config, write_env(Path(d), "JOB_GROUP_IDS=518\nYOE=-2\n"))
+        assert_raises(ConfigError, load_config, write_env(Path(d), "WANTED_JOB_GROUP_IDS=518\nYOE=신입\n"))
+        assert_raises(ConfigError, load_config, write_env(Path(d), "WANTED_JOB_GROUP_IDS=518\nYOE=99\n"))
+        assert_raises(ConfigError, load_config, write_env(Path(d), "WANTED_JOB_GROUP_IDS=518\nYOE=-2\n"))
 
 
 def test_EXCEPTION_env_reads_are_independent_of_each_other():
     """설정을 두 번 읽으면 앞의 값이 뒤에 남으면 안 된다."""
     import tempfile
     with tempfile.TemporaryDirectory() as d1, tempfile.TemporaryDirectory() as d2:
-        a = load_config(write_env(Path(d1), "JOB_GROUP_IDS=518\nTECH_STACKS=Python\nYOE=3\n"))
-        b = load_config(write_env(Path(d2), "JOB_GROUP_IDS=518\n"))
+        a = load_config(write_env(Path(d1), "WANTED_JOB_GROUP_IDS=518\nTECH_STACKS=Python\nYOE=3\n"))
+        b = load_config(write_env(Path(d2), "WANTED_JOB_GROUP_IDS=518\n"))
         assert a.tech_stacks == ["Python"] and a.yoe == 3
         assert b.tech_stacks == [] and b.yoe == -1, (b.tech_stacks, b.yoe)
 
@@ -94,7 +94,7 @@ def test_EXCEPTION_env_value_containing_hash_is_not_truncated(tmp=Path("/tmp")):
     """
     import tempfile
     with tempfile.TemporaryDirectory() as d:
-        env = write_env(Path(d), "JOB_GROUP_IDS=518\nTECH_STACKS=C#,Java,F#\n")
+        env = write_env(Path(d), "WANTED_JOB_GROUP_IDS=518\nTECH_STACKS=C#,Java,F#\n")
         cfg = load_config(env)
         assert cfg.tech_stacks == ["C#", "Java", "F#"], cfg.tech_stacks
 

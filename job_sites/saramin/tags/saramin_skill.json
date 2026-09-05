@@ -1,0 +1,710 @@
+{
+ "_comment": "사람인 기술스택 어휘. job_category 의 SCLS_CD_NM='기술스택' 축이다. Wanted 의 job.skill_tags 에 대응하는 구조화 소스.",
+ "_how": "공고 상세의 #태그 링크 /zf_user/jobs/list/job-category?cat_kewd=<code> 에서 code 를 뽑아 여기 code 와 맞춘다. **이름 문자열로 맞추지 마라** — 사이트 표기가 흔들린다. cat_kewd 파라미터로 검색 필터에도 그대로 쓸 수 있다.",
+ "_source": "https://www.saramin.co.kr/zf_user/jobs/list/domestic?search_reset=y 페이지 안 options JSON",
+ "_collected": "2026-09-03",
+ "_verified": "2026-09-03 · 공고 131건 중 85건(65%)이 이 코드를 하나 이상 달고 있다",
+ "_note": "count 는 수집 시점의 전체 공고수. 참고용이다.",
+ "tech": [
+  {
+   "code": "184",
+   "name": ".NET",
+   "count": 228
+  },
+  {
+   "code": "185",
+   "name": "그누보드",
+   "count": 11
+  },
+  {
+   "code": "186",
+   "name": "라즈베리파이",
+   "count": 47
+  },
+  {
+   "code": "187",
+   "name": "쉘스크립트",
+   "count": 56
+  },
+  {
+   "code": "188",
+   "name": "액션스크립트",
+   "count": 5
+  },
+  {
+   "code": "189",
+   "name": "어셈블리",
+   "count": 30
+  },
+  {
+   "code": "190",
+   "name": "와이어샤크",
+   "count": 20
+  },
+  {
+   "code": "191",
+   "name": "파워빌더",
+   "count": 16
+  },
+  {
+   "code": "192",
+   "name": "ABAP",
+   "count": 48
+  },
+  {
+   "code": "193",
+   "name": "AIX",
+   "count": 108
+  },
+  {
+   "code": "194",
+   "name": "Ajax",
+   "count": 79
+  },
+  {
+   "code": "195",
+   "name": "Android",
+   "count": 167
+  },
+  {
+   "code": "196",
+   "name": "Angular",
+   "count": 42
+  },
+  {
+   "code": "197",
+   "name": "Apache",
+   "count": 48
+  },
+  {
+   "code": "198",
+   "name": "ArcGIS",
+   "count": 15
+  },
+  {
+   "code": "199",
+   "name": "ASP",
+   "count": 62
+  },
+  {
+   "code": "200",
+   "name": "ASP.NET",
+   "count": 89
+  },
+  {
+   "code": "201",
+   "name": "AWS",
+   "count": 495
+  },
+  {
+   "code": "202",
+   "name": "Azure",
+   "count": 169
+  },
+  {
+   "code": "203",
+   "name": "Bootstrap",
+   "count": 15
+  },
+  {
+   "code": "204",
+   "name": "C#",
+   "count": 718
+  },
+  {
+   "code": "205",
+   "name": "C++",
+   "count": 1086
+  },
+  {
+   "code": "206",
+   "name": "C언어",
+   "count": 727
+  },
+  {
+   "code": "207",
+   "name": "CentOS",
+   "count": 49
+  },
+  {
+   "code": "208",
+   "name": "COBOL",
+   "count": 2
+  },
+  {
+   "code": "209",
+   "name": "CSS",
+   "count": 213
+  },
+  {
+   "code": "210",
+   "name": "CSS3",
+   "count": 72
+  },
+  {
+   "code": "211",
+   "name": "Delphi",
+   "count": 20
+  },
+  {
+   "code": "212",
+   "name": "Directx",
+   "count": 7
+  },
+  {
+   "code": "213",
+   "name": "Django",
+   "count": 38
+  },
+  {
+   "code": "214",
+   "name": "Docker",
+   "count": 361
+  },
+  {
+   "code": "215",
+   "name": "Eclipse",
+   "count": 24
+  },
+  {
+   "code": "216",
+   "name": "ECMAScript",
+   "count": 37
+  },
+  {
+   "code": "217",
+   "name": "ElasticStack",
+   "count": 26
+  },
+  {
+   "code": "218",
+   "name": "Flask",
+   "count": 27
+  },
+  {
+   "code": "219",
+   "name": "FLEX",
+   "count": 3
+  },
+  {
+   "code": "220",
+   "name": "Flutter",
+   "count": 69
+  },
+  {
+   "code": "221",
+   "name": "GCP",
+   "count": 110
+  },
+  {
+   "code": "222",
+   "name": "Git",
+   "count": 455
+  },
+  {
+   "code": "223",
+   "name": "GoLang",
+   "count": 51
+  },
+  {
+   "code": "224",
+   "name": "GraphQL",
+   "count": 21
+  },
+  {
+   "code": "225",
+   "name": "Groovy",
+   "count": 4
+  },
+  {
+   "code": "226",
+   "name": "Gulp",
+   "count": 1
+  },
+  {
+   "code": "227",
+   "name": "Hadoop",
+   "count": 32
+  },
+  {
+   "code": "228",
+   "name": "HBase",
+   "count": 6
+  },
+  {
+   "code": "229",
+   "name": "HTML",
+   "count": 282
+  },
+  {
+   "code": "230",
+   "name": "HTML5",
+   "count": 152
+  },
+  {
+   "code": "231",
+   "name": "IaaS",
+   "count": 30
+  },
+  {
+   "code": "232",
+   "name": "iBATIS",
+   "count": 12
+  },
+  {
+   "code": "233",
+   "name": "Ionic",
+   "count": 2
+  },
+  {
+   "code": "234",
+   "name": "iOS",
+   "count": 134
+  },
+  {
+   "code": "235",
+   "name": "Java",
+   "count": 1163
+  },
+  {
+   "code": "236",
+   "name": "Javascript",
+   "count": 633
+  },
+  {
+   "code": "237",
+   "name": "Jenkins",
+   "count": 92
+  },
+  {
+   "code": "238",
+   "name": "JPA",
+   "count": 75
+  },
+  {
+   "code": "239",
+   "name": "jQuery",
+   "count": 171
+  },
+  {
+   "code": "240",
+   "name": "JSP",
+   "count": 183
+  },
+  {
+   "code": "241",
+   "name": "Kafka",
+   "count": 96
+  },
+  {
+   "code": "242",
+   "name": "Keras",
+   "count": 19
+  },
+  {
+   "code": "243",
+   "name": "Kotlin",
+   "count": 109
+  },
+  {
+   "code": "244",
+   "name": "Kubernetes",
+   "count": 227
+  },
+  {
+   "code": "245",
+   "name": "LabVIEW",
+   "count": 40
+  },
+  {
+   "code": "246",
+   "name": "Linux",
+   "count": 852
+  },
+  {
+   "code": "247",
+   "name": "Logstash",
+   "count": 8
+  },
+  {
+   "code": "248",
+   "name": "Lucene",
+   "count": 2
+  },
+  {
+   "code": "249",
+   "name": "MacOS",
+   "count": 34
+  },
+  {
+   "code": "250",
+   "name": "MariaDB",
+   "count": 185
+  },
+  {
+   "code": "251",
+   "name": "Matlab",
+   "count": 55
+  },
+  {
+   "code": "252",
+   "name": "Maven",
+   "count": 18
+  },
+  {
+   "code": "253",
+   "name": "MFC",
+   "count": 137
+  },
+  {
+   "code": "254",
+   "name": "MongoDB",
+   "count": 99
+  },
+  {
+   "code": "255",
+   "name": "MSSQL",
+   "count": 273
+  },
+  {
+   "code": "256",
+   "name": "MyBatis",
+   "count": 67
+  },
+  {
+   "code": "257",
+   "name": "MySQL",
+   "count": 480
+  },
+  {
+   "code": "258",
+   "name": "Node.js",
+   "count": 272
+  },
+  {
+   "code": "259",
+   "name": "NoSQL",
+   "count": 119
+  },
+  {
+   "code": "260",
+   "name": "Objective-C",
+   "count": 19
+  },
+  {
+   "code": "261",
+   "name": "OpenCV",
+   "count": 188
+  },
+  {
+   "code": "262",
+   "name": "OpenGL",
+   "count": 36
+  },
+  {
+   "code": "263",
+   "name": "OracleDB",
+   "count": 297
+  },
+  {
+   "code": "264",
+   "name": "OSS",
+   "count": 16
+  },
+  {
+   "code": "265",
+   "name": "PaaS",
+   "count": 26
+  },
+  {
+   "code": "266",
+   "name": "Pandas",
+   "count": 48
+  },
+  {
+   "code": "267",
+   "name": "Perl",
+   "count": 66
+  },
+  {
+   "code": "268",
+   "name": "PHP",
+   "count": 110
+  },
+  {
+   "code": "269",
+   "name": "PL/SQL",
+   "count": 81
+  },
+  {
+   "code": "270",
+   "name": "PostgreSQL",
+   "count": 274
+  },
+  {
+   "code": "271",
+   "name": "Pro-C",
+   "count": 19
+  },
+  {
+   "code": "272",
+   "name": "Python",
+   "count": 1271
+  },
+  {
+   "code": "273",
+   "name": "Pytorch",
+   "count": 268
+  },
+  {
+   "code": "274",
+   "name": "QGIS",
+   "count": 21
+  },
+  {
+   "code": "275",
+   "name": "Qt",
+   "count": 36
+  },
+  {
+   "code": "276",
+   "name": "R",
+   "count": 47
+  },
+  {
+   "code": "277",
+   "name": "React",
+   "count": 376
+  },
+  {
+   "code": "278",
+   "name": "React-Native",
+   "count": 61
+  },
+  {
+   "code": "279",
+   "name": "ReactJS",
+   "count": 109
+  },
+  {
+   "code": "280",
+   "name": "Redis",
+   "count": 96
+  },
+  {
+   "code": "281",
+   "name": "Redux",
+   "count": 29
+  },
+  {
+   "code": "282",
+   "name": "RestAPI",
+   "count": 324
+  },
+  {
+   "code": "283",
+   "name": "Ruby",
+   "count": 10
+  },
+  {
+   "code": "284",
+   "name": "SaaS",
+   "count": 123
+  },
+  {
+   "code": "285",
+   "name": "SAS",
+   "count": 22
+  },
+  {
+   "code": "286",
+   "name": "Scala",
+   "count": 11
+  },
+  {
+   "code": "287",
+   "name": "Servlet",
+   "count": 10
+  },
+  {
+   "code": "288",
+   "name": "Solaris",
+   "count": 4
+  },
+  {
+   "code": "289",
+   "name": "Spark",
+   "count": 30
+  },
+  {
+   "code": "290",
+   "name": "Splunk",
+   "count": 24
+  },
+  {
+   "code": "291",
+   "name": "Spring",
+   "count": 298
+  },
+  {
+   "code": "292",
+   "name": "SpringBoot",
+   "count": 345
+  },
+  {
+   "code": "293",
+   "name": "SQL",
+   "count": 476
+  },
+  {
+   "code": "294",
+   "name": "SQLite",
+   "count": 37
+  },
+  {
+   "code": "295",
+   "name": "Storm",
+   "count": 2
+  },
+  {
+   "code": "296",
+   "name": "Struts",
+   "count": 1
+  },
+  {
+   "code": "297",
+   "name": "SVN",
+   "count": 38
+  },
+  {
+   "code": "298",
+   "name": "Swift",
+   "count": 38
+  },
+  {
+   "code": "299",
+   "name": "Sybase",
+   "count": 3
+  },
+  {
+   "code": "300",
+   "name": "Tensorflow",
+   "count": 155
+  },
+  {
+   "code": "301",
+   "name": "Tomcat",
+   "count": 52
+  },
+  {
+   "code": "302",
+   "name": "TypeScript",
+   "count": 207
+  },
+  {
+   "code": "303",
+   "name": "Ubuntu",
+   "count": 79
+  },
+  {
+   "code": "304",
+   "name": "Unity",
+   "count": 64
+  },
+  {
+   "code": "305",
+   "name": "Unix",
+   "count": 121
+  },
+  {
+   "code": "306",
+   "name": "Unreal",
+   "count": 49
+  },
+  {
+   "code": "307",
+   "name": "VB.NET",
+   "count": 47
+  },
+  {
+   "code": "308",
+   "name": "Verilog",
+   "count": 124
+  },
+  {
+   "code": "309",
+   "name": "Vert.x",
+   "count": 4
+  },
+  {
+   "code": "310",
+   "name": "VisualBasic",
+   "count": 43
+  },
+  {
+   "code": "311",
+   "name": "VisualC·C++",
+   "count": 189
+  },
+  {
+   "code": "312",
+   "name": "Vue.js",
+   "count": 179
+  },
+  {
+   "code": "313",
+   "name": "WAS",
+   "count": 57
+  },
+  {
+   "code": "314",
+   "name": "WebGL",
+   "count": 31
+  },
+  {
+   "code": "315",
+   "name": "Webpack",
+   "count": 23
+  },
+  {
+   "code": "316",
+   "name": "WebRTC",
+   "count": 31
+  },
+  {
+   "code": "317",
+   "name": "WPF",
+   "count": 145
+  },
+  {
+   "code": "318",
+   "name": "XML",
+   "count": 42
+  },
+  {
+   "code": "319",
+   "name": "아두이노",
+   "count": 40
+  },
+  {
+   "code": "320",
+   "name": "임베디드리눅스",
+   "count": 361
+  },
+  {
+   "code": "2232",
+   "name": "풀스택",
+   "count": 347
+  },
+  {
+   "code": "2233",
+   "name": "Solidity",
+   "count": 6
+  },
+  {
+   "code": "2234",
+   "name": "스마트컨트랙트",
+   "count": 11
+  }
+ ]
+}

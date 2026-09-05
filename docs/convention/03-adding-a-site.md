@@ -70,7 +70,13 @@ def find_skills_in_text(text: str) -> list[str]:
 ## 3. 체크리스트
 
 ### 설정
-- [ ] `.env` 항목이 기존과 겹치면 **같은 이름**을 쓴다. 사이트마다 다른 이름을 붙이지 않는다
+- [ ] **뜻이 같은 항목은 같은 이름**을 쓴다 — `YOE` `HOME_LOCATIONS` `TECH_STACKS`
+      `HOPE_ANNUAL_SALARY` `EMPLOYMENT_TYPES`. 사이트마다 다른 이름을 붙이지 않는다
+- [ ] **코드표 항목은 `<SITE>_` 를 붙인다** — `WANTED_JOB_IDS` `SARAMIN_JOB_IDS`.
+      값 체계가 사이트마다 달라 한 칸에 못 넣는다 (Wanted 의 `872` ≠ 사람인의 `84`)
+- [ ] **짧은 이름으로 되돌아가지 않는다.** 되돌아가면 자기 항목을 안 적었을 때
+      **남의 사이트 코드로 긁는다** — 예외도 안 나고 결과도 나온다. 실제로 그렇게
+      만들었다가 고쳤다. 없으면 멈추고 무엇을 적어야 하는지 알려라
 - [ ] 새 항목이 필요하면 **`README.md` 에 적는다.** `.env.example` 은 만들지 않는다
 - [ ] `dotenv_values()` 로 **파일만** 읽는다. `load_dotenv()` 는 셸 환경변수가 새어 든다
 

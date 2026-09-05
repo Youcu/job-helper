@@ -12,6 +12,10 @@
 **/__pycache__/
 *.py[cod]
 
+# 커버리지 측정 산출물 — 돌릴 때마다 새로 생긴다
+.coverage
+htmlcov/
+
 # Agent Context Logs
 **/context/
 
@@ -24,3 +28,9 @@
 # 수집 산출물
 # 사람마다 스크랩 대상이 다르다. 남의 조건으로 뽑은 CSV 를 받을 이유가 없다.
 **/csv/
+
+# 이미지 판독 캐시 · 코퍼스 후보
+# 캐시는 다시 만들면 되고, 후보는 사람이 보고 사전으로 옮기면 사라지는 중간물이다.
+**/cache/
+corpus_candidates.json
+corpus_candidates.csv

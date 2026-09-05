@@ -51,3 +51,10 @@ API
 UI
 UX
 HCI
+Storm
+Lambda
+RDS
+S3
+EC2
+EKS
+ARM

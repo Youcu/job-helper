@@ -5,7 +5,8 @@
 
   tech_corpus.json        표준 이름 + 분류(kind) + devtypes
   tech_aliases.json       별칭 → 표준 이름
-  tech_blocklist.txt      산문 매칭에서 걸러 낼 말
+  tech_blocklist.txt      산문 매칭에서 걸러 낼 말 — 진짜 기술이지만 오탐이 되는 것
+  tech_rejected.txt       기술스택이 **아니라고 사람이 판단한** 이름. 다시 후보로 안 올린다
   tech_ko_allowlist.txt   산문에서 찾을 한글 기술어 (`표기` 또는 `표기 = 표준표기`)
 
 없는 파일은 빈 사전으로 돌려준다 — 부분 체크아웃이나 손편집으로 파일이 사라져도
@@ -22,6 +23,7 @@ DICT_DIR = Path(__file__).resolve().parent
 CORPUS_FILE = "tech_corpus.json"
 ALIASES_FILE = "tech_aliases.json"
 BLOCKLIST_FILE = "tech_blocklist.txt"
+REJECTED_FILE = "tech_rejected.txt"
 KO_ALLOWLIST_FILE = "tech_ko_allowlist.txt"
 
 
@@ -84,6 +86,16 @@ def blocklist() -> frozenset[str]:
 
 
 @lru_cache(maxsize=1)
+def rejected() -> frozenset[str]:
+    """소문자로 모은, 기술스택이 아니라고 판단한 이름.
+
+    `blocklist()` 와 다르다 — 저쪽은 진짜 기술인데 산문에서 오탐이 되는 것이고,
+    이쪽은 애초에 기술스택이 아닌 것이다. 코퍼스 후보로 다시 올라오지 않게 막는다.
+    """
+    return frozenset(line.lower() for line in _read_lines(REJECTED_FILE))
+
+
+@lru_cache(maxsize=1)
 def korean_terms() -> dict[str, str]:
     """산문에서 찾을 한글 기술어 → 표준 표기.
 
@@ -103,5 +115,5 @@ def korean_terms() -> dict[str, str]:
 def clear_caches() -> None:
     """사전을 다시 읽는다. 테스트가 파일을 바꿔 끼울 때 쓴다."""
     for cached in (corpus, aliases, alias_spellings, corpus_names,
-                   blocklist, korean_terms):
+                   blocklist, rejected, korean_terms):
         cached.cache_clear()
