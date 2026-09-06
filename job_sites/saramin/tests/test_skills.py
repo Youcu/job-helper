@@ -148,3 +148,37 @@ def test_BOUNDARY_skills_are_found_inside_nested_divs():
     # 본문 자르기는 body.py 가 하지만, 그 결과로 기술이 실제로 잡히는지는 여기서 본다.
     check("Java" in skills.extract_skills(body("<div><div><p>Java 를 씁니다</p></div></div>")),
           "겹친 div 안의 글에서도 찾아야 한다")
+
+
+# ── 공통으로 올린 것 ──────────────────────────────────────────────────────
+# 잡코리아·잡플래닛·점핏이 똑같은 세 줄(`_matcher`/`clear_caches`/`find_skills_in_text`)을
+# 각자 쓰고 있었다. **`_common` 시험은 사람인에 둔다** — 세 사이트가 함께 쓰는 코드라
+# 어느 한 사이트에 붙여 두면 그 사이트를 지웠을 때 시험도 같이 사라진다.
+
+
+def test_NORMAL_corpus_matcher_finds_names():
+    from _common.skills import find_in_corpus
+    found = find_in_corpus("Java 와 Spring Boot 로 백엔드를 만듭니다")
+    check("Java" in found and "Spring Boot" in found, found)
+
+
+def test_EXCEPTION_corpus_matcher_handles_empty_text():
+    from _common.skills import find_in_corpus
+    for value in ("", None, "   ", "가나다라마바사"):
+        check_equal(find_in_corpus(value), [], "빈 입력에 이름을 지어내지 않는다: %r" % value)
+
+
+def test_BOUNDARY_build_matcher_without_site_terms():
+    # 쓸 만한 사이트 어휘가 없는 사이트는 비워 둔다. corpus 는 어차피 안에서 더한다 —
+    # `site_terms=corpus_names()` 로 넘기면 같은 목록을 두 번 넣는 셈이었다.
+    from _common.skills import build_matcher
+    check(build_matcher().find("Python 개발자"), "어휘를 안 넘겨도 corpus 로 찾는다")
+
+
+def test_BOUNDARY_corpus_matcher_is_cached_and_clearable():
+    from _common.skills import clear_corpus_matcher, corpus_matcher
+    first = corpus_matcher()
+    check(corpus_matcher() is first, "같은 매처를 돌려줘야 한다 (사전 세 벌을 다시 안 읽는다)")
+    clear_corpus_matcher()
+    check(corpus_matcher() is not first, "비운 뒤에는 새로 만들어야 한다")
+    check_equal(corpus_matcher().find("Java"), first.find("Java"), "결과는 같아야 한다")
