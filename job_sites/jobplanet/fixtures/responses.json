@@ -1,0 +1,835 @@
+{
+ "_note": "실제 응답을 떠 놓은 것. 네트워크를 안 타고 테스트한다",
+ "listing": {
+  "why": "목록 응답 8건 — 자체 3건과 잡코리아 중계 5건이 섞여 있다",
+  "data": {
+   "total_count": 414,
+   "recruits": [
+    {
+     "id": 1404269,
+     "bookmark": false,
+     "image": "https://jpassets.jobplanet.co.kr/production/uploads/material/media/13148/job_posting_default_thumbnail.jpg",
+     "low_image": "https://jpassets.jobplanet.co.kr/production/uploads/material/media/13148/job_posting_default_thumbnail.jpg",
+     "title": "Backend Engineer(5년 이상)",
+     "occupation_names": {
+      "level1": [
+       "개발"
+      ],
+      "level2": [
+       "백엔드 개발"
+      ]
+     },
+     "is_fit_messages": false,
+     "fee": "7%",
+     "job_applicant_type": "user",
+     "annual": {
+      "type": [
+       2
+      ],
+      "years": 5,
+      "maximum_years": 10,
+      "text": "경력"
+     },
+     "recruitment_text": [
+      "5 ~ 10년"
+     ],
+     "job_type": "정규직",
+     "posting_type": "recruitment",
+     "posting_apply_type": "jobplanet",
+     "external_url": null,
+     "jobkorea_posting_id": null,
+     "skills": [
+      "java",
+      "kotlin",
+      "MYSQL",
+      "JIRA",
+      "spring boot",
+      "mybatis",
+      "backend",
+      "slack",
+      "confluence"
+     ],
+     "reward": 1000000,
+     "reward_text": "100만원",
+     "reward_type_text": "축하금",
+     "deadline_message": "~9/15(화)",
+     "logo_thumb_url": "https://jpassets.jobplanet.co.kr/production/uploads/company/logo/386855/thumb_Colosseum_%E1%84%80%E1%85%A1%E1%84%85%E1%85%A9%E1%84%92%E1%85%A7%E1%86%BC_%E1%84%80%E1%85%B5%E1%84%87%E1%85%A9%E1%86%AB%E1%84%92%E1%85%A7%E1%86%BC_RGB.jpg",
+     "pref_text": "워라밸 3.4",
+     "career_text": "5~10년",
+     "cities": [
+      "서울"
+     ],
+     "company": {
+      "id": 386855,
+      "logo": "https://jpassets.jobplanet.co.kr/production/uploads/company/logo/386855/thumb_Colosseum_%E1%84%80%E1%85%A1%E1%84%85%E1%85%A9%E1%84%92%E1%85%A7%E1%86%BC_%E1%84%80%E1%85%B5%E1%84%87%E1%85%A9%E1%86%AB%E1%84%92%E1%85%A7%E1%86%BC_RGB.jpg",
+      "name": "(주)콜로세움코퍼레이션",
+      "grade": 2.7,
+      "grade_count": 33,
+      "city_name": "서울",
+      "is_branding": false
+     },
+     "start_at": "2026-08-28",
+     "end_at": "2026-09-15",
+     "created_at": "2026-06-17T14:50:18.000+09:00",
+     "updated_at": "2026-08-31T08:12:59.000+09:00",
+     "score": 0.36484396
+    },
+    {
+     "id": 1601958,
+     "bookmark": false,
+     "image": "https://jpassets.jobplanet.co.kr/production/uploads/material/media/13148/job_posting_default_thumbnail.jpg",
+     "low_image": "https://jpassets.jobplanet.co.kr/production/uploads/material/media/13148/job_posting_default_thumbnail.jpg",
+     "title": "백엔드 개발자 (신입)",
+     "occupation_names": {
+      "level1": [
+       "개발"
+      ],
+      "level2": [
+       "백엔드 개발"
+      ]
+     },
+     "is_fit_messages": false,
+     "fee": "7%",
+     "job_applicant_type": "user",
+     "annual": {
+      "type": [
+       1
+      ],
+      "years": 0,
+      "maximum_years": 0,
+      "text": "신입"
+     },
+     "recruitment_text": [
+      "신입"
+     ],
+     "job_type": "정규직",
+     "posting_type": "recruitment",
+     "posting_apply_type": "jobplanet",
+     "external_url": null,
+     "jobkorea_posting_id": null,
+     "skills": [
+      "java",
+      "python",
+      "nosql",
+      "go",
+      "백엔드 개발",
+      "restful api"
+     ],
+     "reward": 1000000,
+     "reward_text": "100만원",
+     "reward_type_text": "축하금",
+     "deadline_message": "~9/25(금)",
+     "logo_thumb_url": "https://jpassets.jobplanet.co.kr/production/uploads/company/logo/59369/thumb_59369.JPG",
+     "pref_text": "워라밸 3.0",
+     "career_text": "신입",
+     "cities": [
+      "서울"
+     ],
+     "company": {
+      "id": 59369,
+      "logo": "https://jpassets.jobplanet.co.kr/production/uploads/company/logo/59369/thumb_59369.JPG",
+      "name": "(주)이너버스",
+      "grade": 2.2,
+      "grade_count": 57,
+      "city_name": "서울",
+      "is_branding": false
+     },
+     "start_at": "2026-09-02",
+     "end_at": "2026-09-25",
+     "created_at": "2026-09-02T15:09:29.000+09:00",
+     "updated_at": "2026-09-02T15:20:01.000+09:00",
+     "score": 0.32404715
+    },
+    {
+     "id": 1601957,
+     "bookmark": false,
+     "image": "https://jpassets.jobplanet.co.kr/production/uploads/material/media/13148/job_posting_default_thumbnail.jpg",
+     "low_image": "https://jpassets.jobplanet.co.kr/production/uploads/material/media/13148/job_posting_default_thumbnail.jpg",
+     "title": "백엔드 개발자 (시니어)",
+     "occupation_names": {
+      "level1": [
+       "개발"
+      ],
+      "level2": [
+       "백엔드 개발"
+      ]
+     },
+     "is_fit_messages": false,
+     "fee": "7%",
+     "job_applicant_type": "user",
+     "annual": {
+      "type": [
+       2
+      ],
+      "years": 5,
+      "maximum_years": 20,
+      "text": "경력"
+     },
+     "recruitment_text": [
+      "5 ~ 20년"
+     ],
+     "job_type": "정규직",
+     "posting_type": "recruitment",
+     "posting_apply_type": "jobplanet",
+     "external_url": null,
+     "jobkorea_posting_id": null,
+     "skills": [
+      "java",
+      "python",
+      "Docker",
+      "백엔드 개발",
+      "Kubernetes",
+      "restful api"
+     ],
+     "reward": 1000000,
+     "reward_text": "100만원",
+     "reward_type_text": "축하금",
+     "deadline_message": "~9/25(금)",
+     "logo_thumb_url": "https://jpassets.jobplanet.co.kr/production/uploads/company/logo/59369/thumb_59369.JPG",
+     "pref_text": "워라밸 3.0",
+     "career_text": "5~20년",
+     "cities": [
+      "서울"
+     ],
+     "company": {
+      "id": 59369,
+      "logo": "https://jpassets.jobplanet.co.kr/production/uploads/company/logo/59369/thumb_59369.JPG",
+      "name": "(주)이너버스",
+      "grade": 2.2,
+      "grade_count": 57,
+      "city_name": "서울",
+      "is_branding": false
+     },
+     "start_at": "2026-09-02",
+     "end_at": "2026-09-25",
+     "created_at": "2026-09-02T15:06:19.000+09:00",
+     "updated_at": "2026-09-02T15:20:01.000+09:00",
+     "score": 0.32404715
+    },
+    {
+     "id": 1600151,
+     "bookmark": false,
+     "image": "https://jpassets.jobplanet.co.kr/production/uploads/material/media/13148/job_posting_default_thumbnail.jpg",
+     "low_image": "https://jpassets.jobplanet.co.kr/production/uploads/material/media/13148/job_posting_default_thumbnail.jpg",
+     "title": "서버 엔지니어 및 SE 시스템 관리자 채용 공고",
+     "occupation_names": {
+      "level1": [
+       "개발"
+      ],
+      "level2": [
+       "백엔드 개발",
+       "개발",
+       "네트워크/보안/운영"
+      ]
+     },
+     "is_fit_messages": false,
+     "fee": "7%",
+     "job_applicant_type": "user",
+     "annual": {
+      "type": [
+       1,
+       2
+      ],
+      "years": 1,
+      "maximum_years": 0,
+      "text": "신입"
+     },
+     "recruitment_text": [
+      "신입",
+      "1년 이상"
+     ],
+     "job_type": "정규직",
+     "posting_type": "subscription",
+     "posting_apply_type": "jobkorea_inlink",
+     "external_url": "https://www.jobkorea.co.kr/Recruit/GI_Read/49899086?utm_source=jobplanet&utm_medium=owned&utm_campaign=synergy_external_jobplanet_web_nonad_26y06m1w&utm_content=non_jobposting&utm_term=vari_dynamic",
+     "jobkorea_posting_id": 49899086,
+     "skills": [],
+     "reward": 0,
+     "reward_text": "",
+     "reward_type_text": "",
+     "deadline_message": "오늘 마감",
+     "logo_thumb_url": "https://jpassets.jobplanet.co.kr/production/uploads/company/logo/87548/thumb_%EC%A0%9C%EB%AA%A9-%EC%97%86%EC%9D%8C-1.jpg",
+     "pref_text": "사내문화 3.6",
+     "career_text": "경력무관",
+     "cities": [
+      "서울"
+     ],
+     "company": {
+      "id": 87548,
+      "logo": "https://jpassets.jobplanet.co.kr/production/uploads/company/logo/87548/thumb_%EC%A0%9C%EB%AA%A9-%EC%97%86%EC%9D%8C-1.jpg",
+      "name": "(주)휴먼웍스",
+      "grade": 3.1,
+      "grade_count": 85,
+      "city_name": "서울",
+      "is_branding": false
+     },
+     "start_at": "2026-09-02",
+     "end_at": "2026-09-06",
+     "created_at": "2026-09-02T08:46:20.000+09:00",
+     "updated_at": "2026-09-02T08:46:40.000+09:00",
+     "score": 0.39734906
+    },
+    {
+     "id": 1598972,
+     "bookmark": false,
+     "image": "https://jpassets.jobplanet.co.kr/production/uploads/material/media/13148/job_posting_default_thumbnail.jpg",
+     "low_image": "https://jpassets.jobplanet.co.kr/production/uploads/material/media/13148/job_posting_default_thumbnail.jpg",
+     "title": "[시리즈A투자유치 / 문토] 테크 리드 (역삼역 도보 2분)",
+     "occupation_names": {
+      "level1": [
+       "개발"
+      ],
+      "level2": [
+       "네트워크/보안/운영",
+       "개발",
+       "소프트웨어 개발",
+       "백엔드 개발"
+      ]
+     },
+     "is_fit_messages": false,
+     "fee": "7%",
+     "job_applicant_type": "user",
+     "annual": {
+      "type": [
+       2
+      ],
+      "years": 7,
+      "maximum_years": 0,
+      "text": "경력"
+     },
+     "recruitment_text": [
+      "7년 이상"
+     ],
+     "job_type": "정규직",
+     "posting_type": "subscription",
+     "posting_apply_type": "jobkorea_inlink",
+     "external_url": "https://www.jobkorea.co.kr/Recruit/GI_Read/49895874?utm_source=jobplanet&utm_medium=owned&utm_campaign=synergy_external_jobplanet_web_nonad_26y06m1w&utm_content=non_jobposting&utm_term=vari_dynamic",
+     "jobkorea_posting_id": 49895874,
+     "skills": [],
+     "reward": 0,
+     "reward_text": "",
+     "reward_type_text": "",
+     "deadline_message": "D-1",
+     "logo_thumb_url": "https://jpassets.jobplanet.co.kr/production/uploads/company/logo/379420/thumb_word_red.png",
+     "pref_text": "사내문화 3.0",
+     "career_text": "7년↑",
+     "cities": [
+      "서울"
+     ],
+     "company": {
+      "id": 379420,
+      "logo": "https://jpassets.jobplanet.co.kr/production/uploads/company/logo/379420/thumb_word_red.png",
+      "name": "(주)문토",
+      "grade": 2.6,
+      "grade_count": 49,
+      "city_name": "서울",
+      "is_branding": false
+     },
+     "start_at": "2026-09-02",
+     "end_at": "2026-09-07",
+     "created_at": "2026-09-02T08:46:10.000+09:00",
+     "updated_at": "2026-09-02T08:46:40.000+09:00",
+     "score": 0.3972882
+    },
+    {
+     "id": 1598161,
+     "bookmark": false,
+     "image": "https://jpassets.jobplanet.co.kr/production/uploads/material/media/13148/job_posting_default_thumbnail.jpg",
+     "low_image": "https://jpassets.jobplanet.co.kr/production/uploads/material/media/13148/job_posting_default_thumbnail.jpg",
+     "title": "킨코스코리아㈜ 백엔드 중심 Product Engineer / 법인영업팀 영업직 경력 및 신입사원 모집",
+     "occupation_names": {
+      "level1": [
+       "개발",
+       "영업/제휴",
+       "마케팅/시장조사",
+       "인사/총무",
+       "데이터",
+       "기획/경영"
+      ],
+      "level2": [
+       "백엔드 개발",
+       "개발",
+       "QA(Quality Assurance)",
+       "네트워크/보안/운영",
+       "국내영업",
+       "영업/제휴",
+       "마케팅",
+       "마케팅/시장조사",
+       "영업기획/관리/지원",
+       "총무/사무",
+       "인사/총무",
+       "데이터 엔지니어",
+       "데이터",
+       "사업 기획",
+       "기획/경영",
+       "안드로이드 개발",
+       "IT/솔루션영업 ",
+       "웹개발"
+      ]
+     },
+     "is_fit_messages": false,
+     "fee": "7%",
+     "job_applicant_type": "user",
+     "annual": {
+      "type": [
+       1,
+       2
+      ],
+      "years": 0,
+      "maximum_years": 0,
+      "text": "신입"
+     },
+     "recruitment_text": [
+      "신입",
+      "경력무관"
+     ],
+     "job_type": "정규직",
+     "posting_type": "subscription",
+     "posting_apply_type": "jobkorea_inlink",
+     "external_url": "https://www.jobkorea.co.kr/Recruit/GI_Read/49890040?utm_source=jobplanet&utm_medium=owned&utm_campaign=synergy_external_jobplanet_web_nonad_26y06m1w&utm_content=non_jobposting&utm_term=vari_dynamic",
+     "jobkorea_posting_id": 49890040,
+     "skills": [],
+     "reward": 0,
+     "reward_text": "",
+     "reward_type_text": "",
+     "deadline_message": "D-1",
+     "logo_thumb_url": "https://jpassets.jobplanet.co.kr/production/uploads/company/logo/6749/thumb______.png",
+     "pref_text": "워라밸 3.2",
+     "career_text": "경력무관",
+     "cities": [
+      "서울"
+     ],
+     "company": {
+      "id": 6749,
+      "logo": "https://jpassets.jobplanet.co.kr/production/uploads/company/logo/6749/thumb______.png",
+      "name": "킨코스코리아(주)",
+      "grade": 2.6,
+      "grade_count": 431,
+      "city_name": "서울",
+      "is_branding": false
+     },
+     "start_at": "2026-09-02",
+     "end_at": "2026-09-07",
+     "created_at": "2026-09-02T08:46:10.000+09:00",
+     "updated_at": "2026-09-02T08:46:40.000+09:00",
+     "score": 0.3972882
+    },
+    {
+     "id": 1614345,
+     "bookmark": false,
+     "image": "https://jpassets.jobplanet.co.kr/production/uploads/material/media/13148/job_posting_default_thumbnail.jpg",
+     "low_image": "https://jpassets.jobplanet.co.kr/production/uploads/material/media/13148/job_posting_default_thumbnail.jpg",
+     "title": "PL  STT 프리랜서 채용",
+     "occupation_names": {
+      "level1": [
+       "개발"
+      ],
+      "level2": [
+       "프론트엔드 개발",
+       "개발",
+       "웹개발",
+       "백엔드 개발"
+      ]
+     },
+     "is_fit_messages": false,
+     "fee": "7%",
+     "job_applicant_type": "user",
+     "annual": {
+      "type": [
+       2
+      ],
+      "years": 6,
+      "maximum_years": 0,
+      "text": "경력"
+     },
+     "recruitment_text": [
+      "6년 이상"
+     ],
+     "job_type": "정규직",
+     "posting_type": "subscription",
+     "posting_apply_type": "jobkorea_inlink",
+     "external_url": "https://www.jobkorea.co.kr/Recruit/GI_Read/49764854?utm_source=jobplanet&utm_medium=owned&utm_campaign=synergy_external_jobplanet_web_nonad_26y06m1w&utm_content=non_jobposting&utm_term=vari_dynamic",
+     "jobkorea_posting_id": 49764854,
+     "skills": [],
+     "reward": 0,
+     "reward_text": "",
+     "reward_type_text": "",
+     "deadline_message": "D-4",
+     "logo_thumb_url": "https://jpassets.jobplanet.co.kr/production/uploads/material/media/12313/company_logo.png",
+     "pref_text": null,
+     "career_text": "6년↑",
+     "cities": [
+      "서울"
+     ],
+     "company": {
+      "id": 548683,
+      "logo": "https://jpassets.jobplanet.co.kr/production/uploads/material/media/13131/default_logo.png",
+      "name": "㈜핸드위치(HANDWICH)",
+      "grade": 0.0,
+      "grade_count": 0,
+      "city_name": "",
+      "is_branding": false
+     },
+     "start_at": "2026-09-05",
+     "end_at": "2026-09-10",
+     "created_at": "2026-09-05T10:10:16.000+09:00",
+     "updated_at": "2026-09-05T10:10:27.000+09:00",
+     "score": 0.39679018
+    },
+    {
+     "id": 1605360,
+     "bookmark": false,
+     "image": "https://jpassets.jobplanet.co.kr/production/uploads/material/media/13148/job_posting_default_thumbnail.jpg",
+     "low_image": "https://jpassets.jobplanet.co.kr/production/uploads/material/media/13148/job_posting_default_thumbnail.jpg",
+     "title": "[핀테크 스타트업] 서버 개발자(Backend) 채용",
+     "occupation_names": {
+      "level1": [
+       "개발"
+      ],
+      "level2": [
+       "백엔드 개발",
+       "개발"
+      ]
+     },
+     "is_fit_messages": false,
+     "fee": "7%",
+     "job_applicant_type": "user",
+     "annual": {
+      "type": [
+       2
+      ],
+      "years": 2,
+      "maximum_years": 0,
+      "text": "경력"
+     },
+     "recruitment_text": [
+      "2년 이상"
+     ],
+     "job_type": "정규직",
+     "posting_type": "subscription",
+     "posting_apply_type": "jobkorea_inlink",
+     "external_url": "https://www.jobkorea.co.kr/Recruit/GI_Read/49913206?utm_source=jobplanet&utm_medium=owned&utm_campaign=synergy_external_jobplanet_web_nonad_26y06m1w&utm_content=non_jobposting&utm_term=vari_dynamic",
+     "jobkorea_posting_id": 49913206,
+     "skills": [],
+     "reward": 0,
+     "reward_text": "",
+     "reward_type_text": "",
+     "deadline_message": "D-4",
+     "logo_thumb_url": "https://jpassets.jobplanet.co.kr/production/uploads/material/media/12313/company_logo.png",
+     "pref_text": "워라밸 3.8",
+     "career_text": "2년↑",
+     "cities": [
+      "서울"
+     ],
+     "company": {
+      "id": 364976,
+      "logo": "https://jpassets.jobplanet.co.kr/production/uploads/material/media/13131/default_logo.png",
+      "name": "석세스모드",
+      "grade": 3.5,
+      "grade_count": 20,
+      "city_name": "경기",
+      "is_branding": false
+     },
+     "start_at": "2026-09-04",
+     "end_at": "2026-09-10",
+     "created_at": "2026-09-04T07:53:50.000+09:00",
+     "updated_at": "2026-09-04T07:54:21.000+09:00",
+     "score": 0.39641136
+    }
+   ]
+  }
+ },
+ "detail_own": {
+  "why": "자체 공고 — 본문 4칸과 skills 가 전부 찼다",
+  "id": 1404269,
+  "data": {
+   "open": true,
+   "title": "Backend Engineer(5년 이상)",
+   "apply_type": null,
+   "applied": false,
+   "bookmark": false,
+   "is_fit_messages": false,
+   "name": "(주)콜로세움코퍼레이션",
+   "company": {
+    "logo_url": "https://jpassets.jobplanet.co.kr/production/uploads/company/logo/386855/thumb_Colosseum_%E1%84%80%E1%85%A1%E1%84%85%E1%85%A9%E1%84%92%E1%85%A7%E1%86%BC_%E1%84%80%E1%85%B5%E1%84%87%E1%85%A9%E1%86%AB%E1%84%92%E1%85%A7%E1%86%BC_RGB.jpg",
+    "salary": "2.5",
+    "interview": "2.7",
+    "reviews": {
+     "count": 33,
+     "data": [
+      {
+       "score": 3,
+       "experience": "일부 이상한 사람들이랑 엮이는 것만 피하면 전반적으로 괜찮은 분위기 같이 일하는 동료들이 전문적이고 친절해요.\n요즘 스타트업과 비슷한 소소한 복지들이 있어 좋아요. 문제를 방관하는 리더들은 고집까지 쎄요.\n문제를 제기해도 받아드리지 못해요.\n권위적인 일부 꼰대들이 여럿 피곤하게 해요."
+      },
+      {
+       "score": 3,
+       "experience": "무난한 중소기업 크게 모나거나 하는곳 없이 현상유지 능력? 이란것도 웃기긴한데 많은 사람이 부족하다고 생각하는 사람도 열심히 끌고간다.\n\n이게 엄청난 장점이고 부족한 능력을 업무능력 외 다른부분으로 보여주면 그게 능력이라고 생각함 아쉬운건 크게 없었지만 어딜가나 내 회사가 아니니 소통은 기대 안하는게 좋아요\n\n복지나 이런게 더 나아지는건 없고 먼저 해주는게 없음"
+      }
+     ]
+    },
+    "compare": {
+     "industry": {
+      "score": "2.7",
+      "salary": "2.4",
+      "interview": "2.3"
+     }
+    }
+   },
+   "company_id": 386855,
+   "score": "2.7",
+   "working_area": [
+    "서울"
+   ],
+   "images": [
+    {
+     "low": "https://jpassets.jobplanet.co.kr/production/uploads/company_photo/filename/31409/cropped_low_Colo_AI_01.jpg.jpg",
+     "high": "https://jpassets.jobplanet.co.kr/production/uploads/company_photo/filename/31409/cropped_high_Colo_AI_01.jpg.jpg"
+    },
+    {
+     "low": "https://jpassets.jobplanet.co.kr/production/uploads/company_photo/filename/31440/cropped_low_Colo_AI_03.jpg.jpg",
+     "high": "https://jpassets.jobplanet.co.kr/production/uploads/company_photo/filename/31440/cropped_high_Colo_AI_03.jpg.jpg"
+    },
+    {
+     "low": "https://jpassets.jobplanet.co.kr/production/uploads/company_photo/filename/31410/cropped_low_AI%20%EA%B8%B0%EB%B0%98%20%ED%86%B5%ED%95%A9%20%EB%AC%BC%EB%A5%98%EC%86%94%EB%A3%A8%EC%85%98%20Colo%20AI%20%EB%8C%80%EC%8B%9C%EB%B3%B4%EB%93%9C.png%20_1_.jpg",
+     "high": "https://jpassets.jobplanet.co.kr/production/uploads/company_photo/filename/31410/cropped_high_AI%20%EA%B8%B0%EB%B0%98%20%ED%86%B5%ED%95%A9%20%EB%AC%BC%EB%A5%98%EC%86%94%EB%A3%A8%EC%85%98%20Colo%20AI%20%EB%8C%80%EC%8B%9C%EB%B3%B4%EB%93%9C.png%20_1_.jpg"
+    },
+    {
+     "low": "https://jpassets.jobplanet.co.kr/production/uploads/company_photo/filename/31615/cropped_low_20251113_165021_%EB%A1%9C%EA%B3%A0%EB%B0%98%EC%98%81_%EA%B8%B0%EC%A1%B4%EB%A1%9C%EA%B3%A0%ED%81%AC%EA%B8%B0.jpg",
+     "high": "https://jpassets.jobplanet.co.kr/production/uploads/company_photo/filename/31615/cropped_high_20251113_165021_%EB%A1%9C%EA%B3%A0%EB%B0%98%EC%98%81_%EA%B8%B0%EC%A1%B4%EB%A1%9C%EA%B3%A0%ED%81%AC%EA%B8%B0.jpg"
+    }
+   ],
+   "appeal": null,
+   "simple_comment": null,
+   "matching_keyword": null,
+   "keywords": [],
+   "start_at": "2026-08-28",
+   "end_at": "2026.09.15",
+   "immediate_opening": true,
+   "recruitment_deadline": false,
+   "occupations": [
+    "백엔드 개발"
+   ],
+   "occupations_level1": [
+    "개발"
+   ],
+   "fee": "7%",
+   "job_applicant_type": "user",
+   "posting_from": "career_partner",
+   "annual": {
+    "types": [
+     2
+    ],
+    "year": 5,
+    "maximum_year": 10,
+    "text": "경력",
+    "preferential": false
+   },
+   "education_level_id": 9,
+   "education_level_code": "Irrelevant",
+   "education_level_name": "학력무관",
+   "recruitment_text": [
+    "5 ~ 10년"
+   ],
+   "job_type": "정규직",
+   "salary": " (  ~  )",
+   "skills": [
+    "java",
+    "kotlin",
+    "MYSQL",
+    "JIRA",
+    "spring boot",
+    "mybatis",
+    "backend",
+    "slack",
+    "confluence"
+   ],
+   "introduction": null,
+   "required_qualification": "■ 공통 역량\n1. 문제를 발견했을 때 스스로 또는 필요한 협력을 통해 해결을 주도하시는 분\n2. 바쁘고 현실적인 제약 속에서 느리더라도 꾸준히 더 나은 방법을 모색하며 개선을 이어가시는 분\n3. 새로운 기술과 도메인 지식을 학습하며 지속적으로 성장하시는 분\n4. 다양한 직군과 원활히 협업하실 수 있는 분\n5. 해외 출장에 결격 사유가 없는 분\n\n■ 직무 역량\n1. 실무 경력 5년 이상\n2. 물류 도메인(OMS, WMS, LMS) 서비스 개발 경험\n3. Confluence, JIRA, Slack 등 협업 도구 활용 경험\n4. 해외 출장에 결격 사유가 없는 분\n5. AWS 인프라 환경에서 서비스 개발 및 운영 경험\n6. 다양한 서비스의 REST API 연동 및 통합 시스템 개발 경험\n7. 비즈니스 요구 사항을 이해하고 데이터 모델·API를 능숙하게 설계할 수 있는 역량\n\n■ 추가 역량 및 태도\n- 지속적으로 성장하며 문제 해결을 즐기는 태도\n- OOP, DDD 및 테스트 코드 작성에 대한 높은 관심과 실천\n\n■ 사용 기술 스택\n- Java, Kotlin, Spring Boot, Spring Batch, Gradle\n- MySQL,JPA, MyBatis, Querydsl, AWS RDS\n- Git, Github Actions, Jenkins, AWS ECS, Docker, DataDog\n\n\nㅣ우대 사항\n- 모놀리식 아키텍처(Monolithic Architecture)를 MSA로의 전환 경험\n- 서비스의 복잡한 우선순위를 조율하고 팀을 리딩해본 경험\n- DDD 기반 설계 및 구현 경험",
+   "preferred_skill": null,
+   "hiring_process": "",
+   "benefit": null,
+   "primary_responsibility": "1. 소단위 파트 인원 관리 및 프로젝트 PL역할 수행\r\n2. 온라인 판매자의 상품 입고부터 물류창고의 상품 출고까지 아우르는 물류관리 시스템 운영 및 설계/개발\r\n3. 외부 시스템과의 연동을 통한 시스템 기능 강화\r\n4. AWS를 이용한 서버, DB 운영 및 관리\r\n5. 각종 로봇 및 보조 장비들과의 연동을 위한 콘솔 프로그래밍\r\n6. 배치 프로그래밍을 이용한 각종 스케줄 잡 구성",
+   "etc": null,
+   "location": "서울특별시 강남구 영동대로 424, 3-4층",
+   "contact": {
+    "name": null,
+    "homepage": null,
+    "phone": null,
+    "email": null
+   },
+   "culture": [],
+   "reward": "1,000,000",
+   "reward_text": "100만원",
+   "reward_type_text": "축하금",
+   "dday": "~9/15(화)",
+   "deadline": false,
+   "attachment_type": [
+    {
+     "id": "portfolio",
+     "name": "포트폴리오"
+    },
+    {
+     "id": "resume",
+     "name": "이력서"
+    },
+    {
+     "id": "certification",
+     "name": "증명서"
+    },
+    {
+     "id": "license",
+     "name": "자격증"
+    },
+    {
+     "id": "reference",
+     "name": "추천서"
+    },
+    {
+     "id": "etc",
+     "name": "기타"
+    }
+   ],
+   "similar_match_logos": [],
+   "posting_type": "recruitment",
+   "posting_apply_type": "jobplanet",
+   "outlink_website": null,
+   "iframe_url": null,
+   "share_link": "https://b.jobplanet.co.kr/job-postings-1404269"
+  }
+ },
+ "detail_relay": {
+  "why": "잡코리아 중계 — 본문·skills 가 전부 비었다",
+  "id": 1600151,
+  "data": {
+   "open": true,
+   "title": "서버 엔지니어 및 SE 시스템 관리자 채용 공고",
+   "apply_type": null,
+   "applied": false,
+   "bookmark": false,
+   "is_fit_messages": false,
+   "name": "(주)휴먼웍스",
+   "company": {
+    "logo_url": "https://jpassets.jobplanet.co.kr/production/uploads/company/logo/87548/thumb_%EC%A0%9C%EB%AA%A9-%EC%97%86%EC%9D%8C-1.jpg",
+    "salary": "2.5",
+    "interview": "2.8",
+    "reviews": {
+     "count": 85,
+     "data": [
+      {
+       "score": 5,
+       "experience": "좋은 회사에요\n\n구관이 명관이다 라는 느낌이 듭니다. 워라밸이 좋고, 사내 분위기가 좋습니다.\n복지도 좋은 것 같아요 저는 딱히 느끼진 못했으나, 인원 충당이 바로바로 안되는 점이 있늠거같어요."
+      },
+      {
+       "score": 5,
+       "experience": "따뜻한 사람들과 함께 성장할 수 있는 최고의 출발점 사람이 정말 좋다\nㄴ따뜻하고 배려심 깊은 동료들 덕분에 신입도 빠르게 적응할수 있음, <아늑한> 회사 <3\n배움의 기회가 많다\nㄴ다양한 업무를 직접 경험하며 빠르게 성장할 수 있는 환경임\n야근이 거의 없다\nㄴ가끔 업무가 많아 정시에 마무리 못할 때 늦게 갈 수는 있지만, 대부분은 칼퇴하는 편이라 워라밸이 잘 지켜진다\n자율적인 분위기\nㄴ의견을 자유롭게 말할 수 있고, 시도와 도전을 존중해주는 상사분들이 계신다 화장실 수가 적음\nㄴ인원 대비 화장실이 부족해 대기해야 하는 경우도 있지만, 다행히 항상 청결하게 관리되어 큰 불편함은 없음"
+      }
+     ]
+    },
+    "compare": {
+     "industry": {
+      "score": "2.8",
+      "salary": "2.6",
+      "interview": "2.5"
+     }
+    }
+   },
+   "company_id": 87548,
+   "score": "3.1",
+   "working_area": [
+    "서울"
+   ],
+   "images": [],
+   "appeal": null,
+   "simple_comment": null,
+   "matching_keyword": null,
+   "keywords": [],
+   "start_at": "2026-09-02",
+   "end_at": "2026.09.06",
+   "immediate_opening": false,
+   "recruitment_deadline": false,
+   "occupations": [
+    "백엔드 개발",
+    "개발",
+    "네트워크/보안/운영"
+   ],
+   "occupations_level1": [
+    "개발"
+   ],
+   "fee": "7%",
+   "job_applicant_type": "user",
+   "posting_from": "partners",
+   "annual": {
+    "types": [
+     1,
+     2
+    ],
+    "year": 1,
+    "maximum_year": 0,
+    "text": "신입",
+    "preferential": false
+   },
+   "education_level_id": 9,
+   "education_level_code": "Irrelevant",
+   "education_level_name": "학력무관",
+   "recruitment_text": [
+    "신입",
+    "1년 이상"
+   ],
+   "job_type": "정규직",
+   "salary": "-",
+   "skills": [],
+   "introduction": null,
+   "required_qualification": null,
+   "preferred_skill": null,
+   "hiring_process": "",
+   "benefit": null,
+   "primary_responsibility": null,
+   "etc": null,
+   "location": "서울시 강남구 논현로418 3층(역삼동, 휴먼빌딩)",
+   "contact": {
+    "name": null,
+    "homepage": null,
+    "phone": null,
+    "email": null
+   },
+   "culture": [],
+   "reward": "0",
+   "reward_text": "",
+   "reward_type_text": "",
+   "dday": "오늘 마감",
+   "deadline": false,
+   "attachment_type": [
+    {
+     "id": "portfolio",
+     "name": "포트폴리오"
+    },
+    {
+     "id": "resume",
+     "name": "이력서"
+    },
+    {
+     "id": "certification",
+     "name": "증명서"
+    },
+    {
+     "id": "license",
+     "name": "자격증"
+    },
+    {
+     "id": "reference",
+     "name": "추천서"
+    },
+    {
+     "id": "etc",
+     "name": "기타"
+    }
+   ],
+   "similar_match_logos": [],
+   "posting_type": "subscription",
+   "posting_apply_type": "jobkorea_inlink",
+   "outlink_website": null,
+   "iframe_url": null,
+   "share_link": "https://b.jobplanet.co.kr/job-postings-1600151"
+  }
+ }
+}
