@@ -22,28 +22,13 @@ from __future__ import annotations
 import re
 
 from _common.html_text import visible_lines
+from _common.sections import MAX_FIELD_LENGTH, split_body_text
 from _common.store import COLUMNS
 
 from . import body, skills
 
 SITE_NAME = "saramin"
 DETAIL_URL = "https://www.saramin.co.kr/zf_user/jobs/view?rec_idx=%s"
-
-# 절 머리말. **닫힌 부류가 아니라 관측치**라 놓치는 것이 있을 수 있다 —
-# 그래서 못 찾으면 본문 전체를 지원자격으로 돌린다. 틀린 절 구분을 만들지 않는다.
-QUALIFICATION_HEADING = re.compile(
-    r"(자격\s*요건|지원\s*자격|자격\s*조건|자격\s*사항|필수\s*요건|필수\s*사항"
-    r"|이런\s*분을\s*찾|이런\s*분과)")
-PREFERENCE_HEADING = re.compile(
-    r"(우대\s*사항|우대\s*요건|우대\s*조건|우대\s*능력|이런\s*분이면\s*더|이런\s*경험)")
-# 절이 끝나는 곳. 다음 절이 시작되면 앞 절은 거기서 끝난다.
-OTHER_HEADING = re.compile(
-    r"(담당\s*업무|주요\s*업무|모집\s*부문|모집\s*분야|근무\s*조건|근무\s*환경"
-    r"|전형\s*절차|채용\s*절차|제출\s*서류|접수\s*방법|접수\s*기간|복리\s*후생"
-    r"|기타\s*사항|유의\s*사항|문의)")
-
-# 한 칸에 넣을 글의 상한. 넘치면 CSV 를 사람이 못 읽고, 엑셀도 잘라 버린다.
-MAX_FIELD_LENGTH = 4000
 
 # 급여의 **금액 부분만**. 같은 칸에 최저임금 안내문이 통째로 붙어 오는데
 # (`... 주 40시간 기준 최저임금은 25,882,560원 입니다 ...`) 그걸 같이 넣으면
@@ -84,87 +69,10 @@ def to_row(listing: dict, page: str = "", image_urls: list[str] | None = None) -
 def split_sections(page: str) -> tuple[str, str]:
     """본문을 (지원자격, 우대사항) 으로 가른다.
 
-    머리말을 못 찾으면 **본문 전체를 지원자격으로** 돌린다 — 내용은 거기 있는데
-    우리가 못 나눈 것뿐이다. 우대사항은 못 찾으면 빈칸이다.
+    **어디서 글을 뽑을지만 여기서 정한다.** 사람인은 본문 컨테이너 안이다.
+    가르는 규칙 자체는 한국 채용공고 일반의 말이라 `_common/sections.py` 에 있다.
     """
-    text = visible_lines(body.body_html(page or ""))
-    if not text:
-        return "", ""
-    qualification = _section(text, QUALIFICATION_HEADING)
-    preference = _section(text, PREFERENCE_HEADING)
-    if not qualification:
-        # 자격 머리말이 없다 — 회사가 절을 안 나눴을 뿐 내용은 본문에 있다.
-        # 다만 우대사항을 따로 뽑아 놨다면 **거기서 끊는다.** 안 그러면 같은 글이
-        # 두 칸에 겹쳐 들어가 CSV 를 읽는 사람이 무엇이 자격인지 못 가린다.
-        qualification = _until_first_heading(text, PREFERENCE_HEADING) if preference else text
-    return _trim(qualification), _trim(preference)
-
-
-def _until_first_heading(text: str, heading: re.Pattern[str]) -> str:
-    """머리말이 처음 나오는 줄 앞까지."""
-    kept = []
-    for line in text.split("\n"):
-        if heading.search(line) and not _is_column_header(line):
-            break
-        if line.strip():
-            kept.append(line.strip())
-    return "\n".join(kept).strip()
-
-
-def _heading_kinds(line: str) -> int:
-    """이 줄이 몇 종류의 절 이름을 담고 있는가."""
-    return sum(bool(pattern.search(line)) for pattern in
-               (QUALIFICATION_HEADING, PREFERENCE_HEADING, OTHER_HEADING))
-
-
-def _is_column_header(line: str) -> bool:
-    """절 이름을 여럿 나열한 줄 — 절의 시작이 아니라 **표의 열 머리글**이다.
-
-    사람인 양식의 모집부문 표는 `모집분야 업무내용 자격요건 및 우대조건` 같은 줄로
-    시작한다. 이걸 절 시작으로 보면 자격과 우대가 **같은 자리에서 시작해 같은 글을
-    담는다** — 실제로 두 칸에 똑같은 내용이 들어간 행이 9건 나왔다.
-
-    절 이름 하나만 든 줄은 진짜 머리말이다. 둘 이상이면 머리글이다.
-    """
-    return _heading_kinds(line) > 1
-
-
-def _is_heading(line: str) -> bool:
-    """어느 절이든 머리말인가.
-
-    자기 머리말과 `OTHER_HEADING` 만 보면 **지원자격이 우대사항을 삼킨다** —
-    우대사항은 둘 중 어디에도 없기 때문이다. 절의 끝은 "다음 머리말" 이지
-    "내가 아는 다른 머리말" 이 아니다.
-    """
-    return bool(QUALIFICATION_HEADING.search(line)
-                or PREFERENCE_HEADING.search(line)
-                or OTHER_HEADING.search(line))
-
-
-def _section(text: str, heading: re.Pattern[str]) -> str:
-    """머리말이 있는 줄 다음부터, **다음 머리말이 나오기 전까지**."""
-    lines = text.split("\n")
-    start = next((index for index, line in enumerate(lines)
-                  if heading.search(line) and not _is_column_header(line)), None)
-    if start is None:
-        return ""
-    collected = []
-    # 머리말 줄에 값이 같이 붙어 있는 경우가 있다 — `자격요건 : 대졸 이상`
-    tail = heading.split(lines[start], maxsplit=1)[-1].lstrip(" :·-|]）)")
-    if tail.strip():
-        collected.append(tail.strip())
-    for line in lines[start + 1:]:
-        if _is_heading(line) and not _is_column_header(line):
-            break
-        if line.strip():
-            collected.append(line.strip())
-    return "\n".join(collected).strip()
-
-
-def _trim(text: str) -> str:
-    if len(text) <= MAX_FIELD_LENGTH:
-        return text
-    return text[:MAX_FIELD_LENGTH].rstrip() + " …"
+    return split_body_text(visible_lines(body.body_html(page or "")))
 
 
 # 상세의 접수기간에 있는 **절대 날짜**. 목록 카드보다 이쪽이 낫다.
