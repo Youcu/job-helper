@@ -1,0 +1,3101 @@
+{
+ "_comment": "잡코리아 지역 코드. `local` 파라미터에 시도(provinces[].code) 또는 구(districts[].code) 를 넣는다.",
+ "_trap": "**구가 있는 시는 시 코드가 없다.** `성남시 분당구`·`수정구`·`중원구` 만 있고 `성남시` 는 없다. 시 이름으로 고르려면 구로 펼쳐야 한다.",
+ "_note2": "`전지역`(`I000_`)은 뺐다 — '시도 안에서 구가 안 정해진 공고' 라 시도 전체와 다르다.",
+ "_multi": "값이 여럿이면 **콤마로 잇는다.** 같은 이름을 반복하면 **첫 값만** 먹는다 — 실측으로 확인했다.",
+ "_source": "https://www.jobkorea.co.kr/recruit/joblist?menucode=duty 의 li.item[data-value-json]",
+ "_collected": "2026-09-06",
+ "_note": "count 는 그 시점 표기값이고 실제 검색 결과와 다르다 (백엔드개발자 표기 1,812 vs 실제 1,612). **총계 대조에 쓰지 마라.**",
+ "provinces": [
+  {
+   "code": "I000",
+   "name": "서울",
+   "order": 1,
+   "districts": [
+    {
+     "code": "I010",
+     "name": "강남구",
+     "count": 20807
+    },
+    {
+     "code": "I020",
+     "name": "강동구",
+     "count": 2542
+    },
+    {
+     "code": "I030",
+     "name": "강북구",
+     "count": 1175
+    },
+    {
+     "code": "I040",
+     "name": "강서구",
+     "count": 4799
+    },
+    {
+     "code": "I050",
+     "name": "관악구",
+     "count": 2979
+    },
+    {
+     "code": "I060",
+     "name": "광진구",
+     "count": 2557
+    },
+    {
+     "code": "I070",
+     "name": "구로구",
+     "count": 4207
+    },
+    {
+     "code": "I080",
+     "name": "금천구",
+     "count": 5305
+    },
+    {
+     "code": "I090",
+     "name": "노원구",
+     "count": 1560
+    },
+    {
+     "code": "I100",
+     "name": "도봉구",
+     "count": 1044
+    },
+    {
+     "code": "I110",
+     "name": "동대문구",
+     "count": 2302
+    },
+    {
+     "code": "I120",
+     "name": "동작구",
+     "count": 2522
+    },
+    {
+     "code": "I130",
+     "name": "마포구",
+     "count": 5620
+    },
+    {
+     "code": "I140",
+     "name": "서대문구",
+     "count": 2092
+    },
+    {
+     "code": "I150",
+     "name": "서초구",
+     "count": 9028
+    },
+    {
+     "code": "I160",
+     "name": "성동구",
+     "count": 5564
+    },
+    {
+     "code": "I170",
+     "name": "성북구",
+     "count": 1535
+    },
+    {
+     "code": "I180",
+     "name": "송파구",
+     "count": 7212
+    },
+    {
+     "code": "I190",
+     "name": "양천구",
+     "count": 2038
+    },
+    {
+     "code": "I200",
+     "name": "영등포구",
+     "count": 6937
+    },
+    {
+     "code": "I210",
+     "name": "용산구",
+     "count": 4155
+    },
+    {
+     "code": "I220",
+     "name": "은평구",
+     "count": 1742
+    },
+    {
+     "code": "I230",
+     "name": "종로구",
+     "count": 3577
+    },
+    {
+     "code": "I240",
+     "name": "중구",
+     "count": 5949
+    },
+    {
+     "code": "I250",
+     "name": "중랑구",
+     "count": 1555
+    }
+   ]
+  },
+  {
+   "code": "B000",
+   "name": "경기",
+   "order": 2,
+   "districts": [
+    {
+     "code": "B010",
+     "name": "가평군",
+     "count": 346
+    },
+    {
+     "code": "B020",
+     "name": "고양시 덕양구",
+     "count": 2231
+    },
+    {
+     "code": "B030",
+     "name": "고양시 일산동구",
+     "count": 1941
+    },
+    {
+     "code": "B031",
+     "name": "고양시 일산서구",
+     "count": 1218
+    },
+    {
+     "code": "B040",
+     "name": "과천시",
+     "count": 1181
+    },
+    {
+     "code": "B050",
+     "name": "광명시",
+     "count": 2358
+    },
+    {
+     "code": "B060",
+     "name": "광주시",
+     "count": 2333
+    },
+    {
+     "code": "B070",
+     "name": "구리시",
+     "count": 1039
+    },
+    {
+     "code": "B080",
+     "name": "군포시",
+     "count": 1496
+    },
+    {
+     "code": "B090",
+     "name": "김포시",
+     "count": 3086
+    },
+    {
+     "code": "B100",
+     "name": "남양주시",
+     "count": 2955
+    },
+    {
+     "code": "B110",
+     "name": "동두천시",
+     "count": 500
+    },
+    {
+     "code": "B125",
+     "name": "부천시",
+     "count": 2967
+    },
+    {
+     "code": "B150",
+     "name": "성남시 분당구",
+     "count": 6232
+    },
+    {
+     "code": "B160",
+     "name": "성남시 수정구",
+     "count": 2177
+    },
+    {
+     "code": "B170",
+     "name": "성남시 중원구",
+     "count": 1984
+    },
+    {
+     "code": "B180",
+     "name": "수원시 권선구",
+     "count": 2012
+    },
+    {
+     "code": "B190",
+     "name": "수원시 장안구",
+     "count": 1365
+    },
+    {
+     "code": "B200",
+     "name": "수원시 팔달구",
+     "count": 1659
+    },
+    {
+     "code": "B201",
+     "name": "수원시 영통구",
+     "count": 2383
+    },
+    {
+     "code": "B210",
+     "name": "시흥시",
+     "count": 3293
+    },
+    {
+     "code": "B220",
+     "name": "안산시 단원구",
+     "count": 2854
+    },
+    {
+     "code": "B221",
+     "name": "안산시 상록구",
+     "count": 1286
+    },
+    {
+     "code": "B230",
+     "name": "안성시",
+     "count": 1715
+    },
+    {
+     "code": "B240",
+     "name": "안양시 동안구",
+     "count": 2471
+    },
+    {
+     "code": "B250",
+     "name": "안양시 만안구",
+     "count": 1321
+    },
+    {
+     "code": "B260",
+     "name": "양주시",
+     "count": 1376
+    },
+    {
+     "code": "B270",
+     "name": "양평군",
+     "count": 530
+    },
+    {
+     "code": "B280",
+     "name": "여주시",
+     "count": 817
+    },
+    {
+     "code": "B290",
+     "name": "연천군",
+     "count": 203
+    },
+    {
+     "code": "B300",
+     "name": "오산시",
+     "count": 1460
+    },
+    {
+     "code": "B310",
+     "name": "용인시 기흥구",
+     "count": 2658
+    },
+    {
+     "code": "B311",
+     "name": "용인시 수지구",
+     "count": 1965
+    },
+    {
+     "code": "B312",
+     "name": "용인시 처인구",
+     "count": 2277
+    },
+    {
+     "code": "B320",
+     "name": "의왕시",
+     "count": 1116
+    },
+    {
+     "code": "B330",
+     "name": "의정부시",
+     "count": 1481
+    },
+    {
+     "code": "B340",
+     "name": "이천시",
+     "count": 1700
+    },
+    {
+     "code": "B350",
+     "name": "파주시",
+     "count": 2718
+    },
+    {
+     "code": "B360",
+     "name": "평택시",
+     "count": 3642
+    },
+    {
+     "code": "B370",
+     "name": "포천시",
+     "count": 1159
+    },
+    {
+     "code": "B380",
+     "name": "하남시",
+     "count": 2300
+    },
+    {
+     "code": "B390",
+     "name": "화성시 동탄구",
+     "count": 2577
+    },
+    {
+     "code": "B391",
+     "name": "화성시 만세구",
+     "count": 2199
+    },
+    {
+     "code": "B392",
+     "name": "화성시 병점구",
+     "count": 1286
+    },
+    {
+     "code": "B393",
+     "name": "화성시 효행구",
+     "count": 1326
+    }
+   ]
+  },
+  {
+   "code": "K000",
+   "name": "인천",
+   "order": 3,
+   "districts": [
+    {
+     "code": "K010",
+     "name": "강화군",
+     "count": 312
+    },
+    {
+     "code": "K020",
+     "name": "계양구",
+     "count": 1536
+    },
+    {
+     "code": "K030",
+     "name": "미추홀구",
+     "count": 1882
+    },
+    {
+     "code": "K040",
+     "name": "남동구",
+     "count": 3246
+    },
+    {
+     "code": "K050",
+     "name": "제물포구",
+     "count": 1120
+    },
+    {
+     "code": "K060",
+     "name": "부평구",
+     "count": 2338
+    },
+    {
+     "code": "K070",
+     "name": "서해구",
+     "count": 2653
+    },
+    {
+     "code": "K080",
+     "name": "연수구",
+     "count": 2176
+    },
+    {
+     "code": "K090",
+     "name": "옹진군",
+     "count": 173
+    },
+    {
+     "code": "K100",
+     "name": "영종구",
+     "count": 1088
+    },
+    {
+     "code": "K110",
+     "name": "검단구",
+     "count": 1556
+    }
+   ]
+  },
+  {
+   "code": "G000",
+   "name": "대전",
+   "order": 4,
+   "districts": [
+    {
+     "code": "G010",
+     "name": "대덕구",
+     "count": 790
+    },
+    {
+     "code": "G020",
+     "name": "동구",
+     "count": 685
+    },
+    {
+     "code": "G030",
+     "name": "서구",
+     "count": 1142
+    },
+    {
+     "code": "G040",
+     "name": "유성구",
+     "count": 1719
+    },
+    {
+     "code": "G050",
+     "name": "중구",
+     "count": 704
+    }
+   ]
+  },
+  {
+   "code": "1000",
+   "name": "세종",
+   "order": 5,
+   "districts": []
+  },
+  {
+   "code": "O000",
+   "name": "충남",
+   "order": 6,
+   "districts": [
+    {
+     "code": "O010",
+     "name": "공주시",
+     "count": 485
+    },
+    {
+     "code": "O020",
+     "name": "금산군",
+     "count": 193
+    },
+    {
+     "code": "O030",
+     "name": "논산시",
+     "count": 516
+    },
+    {
+     "code": "O040",
+     "name": "당진시",
+     "count": 767
+    },
+    {
+     "code": "O050",
+     "name": "보령시",
+     "count": 345
+    },
+    {
+     "code": "O060",
+     "name": "부여군",
+     "count": 221
+    },
+    {
+     "code": "O070",
+     "name": "서산시",
+     "count": 539
+    },
+    {
+     "code": "O080",
+     "name": "서천군",
+     "count": 215
+    },
+    {
+     "code": "O090",
+     "name": "아산시",
+     "count": 1818
+    },
+    {
+     "code": "O110",
+     "name": "예산군",
+     "count": 328
+    },
+    {
+     "code": "O120",
+     "name": "천안시 동남구",
+     "count": 1471
+    },
+    {
+     "code": "O121",
+     "name": "천안시 서북구",
+     "count": 2128
+    },
+    {
+     "code": "O130",
+     "name": "청양군",
+     "count": 99
+    },
+    {
+     "code": "O140",
+     "name": "태안군",
+     "count": 127
+    },
+    {
+     "code": "O150",
+     "name": "홍성군",
+     "count": 294
+    },
+    {
+     "code": "O160",
+     "name": "계룡시",
+     "count": 186
+    }
+   ]
+  },
+  {
+   "code": "P000",
+   "name": "충북",
+   "order": 7,
+   "districts": [
+    {
+     "code": "P010",
+     "name": "괴산군",
+     "count": 219
+    },
+    {
+     "code": "P020",
+     "name": "단양군",
+     "count": 118
+    },
+    {
+     "code": "P030",
+     "name": "보은군",
+     "count": 171
+    },
+    {
+     "code": "P040",
+     "name": "영동군",
+     "count": 128
+    },
+    {
+     "code": "P050",
+     "name": "옥천군",
+     "count": 201
+    },
+    {
+     "code": "P060",
+     "name": "음성군",
+     "count": 1109
+    },
+    {
+     "code": "P070",
+     "name": "제천시",
+     "count": 443
+    },
+    {
+     "code": "P080",
+     "name": "진천군",
+     "count": 762
+    },
+    {
+     "code": "P090",
+     "name": "청주시 청원구",
+     "count": 1224
+    },
+    {
+     "code": "P100",
+     "name": "청주시 상당구",
+     "count": 724
+    },
+    {
+     "code": "P101",
+     "name": "청주시 서원구",
+     "count": 838
+    },
+    {
+     "code": "P110",
+     "name": "청주시 흥덕구",
+     "count": 1516
+    },
+    {
+     "code": "P120",
+     "name": "충주시",
+     "count": 860
+    },
+    {
+     "code": "P130",
+     "name": "증평군",
+     "count": 289
+    }
+   ]
+  },
+  {
+   "code": "L000",
+   "name": "전남광주",
+   "order": 9,
+   "districts": [
+    {
+     "code": "L010",
+     "name": "강진군",
+     "count": 46
+    },
+    {
+     "code": "L020",
+     "name": "고흥군",
+     "count": 109
+    },
+    {
+     "code": "L030",
+     "name": "곡성군",
+     "count": 60
+    },
+    {
+     "code": "L040",
+     "name": "광양시",
+     "count": 429
+    },
+    {
+     "code": "L050",
+     "name": "구례군",
+     "count": 22
+    },
+    {
+     "code": "L060",
+     "name": "나주시",
+     "count": 475
+    },
+    {
+     "code": "L070",
+     "name": "담양군",
+     "count": 157
+    },
+    {
+     "code": "L080",
+     "name": "목포시",
+     "count": 565
+    },
+    {
+     "code": "L090",
+     "name": "무안군",
+     "count": 251
+    },
+    {
+     "code": "L100",
+     "name": "보성군",
+     "count": 53
+    },
+    {
+     "code": "L110",
+     "name": "순천시",
+     "count": 635
+    },
+    {
+     "code": "L120",
+     "name": "신안군",
+     "count": 51
+    },
+    {
+     "code": "L130",
+     "name": "여수시",
+     "count": 704
+    },
+    {
+     "code": "L140",
+     "name": "영광군",
+     "count": 100
+    },
+    {
+     "code": "L150",
+     "name": "영암군",
+     "count": 309
+    },
+    {
+     "code": "L160",
+     "name": "완도군",
+     "count": 111
+    },
+    {
+     "code": "L170",
+     "name": "장성군",
+     "count": 180
+    },
+    {
+     "code": "L180",
+     "name": "장흥군",
+     "count": 55
+    },
+    {
+     "code": "L190",
+     "name": "진도군",
+     "count": 37
+    },
+    {
+     "code": "L200",
+     "name": "함평군",
+     "count": 92
+    },
+    {
+     "code": "L210",
+     "name": "해남군",
+     "count": 147
+    },
+    {
+     "code": "L220",
+     "name": "화순군",
+     "count": 217
+    },
+    {
+     "code": "L230",
+     "name": "광산구",
+     "count": 1427
+    },
+    {
+     "code": "L240",
+     "name": "남구",
+     "count": 637
+    },
+    {
+     "code": "L250",
+     "name": "동구",
+     "count": 660
+    },
+    {
+     "code": "L260",
+     "name": "북구",
+     "count": 1182
+    },
+    {
+     "code": "L270",
+     "name": "서구",
+     "count": 1080
+    }
+   ]
+  },
+  {
+   "code": "M000",
+   "name": "전북",
+   "order": 10,
+   "districts": [
+    {
+     "code": "M010",
+     "name": "고창군",
+     "count": 150
+    },
+    {
+     "code": "M020",
+     "name": "군산시",
+     "count": 773
+    },
+    {
+     "code": "M030",
+     "name": "김제시",
+     "count": 414
+    },
+    {
+     "code": "M040",
+     "name": "남원시",
+     "count": 209
+    },
+    {
+     "code": "M050",
+     "name": "무주군",
+     "count": 37
+    },
+    {
+     "code": "M060",
+     "name": "부안군",
+     "count": 102
+    },
+    {
+     "code": "M070",
+     "name": "순창군",
+     "count": 57
+    },
+    {
+     "code": "M080",
+     "name": "완주군",
+     "count": 553
+    },
+    {
+     "code": "M090",
+     "name": "익산시",
+     "count": 1050
+    },
+    {
+     "code": "M100",
+     "name": "임실군",
+     "count": 93
+    },
+    {
+     "code": "M110",
+     "name": "장수군",
+     "count": 74
+    },
+    {
+     "code": "M120",
+     "name": "전주시 덕진구",
+     "count": 1058
+    },
+    {
+     "code": "M130",
+     "name": "전주시 완산구",
+     "count": 972
+    },
+    {
+     "code": "M140",
+     "name": "정읍시",
+     "count": 286
+    },
+    {
+     "code": "M150",
+     "name": "진안군",
+     "count": 93
+    }
+   ]
+  },
+  {
+   "code": "F000",
+   "name": "대구",
+   "order": 11,
+   "districts": [
+    {
+     "code": "F090",
+     "name": "군위군",
+     "count": 139
+    },
+    {
+     "code": "F010",
+     "name": "남구",
+     "count": 520
+    },
+    {
+     "code": "F020",
+     "name": "달서구",
+     "count": 1264
+    },
+    {
+     "code": "F030",
+     "name": "달성군",
+     "count": 916
+    },
+    {
+     "code": "F040",
+     "name": "동구",
+     "count": 941
+    },
+    {
+     "code": "F050",
+     "name": "북구",
+     "count": 1041
+    },
+    {
+     "code": "F060",
+     "name": "서구",
+     "count": 689
+    },
+    {
+     "code": "F070",
+     "name": "수성구",
+     "count": 1035
+    },
+    {
+     "code": "F080",
+     "name": "중구",
+     "count": 709
+    }
+   ]
+  },
+  {
+   "code": "D000",
+   "name": "경북",
+   "order": 12,
+   "districts": [
+    {
+     "code": "D010",
+     "name": "경산시",
+     "count": 949
+    },
+    {
+     "code": "D020",
+     "name": "경주시",
+     "count": 1056
+    },
+    {
+     "code": "D030",
+     "name": "고령군",
+     "count": 165
+    },
+    {
+     "code": "D040",
+     "name": "구미시",
+     "count": 1183
+    },
+    {
+     "code": "D060",
+     "name": "김천시",
+     "count": 517
+    },
+    {
+     "code": "D070",
+     "name": "문경시",
+     "count": 212
+    },
+    {
+     "code": "D080",
+     "name": "봉화군",
+     "count": 52
+    },
+    {
+     "code": "D090",
+     "name": "상주시",
+     "count": 243
+    },
+    {
+     "code": "D100",
+     "name": "성주군",
+     "count": 256
+    },
+    {
+     "code": "D110",
+     "name": "안동시",
+     "count": 414
+    },
+    {
+     "code": "D120",
+     "name": "영덕군",
+     "count": 94
+    },
+    {
+     "code": "D130",
+     "name": "영양군",
+     "count": 26
+    },
+    {
+     "code": "D140",
+     "name": "영주시",
+     "count": 256
+    },
+    {
+     "code": "D150",
+     "name": "영천시",
+     "count": 476
+    },
+    {
+     "code": "D160",
+     "name": "예천군",
+     "count": 121
+    },
+    {
+     "code": "D170",
+     "name": "울릉군",
+     "count": 11
+    },
+    {
+     "code": "D180",
+     "name": "울진군",
+     "count": 65
+    },
+    {
+     "code": "D190",
+     "name": "의성군",
+     "count": 80
+    },
+    {
+     "code": "D200",
+     "name": "청도군",
+     "count": 122
+    },
+    {
+     "code": "D210",
+     "name": "청송군",
+     "count": 63
+    },
+    {
+     "code": "D220",
+     "name": "칠곡군",
+     "count": 569
+    },
+    {
+     "code": "D230",
+     "name": "포항시 남구",
+     "count": 743
+    },
+    {
+     "code": "D240",
+     "name": "포항시 북구",
+     "count": 652
+    }
+   ]
+  },
+  {
+   "code": "H000",
+   "name": "부산",
+   "order": 13,
+   "districts": [
+    {
+     "code": "H010",
+     "name": "강서구",
+     "count": 1427
+    },
+    {
+     "code": "H020",
+     "name": "금정구",
+     "count": 584
+    },
+    {
+     "code": "H030",
+     "name": "기장군",
+     "count": 804
+    },
+    {
+     "code": "H040",
+     "name": "남구",
+     "count": 727
+    },
+    {
+     "code": "H050",
+     "name": "동구",
+     "count": 615
+    },
+    {
+     "code": "H060",
+     "name": "동래구",
+     "count": 687
+    },
+    {
+     "code": "H070",
+     "name": "부산진구",
+     "count": 1334
+    },
+    {
+     "code": "H080",
+     "name": "북구",
+     "count": 558
+    },
+    {
+     "code": "H090",
+     "name": "사상구",
+     "count": 944
+    },
+    {
+     "code": "H100",
+     "name": "사하구",
+     "count": 780
+    },
+    {
+     "code": "H110",
+     "name": "서구",
+     "count": 447
+    },
+    {
+     "code": "H120",
+     "name": "수영구",
+     "count": 697
+    },
+    {
+     "code": "H130",
+     "name": "연제구",
+     "count": 720
+    },
+    {
+     "code": "H140",
+     "name": "영도구",
+     "count": 375
+    },
+    {
+     "code": "H150",
+     "name": "중구",
+     "count": 515
+    },
+    {
+     "code": "H160",
+     "name": "해운대구",
+     "count": 1431
+    }
+   ]
+  },
+  {
+   "code": "J000",
+   "name": "울산",
+   "order": 14,
+   "districts": [
+    {
+     "code": "J010",
+     "name": "남구",
+     "count": 773
+    },
+    {
+     "code": "J020",
+     "name": "동구",
+     "count": 396
+    },
+    {
+     "code": "J030",
+     "name": "북구",
+     "count": 439
+    },
+    {
+     "code": "J040",
+     "name": "울주군",
+     "count": 879
+    },
+    {
+     "code": "J050",
+     "name": "중구",
+     "count": 326
+    }
+   ]
+  },
+  {
+   "code": "C000",
+   "name": "경남",
+   "order": 15,
+   "districts": [
+    {
+     "code": "C010",
+     "name": "거제시",
+     "count": 497
+    },
+    {
+     "code": "C020",
+     "name": "거창군",
+     "count": 127
+    },
+    {
+     "code": "C030",
+     "name": "고성군",
+     "count": 195
+    },
+    {
+     "code": "C040",
+     "name": "김해시",
+     "count": 2084
+    },
+    {
+     "code": "C050",
+     "name": "남해군",
+     "count": 44
+    },
+    {
+     "code": "C080",
+     "name": "밀양시",
+     "count": 302
+    },
+    {
+     "code": "C090",
+     "name": "사천시",
+     "count": 462
+    },
+    {
+     "code": "C100",
+     "name": "산청군",
+     "count": 109
+    },
+    {
+     "code": "C110",
+     "name": "양산시",
+     "count": 1334
+    },
+    {
+     "code": "C120",
+     "name": "의령군",
+     "count": 108
+    },
+    {
+     "code": "C130",
+     "name": "진주시",
+     "count": 992
+    },
+    {
+     "code": "C150",
+     "name": "창녕군",
+     "count": 228
+    },
+    {
+     "code": "C160",
+     "name": "창원시 마산합포구",
+     "count": 547
+    },
+    {
+     "code": "C162",
+     "name": "창원시 마산회원구",
+     "count": 615
+    },
+    {
+     "code": "C164",
+     "name": "창원시 성산구",
+     "count": 1218
+    },
+    {
+     "code": "C166",
+     "name": "창원시 의창구",
+     "count": 887
+    },
+    {
+     "code": "C168",
+     "name": "창원시 진해구",
+     "count": 485
+    },
+    {
+     "code": "C170",
+     "name": "통영시",
+     "count": 277
+    },
+    {
+     "code": "C180",
+     "name": "하동군",
+     "count": 96
+    },
+    {
+     "code": "C190",
+     "name": "함안군",
+     "count": 608
+    },
+    {
+     "code": "C200",
+     "name": "함양군",
+     "count": 125
+    },
+    {
+     "code": "C210",
+     "name": "합천군",
+     "count": 92
+    }
+   ]
+  },
+  {
+   "code": "A000",
+   "name": "강원",
+   "order": 16,
+   "districts": [
+    {
+     "code": "A010",
+     "name": "강릉시",
+     "count": 669
+    },
+    {
+     "code": "A020",
+     "name": "고성군",
+     "count": 95
+    },
+    {
+     "code": "A030",
+     "name": "동해시",
+     "count": 230
+    },
+    {
+     "code": "A040",
+     "name": "삼척시",
+     "count": 153
+    },
+    {
+     "code": "A050",
+     "name": "속초시",
+     "count": 312
+    },
+    {
+     "code": "A060",
+     "name": "양구군",
+     "count": 23
+    },
+    {
+     "code": "A070",
+     "name": "양양군",
+     "count": 168
+    },
+    {
+     "code": "A080",
+     "name": "영월군",
+     "count": 117
+    },
+    {
+     "code": "A090",
+     "name": "원주시",
+     "count": 1234
+    },
+    {
+     "code": "A100",
+     "name": "인제군",
+     "count": 47
+    },
+    {
+     "code": "A110",
+     "name": "정선군",
+     "count": 64
+    },
+    {
+     "code": "A120",
+     "name": "철원군",
+     "count": 67
+    },
+    {
+     "code": "A130",
+     "name": "춘천시",
+     "count": 751
+    },
+    {
+     "code": "A140",
+     "name": "태백시",
+     "count": 69
+    },
+    {
+     "code": "A150",
+     "name": "평창군",
+     "count": 158
+    },
+    {
+     "code": "A160",
+     "name": "홍천군",
+     "count": 233
+    },
+    {
+     "code": "A170",
+     "name": "화천군",
+     "count": 47
+    },
+    {
+     "code": "A180",
+     "name": "횡성군",
+     "count": 285
+    }
+   ]
+  },
+  {
+   "code": "N000",
+   "name": "제주",
+   "order": 17,
+   "districts": [
+    {
+     "code": "N030",
+     "name": "서귀포시",
+     "count": 557
+    },
+    {
+     "code": "N040",
+     "name": "제주시",
+     "count": 1321
+    }
+   ]
+  },
+  {
+   "code": "Q000",
+   "name": "전국",
+   "order": 18,
+   "districts": []
+  },
+  {
+   "code": "R000",
+   "name": "아시아·중동",
+   "order": 22,
+   "districts": [
+    {
+     "code": "R010",
+     "name": "대만",
+     "count": 14
+    },
+    {
+     "code": "R020",
+     "name": "말레이시아",
+     "count": 33
+    },
+    {
+     "code": "R030",
+     "name": "몽골",
+     "count": 1
+    },
+    {
+     "code": "R040",
+     "name": "미얀마",
+     "count": 6
+    },
+    {
+     "code": "R050",
+     "name": "방글라데시",
+     "count": 7
+    },
+    {
+     "code": "R060",
+     "name": "베트남",
+     "count": 222
+    },
+    {
+     "code": "R070",
+     "name": "사우디아라비아",
+     "count": 2
+    },
+    {
+     "code": "R080",
+     "name": "스리랑카",
+     "count": 1
+    },
+    {
+     "code": "R090",
+     "name": "싱가포르",
+     "count": 14
+    },
+    {
+     "code": "R100",
+     "name": "인도",
+     "count": 38
+    },
+    {
+     "code": "R110",
+     "name": "인도네시아",
+     "count": 28
+    },
+    {
+     "code": "R120",
+     "name": "캄보디아",
+     "count": 7
+    },
+    {
+     "code": "R130",
+     "name": "태국",
+     "count": 13
+    },
+    {
+     "code": "R140",
+     "name": "필리핀",
+     "count": 18
+    },
+    {
+     "code": "R160",
+     "name": "네팔",
+     "count": 1
+    },
+    {
+     "code": "R170",
+     "name": "동티모르",
+     "count": 0
+    },
+    {
+     "code": "R180",
+     "name": "라오스",
+     "count": 7
+    },
+    {
+     "code": "R190",
+     "name": "레바논",
+     "count": 0
+    },
+    {
+     "code": "R200",
+     "name": "몰디브",
+     "count": 0
+    },
+    {
+     "code": "R210",
+     "name": "바레인",
+     "count": 0
+    },
+    {
+     "code": "R220",
+     "name": "부탄",
+     "count": 0
+    },
+    {
+     "code": "R230",
+     "name": "브루나이",
+     "count": 0
+    },
+    {
+     "code": "R240",
+     "name": "시리아",
+     "count": 0
+    },
+    {
+     "code": "R250",
+     "name": "아랍에미리트연합국",
+     "count": 9
+    },
+    {
+     "code": "R260",
+     "name": "아프가니스탄",
+     "count": 0
+    },
+    {
+     "code": "R270",
+     "name": "예멘",
+     "count": 0
+    },
+    {
+     "code": "R280",
+     "name": "오만",
+     "count": 0
+    },
+    {
+     "code": "R290",
+     "name": "요르단",
+     "count": 3
+    },
+    {
+     "code": "R300",
+     "name": "이라크",
+     "count": 0
+    },
+    {
+     "code": "R310",
+     "name": "이란",
+     "count": 0
+    },
+    {
+     "code": "R320",
+     "name": "이스라엘",
+     "count": 0
+    },
+    {
+     "code": "R330",
+     "name": "카타르",
+     "count": 0
+    },
+    {
+     "code": "R340",
+     "name": "쿠웨이트",
+     "count": 0
+    },
+    {
+     "code": "R350",
+     "name": "파키스탄",
+     "count": 0
+    },
+    {
+     "code": "R360",
+     "name": "조지아",
+     "count": 0
+    },
+    {
+     "code": "R370",
+     "name": "우즈베키스탄",
+     "count": 3
+    },
+    {
+     "code": "R380",
+     "name": "카자흐스탄",
+     "count": 1
+    },
+    {
+     "code": "R390",
+     "name": "키르기즈스탄",
+     "count": 0
+    },
+    {
+     "code": "R400",
+     "name": "타지키스탄",
+     "count": 0
+    },
+    {
+     "code": "R410",
+     "name": "투르크메니스탄",
+     "count": 0
+    },
+    {
+     "code": "R150",
+     "name": "기타",
+     "count": 1
+    }
+   ]
+  },
+  {
+   "code": "X000",
+   "name": "중국·홍콩",
+   "order": 23,
+   "districts": [
+    {
+     "code": "X010",
+     "name": "북경",
+     "count": 7
+    },
+    {
+     "code": "X020",
+     "name": "천진",
+     "count": 8
+    },
+    {
+     "code": "X030",
+     "name": "상해",
+     "count": 15
+    },
+    {
+     "code": "X040",
+     "name": "중경",
+     "count": 0
+    },
+    {
+     "code": "X050",
+     "name": "홍콩",
+     "count": 10
+    },
+    {
+     "code": "X060",
+     "name": "마카오",
+     "count": 1
+    },
+    {
+     "code": "X070",
+     "name": "감숙성",
+     "count": 0
+    },
+    {
+     "code": "X080",
+     "name": "강서성",
+     "count": 1
+    },
+    {
+     "code": "X090",
+     "name": "강소성",
+     "count": 6
+    },
+    {
+     "code": "X100",
+     "name": "광동성",
+     "count": 13
+    },
+    {
+     "code": "X110",
+     "name": "귀주성",
+     "count": 0
+    },
+    {
+     "code": "X120",
+     "name": "길림성",
+     "count": 0
+    },
+    {
+     "code": "X130",
+     "name": "복건성",
+     "count": 3
+    },
+    {
+     "code": "X140",
+     "name": "사천성",
+     "count": 0
+    },
+    {
+     "code": "X150",
+     "name": "산동성",
+     "count": 11
+    },
+    {
+     "code": "X160",
+     "name": "산서성",
+     "count": 2
+    },
+    {
+     "code": "X170",
+     "name": "섬서성",
+     "count": 0
+    },
+    {
+     "code": "X180",
+     "name": "안휘성",
+     "count": 0
+    },
+    {
+     "code": "X190",
+     "name": "요녕성",
+     "count": 1
+    },
+    {
+     "code": "X200",
+     "name": "운남성",
+     "count": 0
+    },
+    {
+     "code": "X210",
+     "name": "절강성",
+     "count": 0
+    },
+    {
+     "code": "X220",
+     "name": "청해성",
+     "count": 0
+    },
+    {
+     "code": "X230",
+     "name": "하남성",
+     "count": 1
+    },
+    {
+     "code": "X240",
+     "name": "하북성",
+     "count": 37
+    },
+    {
+     "code": "X250",
+     "name": "해남성",
+     "count": 0
+    },
+    {
+     "code": "X260",
+     "name": "호남성",
+     "count": 0
+    },
+    {
+     "code": "X270",
+     "name": "호북성",
+     "count": 0
+    },
+    {
+     "code": "X280",
+     "name": "흑룡강성",
+     "count": 0
+    },
+    {
+     "code": "X290",
+     "name": "기타",
+     "count": 3
+    }
+   ]
+  },
+  {
+   "code": "Z000",
+   "name": "일본",
+   "order": 24,
+   "districts": [
+    {
+     "code": "Z010",
+     "name": "도쿄",
+     "count": 94
+    },
+    {
+     "code": "Z020",
+     "name": "오사카",
+     "count": 26
+    },
+    {
+     "code": "Z030",
+     "name": "쿄토",
+     "count": 2
+    },
+    {
+     "code": "Z040",
+     "name": "카가와",
+     "count": 0
+    },
+    {
+     "code": "Z050",
+     "name": "카고시마",
+     "count": 0
+    },
+    {
+     "code": "Z060",
+     "name": "카나가와",
+     "count": 2
+    },
+    {
+     "code": "Z070",
+     "name": "코치",
+     "count": 0
+    },
+    {
+     "code": "Z080",
+     "name": "쿠마모토",
+     "count": 0
+    },
+    {
+     "code": "Z090",
+     "name": "군마",
+     "count": 2
+    },
+    {
+     "code": "Z100",
+     "name": "기후",
+     "count": 0
+    },
+    {
+     "code": "Z110",
+     "name": "나가노",
+     "count": 1
+    },
+    {
+     "code": "Z120",
+     "name": "나가사키",
+     "count": 1
+    },
+    {
+     "code": "Z130",
+     "name": "나라",
+     "count": 0
+    },
+    {
+     "code": "Z140",
+     "name": "니가타",
+     "count": 0
+    },
+    {
+     "code": "Z150",
+     "name": "토쿠시마",
+     "count": 0
+    },
+    {
+     "code": "Z160",
+     "name": "토야마",
+     "count": 0
+    },
+    {
+     "code": "Z170",
+     "name": "토치기",
+     "count": 0
+    },
+    {
+     "code": "Z180",
+     "name": "톳토리",
+     "count": 0
+    },
+    {
+     "code": "Z190",
+     "name": "미야기",
+     "count": 1
+    },
+    {
+     "code": "Z200",
+     "name": "미야자키",
+     "count": 0
+    },
+    {
+     "code": "Z210",
+     "name": "미에",
+     "count": 1
+    },
+    {
+     "code": "Z220",
+     "name": "사가",
+     "count": 0
+    },
+    {
+     "code": "Z230",
+     "name": "사이타마",
+     "count": 0
+    },
+    {
+     "code": "Z240",
+     "name": "시가",
+     "count": 0
+    },
+    {
+     "code": "Z250",
+     "name": "시마네",
+     "count": 1
+    },
+    {
+     "code": "Z260",
+     "name": "시즈오카",
+     "count": 2
+    },
+    {
+     "code": "Z270",
+     "name": "아키타",
+     "count": 0
+    },
+    {
+     "code": "Z280",
+     "name": "아오모리",
+     "count": 0
+    },
+    {
+     "code": "Z290",
+     "name": "아이치",
+     "count": 4
+    },
+    {
+     "code": "Z300",
+     "name": "야마가타",
+     "count": 0
+    },
+    {
+     "code": "Z310",
+     "name": "야마구치",
+     "count": 0
+    },
+    {
+     "code": "Z320",
+     "name": "야마나시",
+     "count": 1
+    },
+    {
+     "code": "Z330",
+     "name": "에히메",
+     "count": 1
+    },
+    {
+     "code": "Z340",
+     "name": "오카야마",
+     "count": 0
+    },
+    {
+     "code": "Z350",
+     "name": "오키나와",
+     "count": 3
+    },
+    {
+     "code": "Z360",
+     "name": "오이타",
+     "count": 0
+    },
+    {
+     "code": "Z370",
+     "name": "와카야마",
+     "count": 0
+    },
+    {
+     "code": "Z380",
+     "name": "이바라키",
+     "count": 1
+    },
+    {
+     "code": "Z390",
+     "name": "이시카와",
+     "count": 0
+    },
+    {
+     "code": "Z400",
+     "name": "이와테",
+     "count": 1
+    },
+    {
+     "code": "Z410",
+     "name": "치바",
+     "count": 9
+    },
+    {
+     "code": "Z420",
+     "name": "홋카이도",
+     "count": 6
+    },
+    {
+     "code": "Z430",
+     "name": "효고",
+     "count": 2
+    },
+    {
+     "code": "Z440",
+     "name": "후쿠시마",
+     "count": 0
+    },
+    {
+     "code": "Z450",
+     "name": "후쿠오카",
+     "count": 17
+    },
+    {
+     "code": "Z460",
+     "name": "후쿠이",
+     "count": 0
+    },
+    {
+     "code": "Z470",
+     "name": "히로시마",
+     "count": 5
+    }
+   ]
+  },
+  {
+   "code": "Y000",
+   "name": "미국",
+   "order": 25,
+   "districts": [
+    {
+     "code": "Y010",
+     "name": "보스턴",
+     "count": 1
+    },
+    {
+     "code": "Y020",
+     "name": "필라델피아",
+     "count": 0
+    },
+    {
+     "code": "Y030",
+     "name": "뉴욕",
+     "count": 9
+    },
+    {
+     "code": "Y040",
+     "name": "시카고",
+     "count": 0
+    },
+    {
+     "code": "Y050",
+     "name": "로스앤젤레스",
+     "count": 11
+    },
+    {
+     "code": "Y060",
+     "name": "워싱턴 D.C",
+     "count": 0
+    },
+    {
+     "code": "Y070",
+     "name": "네바다주",
+     "count": 0
+    },
+    {
+     "code": "Y080",
+     "name": "네브라스카주",
+     "count": 0
+    },
+    {
+     "code": "Y090",
+     "name": "노스다코타주",
+     "count": 0
+    },
+    {
+     "code": "Y100",
+     "name": "노스케롤라이나주",
+     "count": 0
+    },
+    {
+     "code": "Y110",
+     "name": "뉴멕시코주",
+     "count": 0
+    },
+    {
+     "code": "Y120",
+     "name": "뉴욕주",
+     "count": 0
+    },
+    {
+     "code": "Y130",
+     "name": "뉴저지주",
+     "count": 9
+    },
+    {
+     "code": "Y140",
+     "name": "뉴햄프셔주",
+     "count": 1
+    },
+    {
+     "code": "Y150",
+     "name": "델라웨어주",
+     "count": 0
+    },
+    {
+     "code": "Y160",
+     "name": "로드아일랜드주",
+     "count": 1
+    },
+    {
+     "code": "Y170",
+     "name": "루지애나주",
+     "count": 0
+    },
+    {
+     "code": "Y180",
+     "name": "메릴랜드주",
+     "count": 0
+    },
+    {
+     "code": "Y190",
+     "name": "메사추세츠주",
+     "count": 1
+    },
+    {
+     "code": "Y200",
+     "name": "메인주",
+     "count": 0
+    },
+    {
+     "code": "Y210",
+     "name": "몬타나주",
+     "count": 0
+    },
+    {
+     "code": "Y220",
+     "name": "미네소타주",
+     "count": 0
+    },
+    {
+     "code": "Y230",
+     "name": "미시건주",
+     "count": 5
+    },
+    {
+     "code": "Y240",
+     "name": "미시시피주",
+     "count": 0
+    },
+    {
+     "code": "Y250",
+     "name": "미주리주",
+     "count": 0
+    },
+    {
+     "code": "Y260",
+     "name": "버먼트주",
+     "count": 1
+    },
+    {
+     "code": "Y270",
+     "name": "버지니아주",
+     "count": 3
+    },
+    {
+     "code": "Y280",
+     "name": "웨스트버지니아주",
+     "count": 0
+    },
+    {
+     "code": "Y290",
+     "name": "사우스다코타주",
+     "count": 0
+    },
+    {
+     "code": "Y300",
+     "name": "사우스캐롤라이나주",
+     "count": 0
+    },
+    {
+     "code": "Y310",
+     "name": "아이다호주",
+     "count": 0
+    },
+    {
+     "code": "Y320",
+     "name": "아이오와주",
+     "count": 0
+    },
+    {
+     "code": "Y330",
+     "name": "알래스카주",
+     "count": 0
+    },
+    {
+     "code": "Y340",
+     "name": "알칸사주",
+     "count": 0
+    },
+    {
+     "code": "Y350",
+     "name": "애리조나주",
+     "count": 4
+    },
+    {
+     "code": "Y360",
+     "name": "앨라배마주",
+     "count": 25
+    },
+    {
+     "code": "Y370",
+     "name": "오레건주",
+     "count": 2
+    },
+    {
+     "code": "Y380",
+     "name": "오클라호마주",
+     "count": 0
+    },
+    {
+     "code": "Y390",
+     "name": "오하이오주",
+     "count": 2
+    },
+    {
+     "code": "Y400",
+     "name": "와이오밍주",
+     "count": 0
+    },
+    {
+     "code": "Y410",
+     "name": "워싱턴주",
+     "count": 0
+    },
+    {
+     "code": "Y420",
+     "name": "위스콘신주",
+     "count": 0
+    },
+    {
+     "code": "Y430",
+     "name": "유타주",
+     "count": 1
+    },
+    {
+     "code": "Y440",
+     "name": "인디애나주",
+     "count": 2
+    },
+    {
+     "code": "Y450",
+     "name": "일리노이주",
+     "count": 3
+    },
+    {
+     "code": "Y460",
+     "name": "조지아주",
+     "count": 31
+    },
+    {
+     "code": "Y470",
+     "name": "캔사스주",
+     "count": 0
+    },
+    {
+     "code": "Y480",
+     "name": "캘리포니아주",
+     "count": 2
+    },
+    {
+     "code": "Y490",
+     "name": "켄터키주",
+     "count": 0
+    },
+    {
+     "code": "Y500",
+     "name": "코네티컷주",
+     "count": 1
+    },
+    {
+     "code": "Y510",
+     "name": "콜로라도주",
+     "count": 0
+    },
+    {
+     "code": "Y520",
+     "name": "테네시주",
+     "count": 12
+    },
+    {
+     "code": "Y530",
+     "name": "텍사스주",
+     "count": 14
+    },
+    {
+     "code": "Y540",
+     "name": "펜실베니아주",
+     "count": 0
+    },
+    {
+     "code": "Y550",
+     "name": "플로리다주",
+     "count": 0
+    },
+    {
+     "code": "Y560",
+     "name": "하와이주",
+     "count": 0
+    }
+   ]
+  },
+  {
+   "code": "S000",
+   "name": "북아메리카",
+   "order": 26,
+   "districts": [
+    {
+     "code": "S010",
+     "name": "멕시코",
+     "count": 37
+    },
+    {
+     "code": "S020",
+     "name": "캐나다",
+     "count": 1
+    },
+    {
+     "code": "S040",
+     "name": "그레나다",
+     "count": 0
+    },
+    {
+     "code": "S050",
+     "name": "그린란드",
+     "count": 0
+    },
+    {
+     "code": "S060",
+     "name": "도미니카공화국",
+     "count": 1
+    },
+    {
+     "code": "S070",
+     "name": "바베이도스",
+     "count": 0
+    },
+    {
+     "code": "S080",
+     "name": "바하마",
+     "count": 0
+    },
+    {
+     "code": "S090",
+     "name": "세인트루시아",
+     "count": 0
+    },
+    {
+     "code": "S100",
+     "name": "세인트빈센트그레나딘",
+     "count": 0
+    },
+    {
+     "code": "S110",
+     "name": "세인트키츠네비스",
+     "count": 0
+    },
+    {
+     "code": "S120",
+     "name": "코스타리카",
+     "count": 0
+    },
+    {
+     "code": "S130",
+     "name": "푸에르토리코",
+     "count": 0
+    },
+    {
+     "code": "S030",
+     "name": "기타",
+     "count": 0
+    }
+   ]
+  },
+  {
+   "code": "T000",
+   "name": "남아메리카",
+   "order": 27,
+   "districts": [
+    {
+     "code": "T010",
+     "name": "과테말라",
+     "count": 14
+    },
+    {
+     "code": "T020",
+     "name": "베네수엘라",
+     "count": 0
+    },
+    {
+     "code": "T030",
+     "name": "브라질",
+     "count": 0
+    },
+    {
+     "code": "T040",
+     "name": "아르헨티나",
+     "count": 0
+    },
+    {
+     "code": "T050",
+     "name": "에콰도르",
+     "count": 0
+    },
+    {
+     "code": "T060",
+     "name": "온두라스",
+     "count": 0
+    },
+    {
+     "code": "T070",
+     "name": "우루과이",
+     "count": 0
+    },
+    {
+     "code": "T080",
+     "name": "칠레",
+     "count": 3
+    },
+    {
+     "code": "T090",
+     "name": "콜롬비아",
+     "count": 0
+    },
+    {
+     "code": "T100",
+     "name": "쿠바",
+     "count": 0
+    },
+    {
+     "code": "T110",
+     "name": "파나마",
+     "count": 0
+    },
+    {
+     "code": "T120",
+     "name": "페루",
+     "count": 0
+    },
+    {
+     "code": "T140",
+     "name": "가이아나",
+     "count": 0
+    },
+    {
+     "code": "T150",
+     "name": "니카라과",
+     "count": 3
+    },
+    {
+     "code": "T160",
+     "name": "도미니카연방",
+     "count": 0
+    },
+    {
+     "code": "T170",
+     "name": "벨리즈",
+     "count": 0
+    },
+    {
+     "code": "T180",
+     "name": "볼리비아",
+     "count": 0
+    },
+    {
+     "code": "T190",
+     "name": "수리남",
+     "count": 0
+    },
+    {
+     "code": "T200",
+     "name": "아이티",
+     "count": 0
+    },
+    {
+     "code": "T210",
+     "name": "앤티가바부다",
+     "count": 0
+    },
+    {
+     "code": "T220",
+     "name": "엘살바도르",
+     "count": 0
+    },
+    {
+     "code": "T230",
+     "name": "자메이카",
+     "count": 0
+    },
+    {
+     "code": "T240",
+     "name": "트리니다드토바고",
+     "count": 0
+    },
+    {
+     "code": "T250",
+     "name": "파라과이",
+     "count": 0
+    },
+    {
+     "code": "T130",
+     "name": "기타",
+     "count": 0
+    }
+   ]
+  },
+  {
+   "code": "U000",
+   "name": "유럽",
+   "order": 28,
+   "districts": [
+    {
+     "code": "U010",
+     "name": "그리스",
+     "count": 0
+    },
+    {
+     "code": "U020",
+     "name": "네덜란드",
+     "count": 0
+    },
+    {
+     "code": "U030",
+     "name": "노르웨이",
+     "count": 0
+    },
+    {
+     "code": "U040",
+     "name": "덴마크",
+     "count": 0
+    },
+    {
+     "code": "U050",
+     "name": "독일",
+     "count": 10
+    },
+    {
+     "code": "U060",
+     "name": "러시아",
+     "count": 2
+    },
+    {
+     "code": "U070",
+     "name": "벨기에",
+     "count": 0
+    },
+    {
+     "code": "U080",
+     "name": "스웨덴",
+     "count": 3
+    },
+    {
+     "code": "U090",
+     "name": "스위스",
+     "count": 0
+    },
+    {
+     "code": "U100",
+     "name": "스페인",
+     "count": 7
+    },
+    {
+     "code": "U110",
+     "name": "영국",
+     "count": 0
+    },
+    {
+     "code": "U120",
+     "name": "이탈리아",
+     "count": 8
+    },
+    {
+     "code": "U130",
+     "name": "체코",
+     "count": 15
+    },
+    {
+     "code": "U140",
+     "name": "터키",
+     "count": 5
+    },
+    {
+     "code": "U150",
+     "name": "포르투갈",
+     "count": 0
+    },
+    {
+     "code": "U160",
+     "name": "폴란드",
+     "count": 5
+    },
+    {
+     "code": "U170",
+     "name": "프랑스",
+     "count": 0
+    },
+    {
+     "code": "U180",
+     "name": "핀란드",
+     "count": 0
+    },
+    {
+     "code": "U190",
+     "name": "헝가리",
+     "count": 17
+    },
+    {
+     "code": "U220",
+     "name": "라트비아",
+     "count": 0
+    },
+    {
+     "code": "U230",
+     "name": "루마니아",
+     "count": 0
+    },
+    {
+     "code": "U240",
+     "name": "룩셈부르크",
+     "count": 0
+    },
+    {
+     "code": "U250",
+     "name": "리투아니아",
+     "count": 0
+    },
+    {
+     "code": "U260",
+     "name": "리히텐슈타인",
+     "count": 0
+    },
+    {
+     "code": "U270",
+     "name": "마케도니아",
+     "count": 0
+    },
+    {
+     "code": "U280",
+     "name": "모나코",
+     "count": 0
+    },
+    {
+     "code": "U290",
+     "name": "몰도바",
+     "count": 0
+    },
+    {
+     "code": "U300",
+     "name": "몰타",
+     "count": 0
+    },
+    {
+     "code": "U310",
+     "name": "바티칸시국",
+     "count": 0
+    },
+    {
+     "code": "U320",
+     "name": "벨라루스",
+     "count": 0
+    },
+    {
+     "code": "U330",
+     "name": "보스니아헤르체코비나",
+     "count": 0
+    },
+    {
+     "code": "U340",
+     "name": "불가리아",
+     "count": 0
+    },
+    {
+     "code": "U350",
+     "name": "사이프러스",
+     "count": 1
+    },
+    {
+     "code": "U360",
+     "name": "산마리노",
+     "count": 0
+    },
+    {
+     "code": "U370",
+     "name": "세르비아몬테네그로",
+     "count": 0
+    },
+    {
+     "code": "U380",
+     "name": "슬로바키아",
+     "count": 7
+    },
+    {
+     "code": "U390",
+     "name": "슬로베니아",
+     "count": 0
+    },
+    {
+     "code": "U400",
+     "name": "아르메니아",
+     "count": 1
+    },
+    {
+     "code": "U410",
+     "name": "아이슬란드",
+     "count": 0
+    },
+    {
+     "code": "U420",
+     "name": "아일랜드",
+     "count": 0
+    },
+    {
+     "code": "U430",
+     "name": "아제르바이잔",
+     "count": 0
+    },
+    {
+     "code": "U440",
+     "name": "안도라",
+     "count": 0
+    },
+    {
+     "code": "U450",
+     "name": "알바니아",
+     "count": 0
+    },
+    {
+     "code": "U460",
+     "name": "에스토니아",
+     "count": 0
+    },
+    {
+     "code": "U470",
+     "name": "오스트리아",
+     "count": 1
+    },
+    {
+     "code": "U490",
+     "name": "우크라이나",
+     "count": 0
+    },
+    {
+     "code": "U510",
+     "name": "크로아티아",
+     "count": 0
+    },
+    {
+     "code": "U200",
+     "name": "기타",
+     "count": 0
+    }
+   ]
+  },
+  {
+   "code": "V000",
+   "name": "오세아니아",
+   "order": 29,
+   "districts": [
+    {
+     "code": "V010",
+     "name": "괌",
+     "count": 1
+    },
+    {
+     "code": "V020",
+     "name": "뉴질랜드",
+     "count": 0
+    },
+    {
+     "code": "V030",
+     "name": "파푸아뉴기니",
+     "count": 0
+    },
+    {
+     "code": "V040",
+     "name": "피지",
+     "count": 0
+    },
+    {
+     "code": "V050",
+     "name": "호주",
+     "count": 14
+    },
+    {
+     "code": "V070",
+     "name": "나우루공화국",
+     "count": 0
+    },
+    {
+     "code": "V080",
+     "name": "마셜",
+     "count": 0
+    },
+    {
+     "code": "V090",
+     "name": "미크로네시아",
+     "count": 0
+    },
+    {
+     "code": "V100",
+     "name": "바누아투",
+     "count": 0
+    },
+    {
+     "code": "V110",
+     "name": "사모아",
+     "count": 0
+    },
+    {
+     "code": "V120",
+     "name": "솔로몬제도",
+     "count": 4
+    },
+    {
+     "code": "V130",
+     "name": "키리바시",
+     "count": 0
+    },
+    {
+     "code": "V140",
+     "name": "통가",
+     "count": 0
+    },
+    {
+     "code": "V150",
+     "name": "투발루",
+     "count": 0
+    },
+    {
+     "code": "V160",
+     "name": "팔라우",
+     "count": 0
+    },
+    {
+     "code": "V060",
+     "name": "기타",
+     "count": 1
+    }
+   ]
+  },
+  {
+   "code": "W000",
+   "name": "아프리카",
+   "order": 30,
+   "districts": [
+    {
+     "code": "W010",
+     "name": "가나",
+     "count": 3
+    },
+    {
+     "code": "W020",
+     "name": "가봉",
+     "count": 0
+    },
+    {
+     "code": "W030",
+     "name": "나이지리아",
+     "count": 3
+    },
+    {
+     "code": "W040",
+     "name": "남아프리카공화국",
+     "count": 6
+    },
+    {
+     "code": "W050",
+     "name": "리비아",
+     "count": 0
+    },
+    {
+     "code": "W060",
+     "name": "모로코",
+     "count": 2
+    },
+    {
+     "code": "W070",
+     "name": "수단",
+     "count": 0
+    },
+    {
+     "code": "W080",
+     "name": "알제리",
+     "count": 1
+    },
+    {
+     "code": "W090",
+     "name": "에티오피아",
+     "count": 1
+    },
+    {
+     "code": "W100",
+     "name": "우간다",
+     "count": 0
+    },
+    {
+     "code": "W110",
+     "name": "이집트",
+     "count": 2
+    },
+    {
+     "code": "W120",
+     "name": "케냐",
+     "count": 4
+    },
+    {
+     "code": "W130",
+     "name": "탄자니아",
+     "count": 3
+    },
+    {
+     "code": "W140",
+     "name": "튀니지",
+     "count": 1
+    },
+    {
+     "code": "W160",
+     "name": "감비아",
+     "count": 0
+    },
+    {
+     "code": "W170",
+     "name": "기니",
+     "count": 0
+    },
+    {
+     "code": "W180",
+     "name": "기니비사우",
+     "count": 0
+    },
+    {
+     "code": "W190",
+     "name": "나미비아",
+     "count": 0
+    },
+    {
+     "code": "W200",
+     "name": "니제르",
+     "count": 0
+    },
+    {
+     "code": "W210",
+     "name": "라이베리아",
+     "count": 1
+    },
+    {
+     "code": "W220",
+     "name": "레소토",
+     "count": 0
+    },
+    {
+     "code": "W230",
+     "name": "르완다",
+     "count": 1
+    },
+    {
+     "code": "W240",
+     "name": "마다가스카르",
+     "count": 0
+    },
+    {
+     "code": "W250",
+     "name": "말라위",
+     "count": 1
+    },
+    {
+     "code": "W260",
+     "name": "말리",
+     "count": 0
+    },
+    {
+     "code": "W270",
+     "name": "모리셔스",
+     "count": 0
+    },
+    {
+     "code": "W280",
+     "name": "모리타니아",
+     "count": 0
+    },
+    {
+     "code": "W290",
+     "name": "모잠비크",
+     "count": 7
+    },
+    {
+     "code": "W300",
+     "name": "베냉",
+     "count": 0
+    },
+    {
+     "code": "W310",
+     "name": "보츠와나",
+     "count": 0
+    },
+    {
+     "code": "W320",
+     "name": "부룬디",
+     "count": 0
+    },
+    {
+     "code": "W330",
+     "name": "부르키나파소",
+     "count": 0
+    },
+    {
+     "code": "W340",
+     "name": "상투메프린시페",
+     "count": 0
+    },
+    {
+     "code": "W350",
+     "name": "세네갈",
+     "count": 3
+    },
+    {
+     "code": "W360",
+     "name": "세이셸",
+     "count": 0
+    },
+    {
+     "code": "W370",
+     "name": "소말리아",
+     "count": 0
+    },
+    {
+     "code": "W380",
+     "name": "스와질란드",
+     "count": 0
+    },
+    {
+     "code": "W390",
+     "name": "시에라리온",
+     "count": 0
+    },
+    {
+     "code": "W400",
+     "name": "앙골라",
+     "count": 0
+    },
+    {
+     "code": "W410",
+     "name": "에리트레아",
+     "count": 0
+    },
+    {
+     "code": "W420",
+     "name": "잠비아",
+     "count": 0
+    },
+    {
+     "code": "W430",
+     "name": "적도기니",
+     "count": 0
+    },
+    {
+     "code": "W440",
+     "name": "중앙아프리카공화국",
+     "count": 0
+    },
+    {
+     "code": "W450",
+     "name": "지부티",
+     "count": 0
+    },
+    {
+     "code": "W460",
+     "name": "짐바브웨",
+     "count": 0
+    },
+    {
+     "code": "W470",
+     "name": "차드",
+     "count": 0
+    },
+    {
+     "code": "W480",
+     "name": "카메룬",
+     "count": 0
+    },
+    {
+     "code": "W490",
+     "name": "카보베르데",
+     "count": 0
+    },
+    {
+     "code": "W500",
+     "name": "코모로",
+     "count": 0
+    },
+    {
+     "code": "W510",
+     "name": "코트디부아르",
+     "count": 10
+    },
+    {
+     "code": "W520",
+     "name": "콩고",
+     "count": 1
+    },
+    {
+     "code": "W530",
+     "name": "콩고민주공화국",
+     "count": 4
+    },
+    {
+     "code": "W540",
+     "name": "토고",
+     "count": 5
+    },
+    {
+     "code": "W150",
+     "name": "기타",
+     "count": 0
+    }
+   ]
+  }
+ ]
+}
