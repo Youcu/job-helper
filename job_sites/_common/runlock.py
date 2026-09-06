@@ -12,12 +12,31 @@
 from __future__ import annotations
 
 import os
+import sys
 from contextlib import contextmanager
 from pathlib import Path
+
+# 다른 실행이 돌고 있어서 물러났다는 종료 코드. **오케스트레이터와 맺은 계약**이라
+# 사이트마다 따로 두면 안 된다 — 한 곳이 어긋나도 알아채기 어렵다.
+ALREADY_RUNNING = 3
 
 
 class LockedError(Exception):
     """다른 실행이 이미 돌고 있다."""
+
+
+def guarded(lock: Path, run) -> int:
+    """자물쇠를 쥐고 `run()` 을 돌린다. 이미 돌고 있으면 `ALREADY_RUNNING`.
+
+    세 사이트가 똑같은 일곱 줄을 각자 쓰고 있었다. 종료 코드가 계약인 이상 한 곳에서
+    관리해야 한다 — 한 사이트만 다른 코드를 내면 오케스트레이터가 조용히 잘못 읽는다.
+    """
+    try:
+        with run_lock(lock):
+            return run()
+    except LockedError as error:
+        print("\n%s" % error, file=sys.stderr)
+        return ALREADY_RUNNING
 
 
 @contextmanager
