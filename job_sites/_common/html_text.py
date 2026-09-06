@@ -42,6 +42,10 @@ _OPEN_TAG = re.compile(r"<([a-zA-Z][\w-]*)\b([^>]*)>")
 _STYLE_ATTR = re.compile(r"(?:^|\s)style\s*=\s*(\"[^\"]*\"|'[^']*')", re.IGNORECASE)
 _SCRIPT_OR_STYLE = re.compile(r"<(script|style)\b.*?</\1>", re.DOTALL | re.IGNORECASE)
 _ANY_TAG = re.compile(r"<[^>]+>")
+# 응답이 중간에 끊기면 마지막 태그가 안 닫힌 채 남는다 — `<img src="python.png`.
+# 태그를 `<...>` 로만 걷어내면 그 조각이 **글로 새어** `src`·`class`·파일 이름이
+# 산문 매칭에 들어간다. `<` 뒤에 글자가 오는 것만 태그로 보므로 `경력 < 3년` 은 안 다친다.
+_UNCLOSED_TAIL = re.compile(r"<[a-zA-Z/!][^>]*$")
 _WHITESPACE = re.compile(r"\s+")
 
 # 안쪽을 가질 수 없는 요소. 균형 스캔을 걸면 문서 끝까지 삼킨다.
@@ -128,7 +132,7 @@ def to_text(fragment: str) -> str:
     """태그를 걷어내고 글만 남긴다. 숨김 여부는 보지 않는다."""
     if not fragment:
         return ""
-    without_code = _SCRIPT_OR_STYLE.sub(" ", fragment)
+    without_code = _UNCLOSED_TAIL.sub(" ", _SCRIPT_OR_STYLE.sub(" ", fragment))
     # 태그 자리를 공백으로 바꾼다 — 안 그러면 `<td>Java</td><td>C</td>` 가 `JavaC` 가 된다
     unescaped = html_module.unescape(_ANY_TAG.sub(" ", without_code))
     return _WHITESPACE.sub(" ", unescaped).strip()

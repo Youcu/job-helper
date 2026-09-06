@@ -34,3 +34,6 @@ htmlcov/
 **/cache/
 corpus_candidates.json
 corpus_candidates.csv
+
+# Playwright MCP 가 남기는 화면 로그·스냅샷. 도구 산출물이라 다시 만들면 된다.
+.playwright-mcp/
