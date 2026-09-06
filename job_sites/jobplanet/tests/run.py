@@ -10,10 +10,10 @@
     test_BOUNDARY_…   0, 1, 최대, 딱 떨어지는 지점, 뒤집힌 범위
 
 **통과시키려고 쓴 테스트가 아니다.** 코드를 적대적으로 읽고 "여기가 틀렸을 것 같다" 는 곳을
-먼저 찔러 본 뒤, 실제로 틀린 것만 굳혔다. 사람인에서는 숨김 판정에서 4건이 실제 결함이었다.
+먼저 찔러 본 뒤, 실제로 틀린 것만 굳혔다. 잡플래닛에서는 조사 단계에서 "97%가 잡코리아 중계" 라는 사실이 설계를 바꿨다.
 그 테스트에는 `# 결함:` 주석이 붙어 있다.
 
-네트워크를 타지 않는다 — 떠 놓은 실제 공고 `fixtures/detail_pages.json` 을 쓴다.
+네트워크를 타지 않는다 — 떠 놓은 실제 공고 `fixtures/responses.json` 을 쓴다.
 """
 from __future__ import annotations
 
@@ -26,18 +26,14 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT.parent))
 
 MODULES = [
-    "tests.test_html_text",
-    "tests.test_runlock",
-    "tests.test_store",
-    "tests.test_corpus_candidates",
     "tests.test_config",
     "tests.test_client",
     "tests.test_filters",
     "tests.test_collect",
-    "tests.test_body",
     "tests.test_skills",
     "tests.test_record",
-    "tests.test_saramin",
+    "tests.test_jobplanet",
+    "tests.test_run",
 ]
 
 KIND_LABEL = {"NORMAL": "일반", "EXCEPTION": "예외", "BOUNDARY": "경계"}

@@ -20,8 +20,8 @@ sys.path.insert(0, str(ROOT_DIR))
 from tqdm import tqdm
 
 from _common.env import ConfigError
-from _common.runlock import LockedError, run_lock
-from _common.store import RETENTION_DAYS, ai_csv_path, save
+from _common.runlock import guarded
+from _common.store import ai_csv_path, merge_lines, save
 from lib import body, record
 from lib.client import BlockedError, SaraminClient
 from lib.collect import fetch_detail, fetch_listings
@@ -34,13 +34,8 @@ LOCK = ROOT_DIR / "csv" / ".saramin.lock"
 
 def main() -> int:
     # 파이프라인은 주기로 돈다. 겹쳐 돌면 두 실행이 같은 CSV 를 읽고-고치고-써서
-    # 한쪽 결과가 조용히 사라진다.
-    try:
-        with run_lock(LOCK):
-            return _run()
-    except LockedError as error:
-        print("\n%s" % error, file=sys.stderr)
-        return 3
+    # 한쪽 결과가 조용히 사라진다. 자물쇠와 종료 코드는 `_common` 이 쥔다.
+    return guarded(LOCK, _run)
 
 
 def _run() -> int:
@@ -154,14 +149,8 @@ def _print_conditions(config, params: dict) -> None:
 
 def _print_summary(config, result, ai_rows, stats) -> None:
     print("\n%s — 모두 %d행" % (OUTPUT.relative_to(ROOT_DIR), len(result.rows)))
-    print("  새로 뜬 공고        : %d건" % result.added)
-    print("  이번에도 보인 공고  : %d건" % result.updated)
-    if result.unseen:
-        print("  이번에 안 보인 공고 : %d건 (최종확인일을 그대로 둡니다)" % result.unseen)
-    if result.expired:
-        print("  %d일 넘게 안 보여 뺀 공고: %d건" % (RETENTION_DAYS, result.expired))
-    if result.undated:
-        print("  최종확인일을 알 수 없어 남겨 둔 공고: %d건" % result.undated)
+    for line in merge_lines(result):
+        print(line)
     if stats["이미지본문"]:
         print("  본문이 이미지인 공고 : %d건 (그중 그림 주소를 남긴 것 %d건)"
               % (stats["이미지본문"], stats["그림대기"]))

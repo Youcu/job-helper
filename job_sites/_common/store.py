@@ -197,3 +197,22 @@ def write_csv(path: Path, rows: list[dict]) -> None:
         os.replace(tmp, path)
     finally:
         tmp.unlink(missing_ok=True)
+
+
+def merge_lines(result, retention_days: int = RETENTION_DAYS) -> list[str]:
+    """병합 결과를 사람이 읽을 줄들로. **세 사이트가 똑같이 찍던 것**이다.
+
+    `save()` 가 돌려주는 값의 짝이라 여기 둔다 — 세는 규칙이 바뀌면 찍는 말도 같이
+    바뀌어야 하는데, 사이트마다 사본을 두면 한 곳만 고치고 지나가기 쉽다.
+
+    0 인 항목은 줄을 만들지 않는다. 늘 찍으면 정상인 실행이 0 으로 가득 차 보인다.
+    """
+    lines = ["  새로 뜬 공고        : %d건" % result.added,
+             "  이번에도 보인 공고  : %d건" % result.updated]
+    if result.unseen:
+        lines.append("  이번에 안 보인 공고 : %d건 (최종확인일을 그대로 둡니다)" % result.unseen)
+    if result.expired:
+        lines.append("  %d일 넘게 안 보여 뺀 공고: %d건" % (retention_days, result.expired))
+    if result.undated:
+        lines.append("  최종확인일을 알 수 없어 남겨 둔 공고: %d건" % result.undated)
+    return lines
