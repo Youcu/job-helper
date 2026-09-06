@@ -21,27 +21,19 @@
 """
 from __future__ import annotations
 
-from functools import lru_cache
-
-from _common import dictionaries
-from _common.skills import build_matcher
+from _common.skills import clear_corpus_matcher, find_in_corpus
 
 from .body import visible_body
 
 
-@lru_cache(maxsize=1)
-def _matcher():
-    return build_matcher(site_terms=dictionaries.corpus_names())
-
-
 def clear_caches() -> None:
     """사전을 다시 읽게 한다. 테스트가 파일을 갈아 끼울 때 쓴다."""
-    _matcher.cache_clear()
+    clear_corpus_matcher()
 
 
 def find_skills_in_text(text: str) -> list[str]:
     """산문에서 기술 이름 찾기. 엔진은 `_common` 것을 그대로 쓴다."""
-    return _matcher().find(text or "")
+    return find_in_corpus(text)
 
 
 def extract_skills(body_html: str) -> list[str]:

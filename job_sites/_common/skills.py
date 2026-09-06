@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from functools import lru_cache
 
 from . import dictionaries
 from .normalize import canonical
@@ -126,12 +127,16 @@ def _alternation(terms: list[str], *, version_suffix: bool) -> str:
     )
 
 
-def build_matcher(site_terms: list[str]) -> SkillMatcher:
+def build_matcher(site_terms: list[str] = ()) -> SkillMatcher:
     """사이트 어휘와 공통 사전을 합쳐 매처를 만든다.
 
     `site_terms` 는 그 사이트가 가진 스킬 이름 목록 — 산문에서 후보를 찾는 넓은 그물이다.
     공통 corpus 와 별칭도 함께 넣는다. 사이트 어휘에 없는 이름이 공통 corpus 에는 있다
     (`Kafka` `Spring` `Google Cloud` `NestJS`). 그걸 넣지 않으면 산문에 적혀 있어도 못 찾는다.
+
+    **쓸 만한 사이트 어휘가 없으면 비워 둔다.** corpus 는 어차피 여기서 더하므로,
+    `site_terms=corpus_names()` 로 넘기면 같은 목록을 두 번 넣는 셈이다 — 결과는 같지만
+    코드가 "이 사이트의 어휘가 corpus 다" 라는 없는 사실을 말하게 된다.
     """
     blocked = dictionaries.blocklist()
     ascii_names = _searchable(
@@ -156,3 +161,26 @@ def build_matcher(site_terms: list[str]) -> SkillMatcher:
         korean_pattern=korean_pattern,
         korean_names=korean_names,
     )
+
+
+@lru_cache(maxsize=1)
+def corpus_matcher() -> SkillMatcher:
+    """**공통 corpus 만으로** 만든 매처.
+
+    쓸 만한 사이트 어휘가 없는 사이트가 쓴다 — 잡코리아(전 직군 어휘라 못 씀)·
+    잡플래닛·점핏(코드표를 공개하지 않음)이 그렇다. 셋이 똑같은 세 줄을 각자 쓰고
+    있어서 여기로 모았다. 사이트 어휘가 있는 사람인은 `build_matcher` 를 직접 쓴다.
+
+    매처를 만드는 데 사전 세 벌을 읽고 정규식을 컴파일하므로 캐시한다.
+    """
+    return build_matcher()
+
+
+def clear_corpus_matcher() -> None:
+    """사전을 다시 읽게 한다. 테스트가 사전을 갈아 끼울 때 쓴다."""
+    corpus_matcher.cache_clear()
+
+
+def find_in_corpus(text: str) -> list[str]:
+    """산문에서 기술 이름 찾기 — corpus 어휘만으로."""
+    return corpus_matcher().find(text or "")

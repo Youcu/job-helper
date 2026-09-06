@@ -23,10 +23,8 @@ Wanted·사람인과 같은 구조다 — **구조화 ① 과 본문 매칭 ② 
 """
 from __future__ import annotations
 
-from functools import lru_cache
-
-from _common import corpus_candidates, dictionaries
-from _common.skills import build_matcher
+from _common import corpus_candidates
+from _common.skills import clear_corpus_matcher, find_in_corpus
 
 SITE_NAME = "jobplanet"
 
@@ -34,16 +32,9 @@ SITE_NAME = "jobplanet"
 PROSE_FIELDS = ("required_qualification", "preferred_skill", "primary_responsibility")
 
 
-@lru_cache(maxsize=1)
-def _matcher():
-    """어휘는 **공통 코퍼스**다. 잡플래닛에는 따로 쓸 만한 사이트 어휘가 없다 —
-    `skills` 배열은 공고마다 자유롭게 적은 것이라 코드표가 아니다."""
-    return build_matcher(site_terms=dictionaries.corpus_names())
-
-
 def clear_caches() -> None:
     """사전을 다시 읽게 한다. 테스트가 파일을 갈아 끼울 때 쓴다."""
-    _matcher.cache_clear()
+    clear_corpus_matcher()
 
 
 def structured_skills(detail: dict, *, source_url: str = "",
@@ -67,7 +58,7 @@ def prose_text(detail: dict) -> str:
 
 def find_skills_in_text(text: str) -> list[str]:
     """② 산문에서 기술 이름 찾기. 엔진은 `_common` 것을 그대로 쓴다."""
-    return _matcher().find(text or "")
+    return find_in_corpus(text)
 
 
 def extract_skills(detail: dict, *, source_url: str = "",
