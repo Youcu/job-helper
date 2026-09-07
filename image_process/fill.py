@@ -66,9 +66,18 @@ def add_missing(existing: str, items: list[str]) -> str:
 def apply(row: dict, read: dict) -> dict:
     """새 dict 를 돌려준다. `row` 는 고치지 않는다."""
     out = dict(row)
-    # 기술스택 칸에는 그림 주소만 들어 있다(실측: 주소와 기술이 섞인 행 0건).
-    # 못 얻었으면 빈 칸이 된다 — 주소는 기술이 아니라서 남겨 두면 안 된다.
-    out["기술스택"] = ", ".join(_clean(read.get("기술스택")))
+    # **기술스택도 덮지 않고 보강한다.** 처음에는 이 칸에 그림 주소만 들어 있다고 보고
+    # 통째로 갈아끼웠는데, 그 근거였던 "주소와 기술이 섞인 행 0건" 실측이 틀렸다.
+    # 사람인은 기술을 먼저 주고 주소를 뒤에 붙인다 — `C++, C, Java, https://…png`.
+    # 갈아끼우면 수집 단계가 이미 찾아 둔 기술이 사라진다.
+    #
+    # **주소만 걷어낸다.** 주소는 기술이 아니므로 결과에 남기지 않는다.
+    kept = [one for one in _clean(row.get("기술스택", "").split(","))
+            if not one.startswith("http")]
+    for one in _clean(read.get("기술스택")):
+        if normalize(one) not in {normalize(x) for x in kept}:
+            kept.append(one)
+    out["기술스택"] = ", ".join(kept)
     for name in ("자격요건", "우대사항"):
         column = COLUMN[name]
         out[column] = add_missing(out.get(column, ""), read.get(name))

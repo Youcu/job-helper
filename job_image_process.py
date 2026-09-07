@@ -59,13 +59,18 @@ class Outcome:
 def image_urls(row: dict) -> list[str]:
     """이 행이 그림 본문인가. 맞으면 주소들, 아니면 빈 목록.
 
-    수집 단계가 본문이 그림이면 `기술스택` 칸에 주소를 남긴다(D-13). 실측으로 주소와
-    진짜 기술이 섞인 행은 0건이라, 첫 글자만 보면 갈린다.
+    수집 단계가 본문이 그림이면 `기술스택` 칸에 주소를 남긴다(D-13).
+
+    **칸 안 어디에 있든 찾는다.** 처음에는 칸이 `http` 로 시작하는지만 봤다. "주소와 진짜
+    기술이 섞인 행은 0건" 이라는 실측을 근거로 삼았는데 **그 실측이 틀렸다** — `http` 로
+    시작하는 행만 골라 놓고 그 안에서 섞인 것을 찾는 순환 논증이었다.
+
+    사람인은 기술을 먼저 주고 주소를 뒤에 붙인다 — `C++, C, Java, https://…/recruit.png`.
+    실제 데이터에서 주소가 든 175행 중 **73행(42%)** 이 이 모양이라 판독 단계를 통째로
+    지나갔고, 그 공고들의 내용은 그림 안에 있는데 아무도 안 읽었다.
     """
-    text = (row.get("기술스택") or "").strip()
-    if not text.startswith("http"):
-        return []
-    return [one.strip() for one in text.split(",") if one.strip().startswith("http")]
+    parts = [one.strip() for one in (row.get("기술스택") or "").split(",") if one.strip()]
+    return [one for one in parts if one.startswith("http")]
 
 
 def _download_once_more_if_needed(url: str, target: Path) -> None:

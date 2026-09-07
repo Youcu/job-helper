@@ -491,3 +491,42 @@ def test_BOUNDARY_undecodable_image_is_not_retried():
         stage.RETRY_PAUSE = original_pause
     check_equal(len(opens), 1, "열기는 한 번만 — 같은 바이트를 다시 열 이유가 없다")
     check_equal(got.kind, "못읽음", "그래도 버리지는 않는다")
+
+
+def test_BOUNDARY_tech_and_url_in_one_cell_is_still_a_target():
+    """**기술이 먼저 오고 주소가 뒤에 오는 행도 그림 본문이다.**
+
+    사람인이 이렇게 준다 — `C++, C, Java, https://…/recruit.png`. 처음에는 칸이 `http` 로
+    시작하는지만 봤고, "주소와 기술이 섞인 행은 0건" 이라는 실측을 근거로 삼았다.
+    **그 실측이 틀렸다** — `http` 로 시작하는 행만 골라 놓고 그 안에서 섞인 것을 찾는
+    순환 논증이었다. 실제 데이터에서 주소가 든 175행 중 **73행(42%)** 이 이 모양이라
+    판독 단계를 통째로 지나갔고, 그 공고들의 내용은 그림 안에 있는데 아무도 안 읽었다.
+    """
+    row = _row(tech="C++, C, Java, https://img/1.png")
+    check_equal(stage.image_urls(row), ["https://img/1.png"], "주소를 찾아야 한다")
+
+
+def test_BOUNDARY_tech_already_in_the_cell_is_not_thrown_away():
+    # 수집 단계가 이미 찾아 둔 기술이다. 그림에서 읽은 것으로 **갈아끼우면 그게 사라진다.**
+    row = _row(tech="C++, C, Java, https://img/1.png")
+    got = _run_one(row, answer={"기술스택": ["Python"], "자격요건": [], "우대사항": []})
+    check_equal(got.kind, "채움", "채워야 한다")
+    for kept in ("C++", "C", "Java"):
+        check(kept in got.row["기술스택"], "%s 가 사라졌다: %r" % (kept, got.row["기술스택"]))
+    check("Python" in got.row["기술스택"], "그림에서 읽은 것도 들어가야 한다")
+    check("http" not in got.row["기술스택"], "주소는 걷어내야 한다: %r" % got.row["기술스택"])
+
+
+def test_BOUNDARY_url_is_removed_even_when_the_image_gives_nothing():
+    # 그림에서 기술을 못 얻어도 주소는 남기지 않는다 — 주소는 기술이 아니다.
+    # 기존 기술이 있으니 이 공고는 살아남는다.
+    row = _row(tech="Java, https://img/1.png")
+    got = _run_one(row, answer={"기술스택": [], "자격요건": ["3년 이상"], "우대사항": []})
+    check_equal(got.kind, "채움", "자격요건을 얻었으니 산다")
+    check_equal(got.row["기술스택"], "Java", "기존 기술만 남는다")
+
+
+def test_BOUNDARY_a_row_with_no_url_is_still_not_a_target():
+    # 그림이 없는 평범한 행까지 잡으면 안 된다.
+    check_equal(stage.image_urls(_row(tech="Java, Spring")), [], "주소가 없으면 대상이 아니다")
+    check_equal(stage.image_urls(_row(tech="")), [], "빈 칸도 아니다")
