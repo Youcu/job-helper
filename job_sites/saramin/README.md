@@ -7,7 +7,7 @@
 
 ```
 ../../.venv/bin/python3 saramin.py       # 실행
-../../.venv/bin/python3 tests/run.py     # 테스트 258건
+../../.venv/bin/python3 tests/run.py     # 테스트 255건
 ```
 
 ## `.env` 항목
@@ -195,4 +195,4 @@ Wanted 는 UA 하나가 게이트였다. 사람인은 다르다.
 | `tags/saramin_skill.json` | 기술스택 어휘 140개 |
 | `tags/saramin_location.json` | 지역 코드 (시도 17 · 구시 271) |
 | `tags/saramin_filter.json` | 경력 · 학력 등 코드 |
-| `tests/` | 258건 (일반 78 · 예외 70 · 경계 110). `_common` 의 테스트도 여기 있다 |
+| `tests/` | 255건 (일반 77 · 예외 69 · 경계 109). `_common` 의 테스트도 여기 있다 |
