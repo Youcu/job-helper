@@ -1,0 +1,198 @@
+#!/usr/bin/env python3
+"""합본에서 **본문이 그림인 공고**만 골라 그림을 읽는다.
+
+    python3 job_image_process.py
+
+`csv/merged.csv` 를 읽어 `csv/merged_read.csv` 를 낸다. **원본은 고치지 않는다** — 이
+단계는 행을 없애기 때문에, 제자리에서 고치면 없어진 공고의 원본이 어디에도 안 남는다.
+
+혼자서도 돌고, `job_crawling_ochestrator.py` 가 자식 프로세스로 부르기도 한다. 수집이
+8~10분인데 이미지 쪽만 다시 돌려 보고 싶을 때가 반드시 온다 — 프롬프트를 고쳤을 때,
+모델을 바꿔 볼 때, 캐시를 지우고 다시 읽을 때.
+
+## 버림과 실패를 가른다
+
+모델이 답했는데 셋 다 비면 **버린다.** 우리가 못 받거나 못 읽은 것은 **안 버린다** —
+원래 모습대로 남기고 몇 건인지 찍는다. 이 구분이 뚫리면 우리 사고로 데이터가 사라진다.
+"""
+from __future__ import annotations
+
+import shutil
+import sys
+import tempfile
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass
+from pathlib import Path
+
+ROOT_DIR = Path(__file__).resolve().parent
+INPUT = ROOT_DIR / "csv" / "merged.csv"
+OUTPUT = ROOT_DIR / "csv" / "merged_read.csv"
+LOCK = ROOT_DIR / "csv" / ".image_process.lock"
+RETRY_PAUSE = 5      # 한도에 걸렸을 때 잠깐 쉬는 시간(초)
+
+sys.path.insert(0, str(ROOT_DIR / "job_sites"))
+sys.path.insert(0, str(ROOT_DIR))
+
+from tqdm import tqdm                                              # noqa: E402
+
+from _common.env import ConfigError                                # noqa: E402
+from _common.runlock import guarded                                # noqa: E402
+from _common.store import COLUMNS, read_csv, write_csv             # noqa: E402
+from image_process import cache, config, fetch, fill, reader, slicing   # noqa: E402
+
+
+@dataclass
+class Outcome:
+    kind: str                 # 채움 · 캐시 · 버림 · 껍데기 · 못읽음
+    row: dict | None
+    note: str = ""
+
+
+def image_urls(row: dict) -> list[str]:
+    """이 행이 그림 본문인가. 맞으면 주소들, 아니면 빈 목록.
+
+    수집 단계가 본문이 그림이면 `기술스택` 칸에 주소를 남긴다(D-13). 실측으로 주소와
+    진짜 기술이 섞인 행은 0건이라, 첫 글자만 보면 갈린다.
+    """
+    text = (row.get("기술스택") or "").strip()
+    if not text.startswith("http"):
+        return []
+    return [one.strip() for one in text.split(",") if one.strip().startswith("http")]
+
+
+def process_one(row: dict, *, cfg, book: dict, work_dir: Path, reader_fn=None) -> Outcome:
+    urls = image_urls(row)
+    read_fn = reader_fn or (lambda paths, **kw: reader.read(paths, **kw))
+
+    cached = [cache.get(book, url) for url in urls]
+    if urls and all(one is not None for one in cached):
+        merged = {name: [x for one in cached for x in one[name]] for name in reader.FIELDS}
+        if not fill.has_anything(merged):
+            return Outcome("버림", None, "캐시: 쓸 게 없음")
+        return Outcome("캐시", fill.apply(row, merged))
+
+    work = Path(work_dir) / "그림"
+    work.mkdir(parents=True, exist_ok=True)
+    pieces: list[Path] = []
+    for index, url in enumerate(urls):
+        target = work / ("%02d%s" % (index, Path(url.split("?")[0]).suffix or ".img"))
+        try:
+            fetch.download(url, target)
+        except fetch.FetchError as error:
+            return Outcome("못읽음", dict(row), str(error))
+        if fetch.is_junk(target):
+            continue
+        pieces.extend(slicing.slice_image(target, work / ("조각%02d" % index)))
+
+    if not pieces:
+        # 껍데기뿐이다. **모델을 부르지 않고** 버린다 — 부를 이유도 없고 돈만 든다.
+        for url in urls:
+            cache.put(book, url, {name: [] for name in reader.FIELDS}, cfg.model)
+        return Outcome("껍데기", None, "글이 담길 수 없는 그림뿐")
+
+    # **한 번만 다시 건다.** 실패는 대개 한도에 걸린 것이라 잠깐 쉬었다 걸면 통과한다.
+    # 두 번째도 실패하면 실패로 둔다 — 계속 매달리면 뒤엣것이 밀린다.
+    last = None
+    for attempt in range(2):
+        try:
+            got = read_fn(pieces, model=cfg.model, timeout=cfg.timeout)
+            break
+        except reader.ReadError as error:
+            last = error
+            if attempt == 0:
+                time.sleep(RETRY_PAUSE)
+    else:
+        # **우리가 못 읽은 것이지 그림에 내용이 없는 게 아니다.** 캐시에도 안 넣는다.
+        return Outcome("못읽음", dict(row), str(last))
+
+    for url in urls:
+        cache.put(book, url, got, cfg.model)
+    if not fill.has_anything(got):
+        return Outcome("버림", None, "읽었는데 쓸 게 없음")
+    return Outcome("채움", fill.apply(row, got))
+
+
+def main() -> int:
+    return guarded(LOCK, _run)
+
+
+def _run() -> int:
+    try:
+        cfg = config.load_config()
+    except ConfigError as error:
+        print("설정 오류: %s" % error, file=sys.stderr)
+        return 1
+    if not INPUT.exists():
+        print("%s 가 없습니다. 먼저 수집을 돌리세요." % INPUT, file=sys.stderr)
+        return 1
+    if not shutil.which("claude"):
+        print("claude 명령을 못 찾았습니다. 이 단계는 그것으로 그림을 읽습니다.",
+              file=sys.stderr)
+        return 1
+
+    rows = read_csv(INPUT)
+    targets = [index for index, row in enumerate(rows) if image_urls(row)]
+    print("이미지 본문 %d건을 읽습니다 (동시 %d개 · %s)"
+          % (len(targets), cfg.workers, cfg.model))
+
+    book = cache.load(cache.CACHE_PATH)
+    stats = {"채움": 0, "캐시": 0, "버림": 0, "껍데기": 0, "못읽음": 0}
+    kept: dict[int, dict | None] = {}
+    work_root = Path(tempfile.mkdtemp(prefix="image_process_"))
+    try:
+        with ThreadPoolExecutor(max_workers=cfg.workers) as pool:
+            futures = {
+                pool.submit(process_one, rows[index], cfg=cfg, book=book,
+                            work_dir=work_root / str(index)): index
+                for index in targets
+            }
+            # **`as_completed` 여야 실제로 기다린다.** dict 를 그냥 돌면 제출만 하고 지나간다.
+            for future in tqdm(as_completed(futures), total=len(futures),
+                               desc="그림", unit="건"):
+                index = futures[future]
+                try:
+                    outcome = future.result()
+                except Exception as error:
+                    # 한 건 때문에 전체를 잃지 않는다. **버림이 아니라 못읽음이다.**
+                    outcome = Outcome("못읽음", dict(rows[index]),
+                                      "%s: %s" % (type(error).__name__, error))
+                stats[outcome.kind] += 1
+                kept[index] = outcome.row
+                if outcome.kind == "못읽음":
+                    tqdm.write("  %s 못 읽음: %s" % (rows[index].get("URL"), outcome.note))
+    finally:
+        shutil.rmtree(work_root, ignore_errors=True)
+        cache.save(cache.CACHE_PATH, book)
+
+    out = []
+    for index, row in enumerate(rows):
+        if index not in kept:
+            out.append(row)              # 그림 행이 아니다. 그대로 통과
+        elif kept[index] is not None:
+            out.append(kept[index])      # 채웠거나, 못 읽어 원래대로 남긴 것
+        # kept[index] 가 None 이면 버린 것이다
+    write_csv(OUTPUT, out)
+    _report(stats, len(rows), len(out))
+
+    attempted = stats["채움"] + stats["버림"] + stats["못읽음"]
+    if attempted and stats["못읽음"] == attempted:
+        print("\n시도한 %d건을 전부 못 읽었습니다 — 온전한 결과가 아닙니다."
+              % attempted, file=sys.stderr)
+        return 2
+    return 0
+
+
+def _report(stats: dict, before: int, after: int) -> None:
+    print("  캐시에서 바로       : %d건" % stats["캐시"])
+    print("  껍데기라 안 부름     : %d건 → 버림" % stats["껍데기"])
+    print("  읽어서 채움         : %d건" % stats["채움"])
+    print("  읽었는데 쓸 게 없음  : %d건 → 버림" % stats["버림"])
+    print("  못 읽음 (그대로 둠)  : %d건" % stats["못읽음"])
+    print("\n%s — %d행 (%s %d행에서 %d건 버림)"
+          % (OUTPUT.relative_to(ROOT_DIR), after,
+             INPUT.relative_to(ROOT_DIR), before, before - after))
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
