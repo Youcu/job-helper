@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "job_sites"))
 
-MODULES = ["tests.test_merge", "tests.test_orchestrator"]
+MODULES = ["tests.test_merge", "tests.test_orchestrator", "tests.test_image_config"]
 KIND_LABEL = {"NORMAL": "일반", "EXCEPTION": "예외", "BOUNDARY": "경계"}
 
 
