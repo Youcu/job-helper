@@ -36,7 +36,7 @@ ROOT_DIR = Path(__file__).resolve().parent
 INPUT = ROOT_DIR / "csv" / "merged.csv"
 OUTPUT = ROOT_DIR / "csv" / "merged_read.csv"
 LOCK = ROOT_DIR / "csv" / ".image_process.lock"
-RETRY_PAUSE = 5      # 한도에 걸렸을 때 잠깐 쉬는 시간(초)
+RETRY_PAUSE = 5      # 다시 걸기 전에 쉬는 시간(초)
 
 sys.path.insert(0, str(ROOT_DIR / "job_sites"))
 sys.path.insert(0, str(ROOT_DIR))
@@ -104,7 +104,7 @@ def process_one(row: dict, *, cfg, book: dict, work_dir: Path, reader_fn=None) -
         cache.put(book, urls, {name: [] for name in reader.FIELDS}, cfg.model)
         return Outcome("껍데기", None, "글이 담길 수 없는 그림뿐")
 
-    # **한 번만 다시 건다.** 실패는 대개 한도에 걸린 것이라 잠깐 쉬었다 걸면 통과한다.
+    # **한 번만 다시 건다.** 실패는 대개 잠깐의 일이라 쉬었다 걸면 통과한다.
     # 두 번째도 실패하면 실패로 둔다 — 계속 매달리면 뒤엣것이 밀린다.
     last = None
     for attempt in range(2):

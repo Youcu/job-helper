@@ -188,7 +188,7 @@ def test_BOUNDARY_empty_answer_is_cached_but_failure_is_not():
 
 
 def test_BOUNDARY_read_failure_is_retried_once_then_given_up():
-    # 실패는 대개 한도에 걸린 것이라 한 번은 다시 건다. 두 번째도 실패하면 둔다 —
+    # 실패는 대개 잠깐의 일이라 한 번은 다시 건다. 두 번째도 실패하면 둔다 —
     # 계속 매달리면 뒤엣것이 밀린다.
     tries = []
 

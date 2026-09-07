@@ -25,7 +25,7 @@ def test_NORMAL_defaults_when_env_is_empty():
 
 
 def test_NORMAL_env_overrides_defaults():
-    got = cfg.load_config(_env("IMAGE_MODEL=opus\nIMAGE_WORKERS=8\nIMAGE_TIMEOUT=120\n"))
+    got = cfg.load_config(_env("IMAGE_MODEL=opus\nCLAUDE_WORKER=8\nIMAGE_TIMEOUT=120\n"))
     check_equal(got.model, "opus", "모델")
     check_equal(got.workers, 8, "동시 수")
     check_equal(got.timeout, 120, "시간제한")
@@ -34,19 +34,19 @@ def test_NORMAL_env_overrides_defaults():
 def test_EXCEPTION_workers_must_be_a_number():
     error = None
     try:
-        cfg.load_config(_env("IMAGE_WORKERS=넷\n"))
+        cfg.load_config(_env("CLAUDE_WORKER=넷\n"))
     except ConfigError as caught:
         error = caught
     check(error is not None, "숫자가 아니면 멈춰야 한다")
-    check("IMAGE_WORKERS" in str(error), "어느 항목인지 짚어야 한다: %s" % error)
+    check("CLAUDE_WORKER" in str(error), "어느 항목인지 짚어야 한다: %s" % error)
 
 
 def test_BOUNDARY_workers_out_of_range_stops_the_run():
-    # 0 이면 아무것도 안 돌고, 너무 크면 한도에 걸려 한꺼번에 실패한다.
+    # 0 이면 아무것도 안 돌고, 너무 크면 프로세스가 그만큼 뜨고 막힐 때 한꺼번에 실패한다.
     for value in ("0", "65"):
         error = None
         try:
-            cfg.load_config(_env("IMAGE_WORKERS=%s\n" % value))
+            cfg.load_config(_env("CLAUDE_WORKER=%s\n" % value))
         except ConfigError as caught:
             error = caught
         check(error is not None, "%s 는 막아야 한다" % value)
