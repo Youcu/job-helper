@@ -68,6 +68,27 @@ def image_urls(row: dict) -> list[str]:
     return [one.strip() for one in text.split(",") if one.strip().startswith("http")]
 
 
+def _download_once_more_if_needed(url: str, target: Path) -> None:
+    """그림 하나를 받는다. **끊기면 한 번만 다시 받는다.**
+
+    처음에는 비싼 모델 호출에만 재시도를 걸었는데, 실측해 보니 거꾸로였다. 두 번의 전체
+    실행에서 최종 실패 3건 중 **2건이 그림 서버가 연결을 끊은 것**이었고, 모델 호출은
+    한 번도 안 끊겼다. 그리고 실패한 그림들은 나중에 단독으로 받으면 멀쩡히 받힌다.
+
+    내려받기는 값이 거의 안 드니 한 번 더 두드리는 비용이 없다. 비싼 것은 모델 호출이다.
+    """
+    last = None
+    for attempt in range(2):
+        try:
+            fetch.download(url, target)
+            return
+        except fetch.FetchError as error:
+            last = error
+            if attempt == 0:
+                time.sleep(RETRY_PAUSE)
+    raise last
+
+
 def process_one(row: dict, *, cfg, book: dict, work_dir: Path, reader_fn=None) -> Outcome:
     urls = image_urls(row)
     read_fn = reader_fn or (lambda paths, **kw: reader.read(paths, **kw))
@@ -89,9 +110,12 @@ def process_one(row: dict, *, cfg, book: dict, work_dir: Path, reader_fn=None) -
     for index, url in enumerate(urls):
         target = work / ("%02d%s" % (index, Path(url.split("?")[0]).suffix or ".img"))
         try:
-            fetch.download(url, target)
+            _download_once_more_if_needed(url, target)
             # **못 받은 것과 못 연 것은 같은 종류의 실패다.** 둘 다 "그림에 내용이 없다"
             # 가 아니라 "우리가 못 봤다" 라서, 버리지도 캐시에 넣지도 않는다.
+            #
+            # **다만 재시도는 내려받기에만 건다.** 받아졌는데 안 열리는 파일은 같은 바이트를
+            # 다시 열어 봐야 결과가 같다 — 2억 3천만 픽셀짜리 그림이 실제로 그랬다.
             junk = fetch.is_junk(target)
         except fetch.FetchError as error:
             return Outcome("못읽음", dict(row), str(error))

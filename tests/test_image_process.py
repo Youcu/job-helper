@@ -420,3 +420,74 @@ def test_BOUNDARY_run_remembers_what_it_read_for_the_next_time():
     check_equal(list(book), [cache.key(["https://img/1.png", "https://img/2.png"])],
                 "**공고 하나에 항목 하나** — 낱장으로 흩어 놓으면 남의 공고가 받아 간다: %r"
                 % book)
+
+
+def test_BOUNDARY_download_failure_is_retried_once():
+    """**내려받기가 재시도가 필요한 쪽이다.**
+
+    실측 두 실행에서 최종 실패 3건 중 2건이 그림 서버가 연결을 끊은 것이었고, 그 그림을
+    나중에 단독으로 받으면 멀쩡히 받힌다. 처음에는 비싼 모델 호출에만 재시도를 걸어 뒀는데,
+    정작 끊기는 쪽은 값싼 내려받기였다 — 거꾸로 걸려 있었다.
+    """
+    tries = []
+
+    def flaky(url, dest, **kwargs):
+        tries.append(1)
+        if len(tries) == 1:
+            raise fetch.FetchError("연결이 끊겼습니다")
+        return _draw(dest)
+
+    original = stage.RETRY_PAUSE
+    stage.RETRY_PAUSE = 0
+    try:
+        got = _run_one(_row(), download=flaky)
+    finally:
+        stage.RETRY_PAUSE = original
+    check_equal(len(tries), 2, "한 번은 다시 받아야 한다")
+    check_equal(got.kind, "채움", "두 번째에 받히면 그대로 진행한다")
+
+
+def test_BOUNDARY_download_failing_twice_keeps_the_row():
+    # 두 번째도 실패하면 포기하되 **버리지 않는다** — 우리가 못 받은 것이지 그림에
+    # 내용이 없는 게 아니다.
+    tries = []
+
+    def always(url, dest, **kwargs):
+        tries.append(1)
+        raise fetch.FetchError("연결이 끊겼습니다")
+
+    book = {}
+    original = stage.RETRY_PAUSE
+    stage.RETRY_PAUSE = 0
+    try:
+        got = _run_one(_row(), download=always, book=book)
+    finally:
+        stage.RETRY_PAUSE = original
+    check_equal(len(tries), 2, "두 번까지만 시도한다")
+    check_equal(got.kind, "못읽음", "버리지 않는다")
+    check_equal(got.row["기술스택"], "https://img/1.png", "원래 모습 그대로 남긴다")
+    check_equal(book, {}, "우리 실패는 캐시에 안 넣는다 — 다음 실행에 다시 시도해야 한다")
+
+
+def test_BOUNDARY_undecodable_image_is_not_retried():
+    """받아졌는데 안 열리는 파일은 **다시 받아도 같다.**
+
+    2억 3천만 픽셀짜리 그림이 실제로 그랬다. 같은 바이트를 다시 열어 봐야 시간만 버린다 —
+    재시도는 내려받기에만 걸고 판독에는 안 건다.
+    """
+    opens = []
+
+    def broken(path):
+        opens.append(1)
+        raise fetch.FetchError("%s 를 못 열었습니다: 폭탄 방어" % path.name)
+
+    original_junk, original_pause = stage.fetch.is_junk, stage.RETRY_PAUSE
+    stage.fetch.is_junk = broken
+    stage.RETRY_PAUSE = 0
+    try:
+        got = _run_one(_row())
+    finally:
+        stage.fetch.is_junk = original_junk
+        stage.RETRY_PAUSE = original_pause
+    check_equal(len(opens), 1, "열기는 한 번만 — 같은 바이트를 다시 열 이유가 없다")
+    check_equal(got.kind, "못읽음", "그래도 버리지는 않는다")
