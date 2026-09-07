@@ -20,7 +20,7 @@ WORKERS = 4
 #
 # **처음에는 "분당 토큰 한도" 를 근거로 들었는데 그건 API 이야기였다.** `claude -p` 는
 # 구독 계정으로 붙는다(OAuth). 실측에서 동시 4개로 103건을 돌려 최종 실패가 0건이었으므로,
-# 4 는 안전한 기본값일 뿐 지켜야 할 상한이 아니다. `.env` 의 `CLAUDE_WORKER` 로 올려 잰다.
+# 4 는 안전한 기본값일 뿐 지켜야 할 상한이 아니다. `.env` 의 `IMAGE_CLAUDE_WORKER` 로 올려 잰다.
 TIMEOUT = 300
 WORKERS_MAX = 64
 
@@ -41,7 +41,7 @@ def load_config(env_path: Path | None = None) -> Config:
         env = {}
     return Config(
         model=strip_comment(env.get("IMAGE_MODEL")) or MODEL,
-        workers=one_int(env.get("CLAUDE_WORKER"), "CLAUDE_WORKER",
+        workers=one_int(env.get("IMAGE_CLAUDE_WORKER"), "IMAGE_CLAUDE_WORKER",
                         default=WORKERS, low=1, high=WORKERS_MAX),
         timeout=one_int(env.get("IMAGE_TIMEOUT"), "IMAGE_TIMEOUT",
                         default=TIMEOUT, low=10, high=3600),
