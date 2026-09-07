@@ -121,3 +121,65 @@ def test_BOUNDARY_short_image_yields_one_file():
     _striped(800, 1200, 100, 20).save(path)
     made = slicing.slice_image(path, temp_dir() / "조각")
     check_equal(len(made), 1, "안 자를 때도 파일 하나는 낸다")
+
+
+def _sample_step(width: int) -> int:
+    """`flat_rows` 가 쓰는 것과 똑같은 계산 — 픽스처가 표본 칸을 정확히 피하게 한다."""
+    return max(1, width // slicing.SAMPLES)
+
+
+def _hidden_between_samples(width, height, fill_low, fill_high,
+                             hidden_top, hidden_bottom, real_top=None, real_bottom=None):
+    """표본 칸 사이에만 세로줄을 둔 그림 — `flat_rows` 표본으로는 '여백'으로 잡힌다.
+
+    `hidden_top`~`hidden_bottom` 은 실제로는 글자가 있는데 표본에 안 걸리는 구간이다.
+    `real_top`~`real_bottom` 을 주면 그 구간은 진짜 흰 여백으로 비워 두고, `fill_low`~
+    `fill_high` 의 나머지는 표본 칸에도 걸리는 진짜 검정 점을 찍어 밴드가 되지 못하게 한다
+    — 안 그러면 창 전체가 '여백'으로 보여 검사 대상이 흐려진다.
+    """
+    step = _sample_step(width)
+    image = Image.new("L", (width, height), 255)
+    draw = ImageDraw.Draw(image)
+    for x in range(0, width, step):
+        xx = x + step // 2                # 표본이 찍는 칸(step 배수)을 피한 자리
+        if xx < width:
+            draw.line([(xx, hidden_top), (xx, hidden_bottom)], fill=0)
+    for y in range(fill_low, fill_high):
+        if hidden_top <= y <= hidden_bottom:
+            continue
+        if real_top is not None and real_top <= y <= real_bottom:
+            continue
+        draw.point((0, y), fill=0)          # 표본 칸(x=0)에도 걸리는 진짜 글자
+    return image.convert("RGB")
+
+
+def test_BOUNDARY_hidden_text_between_samples_is_not_cut():
+    """표본이 못 보는 곳에 글자를 숨겨도, 자르기 직전 전수 검사가 걸러 낸다."""
+    width, height = 800, 4000
+    # target=int(800*2.4)=1920, slack=640 → 첫 자르기 창은 [1280, 2560].
+    # 그 창 안에서 (1400,1650) 은 표본에 안 걸리는 '가짜 여백' 이라 더 두껍고,
+    # (2000,2100) 은 진짜 여백이라 더 얇다 — 검사 없이 두꺼운 쪽만 골랐다면 글자를 잘랐을 것.
+    image = _hidden_between_samples(width, height, 1280, 2560,
+                                     hidden_top=1400, hidden_bottom=1650,
+                                     real_top=2000, real_bottom=2100)
+    got, _forced = slicing.spans(image)
+    cut = got[0][1]
+    check(not (1400 <= cut <= 1650), "숨은 글자 구간(%d~%d) 안에서 잘랐다: %d" % (1400, 1650, cut))
+    grey = image.convert("L")
+    pixels = grey.load()
+    row = [pixels[x, cut] for x in range(width)]
+    check(max(row) - min(row) <= slicing.TOLERANCE,
+          "%d 번째 줄을 전수로 보니 글자가 있다" % cut)
+
+
+def test_BOUNDARY_all_candidates_failing_verification_falls_back_to_forced():
+    """창 안의 후보가 모두 숨은 글자뿐이면, 죽지 않고 강제/겹침 경로로 넘어간다."""
+    width, height = 800, 4000
+    image = _hidden_between_samples(width, height, 1280, 2560,
+                                     hidden_top=1400, hidden_bottom=1650)
+    got, forced = slicing.spans(image)     # 예외 없이 끝나야 한다
+    check(forced > 0, "여백 후보가 전부 걸러졌으니 강제로 잘랐다고 알려야 한다")
+    check_equal(got[0][0], 0, "맨 위에서 시작")
+    check_equal(got[-1][1], height, "맨 아래에서 끝")
+    for before, after in zip(got, got[1:]):
+        check(after[0] <= before[1], "사이가 비면 안 된다: %r → %r" % (before, after))

@@ -17,6 +17,16 @@
 
 여백을 못 찾으면(빽빽한 표) 겹쳐서 자른다 — 잘린 줄이 옆 조각에 온전히 한 번 더 나오게.
 중복은 `fill.py` 의 대조가 걸러 준다.
+
+## 왜 자르기 직전에 한 번 더 본다
+
+`flat_rows` 는 한 줄에서 `SAMPLES` 칸만 찍어 본다 — 21,708줄을 전수로 보면 느리다.
+그런데 표본 칸 사이에만 글자가 걸리면 그 줄은 실제로는 무늬가 있는데도 "무늬 없음"으로
+잡힌다. 실측한 두 그림에서 이렇게 잘못 "여백"으로 잡힌 줄이 최대 192px 연속으로
+나왔다 — `MIN_BAND`(12) 를 가볍게 넘는 두께라 자를 자리로 뽑힐 수 있다. 그래서 자르기
+**직전에** 그 한 줄만 전수로 다시 본다. 후보를 놓치면 다음으로 두꺼운 후보를, 그것도
+없으면 강제/겹침 경로로 넘어간다. 전수 검사는 자르는 횟수만큼만 도니 표본을 쓰는
+이유(속도)는 그대로 남는다.
 """
 from __future__ import annotations
 
@@ -59,6 +69,14 @@ def _bands(flat: list[bool], low: int, high: int) -> list[tuple[int, int]]:
     return out
 
 
+def _row_is_really_flat(pixels, width: int, y: int) -> bool:
+    """`y` 줄을 이번엔 전수로 본다. `flat_rows` 의 표본이 놓친 글자를 잡아낸다.
+
+    실제로 자를 후보로 뽑힌 줄에서만 부르므로 — 자르는 횟수만큼만 도니 값싸다."""
+    values = [pixels[x, y] for x in range(width)]
+    return max(values) - min(values) <= TOLERANCE
+
+
 def spans(image, *, ratio: float = RATIO) -> tuple[list[tuple[int, int]], int]:
     """자를 구간들과, 여백을 못 찾아 강제로 자른 횟수.
 
@@ -69,6 +87,8 @@ def spans(image, *, ratio: float = RATIO) -> tuple[list[tuple[int, int]], int]:
     if height <= target:
         return [(0, height)], 0
 
+    grey = image.convert("L")
+    pixels = grey.load()
     flat = flat_rows(image)
     slack = max(target // 3, 1)
     out: list[tuple[int, int]] = []
@@ -77,9 +97,15 @@ def spans(image, *, ratio: float = RATIO) -> tuple[list[tuple[int, int]], int]:
         want = top + target
         found = [b for b in _bands(flat, max(top + 1, want - slack), want + slack)
                  if b[1] - b[0] >= MIN_BAND]
-        if found:
-            start, end = max(found, key=lambda b: b[1] - b[0])
-            cut = (start + end) // 2
+        found.sort(key=lambda b: b[1] - b[0], reverse=True)   # 두꺼운 후보부터 시도
+        cut = None
+        for start, end in found:
+            candidate = (start + end) // 2
+            if _row_is_really_flat(pixels, width, candidate):
+                cut = candidate
+                break
+            # 표본은 여백이라 했지만 전수로 보니 글자가 있다 — 다음 후보로.
+        if cut is not None:
             out.append((top, cut))
             top = cut
         else:
