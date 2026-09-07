@@ -19,7 +19,7 @@ from lib.collect import Listings
 
 from .helpers import check, check_equal, env_file
 
-NARROW_ENV = ("JOBPLANET_JOB_IDS=11904\nYOE=0\n"
+NARROW_ENV = ("JOB_ROLES=백엔드\nYOE=0\n"
               "HOME_LOCATIONS=서울\nEMPLOYMENT_TYPES=regular\n")
 
 
@@ -108,18 +108,18 @@ def test_NORMAL_prints_why_education_is_not_applied():
 
 def test_NORMAL_prints_which_employment_types_are_unsupported():
     _code, text, _saved = _run(
-        "JOBPLANET_JOB_IDS=11904\nEMPLOYMENT_TYPES=regular,intern\n")
+        "JOB_ROLES=백엔드\nEMPLOYMENT_TYPES=regular,intern\n")
     check("intern" in text and "못 겁니다" in text, "못 건 것을 알려야 한다: %s" % text)
 
 
 def test_EXCEPTION_config_error_returns_one():
-    code, _text, saved = _run("YOE=0\n")          # 직무 코드가 없다
+    code, _text, saved = _run("YOE=0\n")          # JOB_ROLES 가 없다
     check_equal(code, 1, "설정 오류는 1")
     check("rows" not in saved, "저장하면 안 된다")
 
 
 def test_EXCEPTION_unknown_location_returns_one():
-    code, _text, saved = _run("JOBPLANET_JOB_IDS=11904\nHOME_LOCATIONS=뉴욕\n")
+    code, _text, saved = _run("JOB_ROLES=백엔드\nHOME_LOCATIONS=뉴욕\n")
     check_equal(code, 1, "옮길 수 없는 근무지도 설정 오류다")
     check("rows" not in saved, "저장하면 안 된다")
 

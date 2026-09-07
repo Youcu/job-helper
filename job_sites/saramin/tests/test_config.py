@@ -28,28 +28,34 @@ def write_env(text: str) -> Path:
 # ─────────────────────────────── 일반 ───────────────────────────────
 
 def test_NORMAL_reads_job_ids_and_conditions():
-    path = write_env("SARAMIN_JOB_IDS=84,87\nYOE=0\nHOME_LOCATIONS=서울\n")
+    path = write_env("JOB_ROLES=백엔드,웹\nYOE=0\nHOME_LOCATIONS=서울\n")
     loaded = config.load_config(path)
-    check_equal(loaded.job_ids, [84, 87], "직무 코드")
+    check_equal(loaded.job_ids, [84, 87, 113], "직무 코드 (백엔드+웹이 세 코드로 펼쳐진다)")
     check_equal(loaded.yoe, 0, "경력")
     check_equal(loaded.home_locations, ["서울"], "근무지")
 
 
 def test_NORMAL_employment_types_default_when_absent():
-    path = write_env("SARAMIN_JOB_IDS=84\n")
+    path = write_env("JOB_ROLES=백엔드,웹\n")
     check_equal(config.load_config(path).employment_types,
                 config.DEFAULT_EMPLOYMENT_TYPES, "안 적으면 기본값")
 
 
 def test_NORMAL_employment_types_become_site_codes():
-    path = write_env("SARAMIN_JOB_IDS=84\nEMPLOYMENT_TYPES=regular,contract\n")
+    path = write_env("JOB_ROLES=백엔드,웹\nEMPLOYMENT_TYPES=regular,contract\n")
     check_equal(config.load_config(path).employment_type_codes, ["1", "2"], "사람인 코드")
 
 
-def test_NORMAL_only_the_prefixed_key_is_read():
-    env = {"JOB_IDS": "999", "SARAMIN_JOB_IDS": "84", "WANTED_JOB_IDS": "872"}
-    check_equal(common_env.site_key(env, "saramin", "JOB_IDS"), "84", "사람인 것")
-    check_equal(common_env.site_key(env, "wanted", "JOB_IDS"), "872", "Wanted 것")
+def test_NORMAL_one_role_expands_to_several_site_codes():
+    """`백엔드` 하나가 이 사이트에서 코드 몇 개로 펼쳐진다.
+
+    사이트마다 직무를 쪼갠 방식이 달라서 1:1 이 아니다 — 같은 일을 하는 공고를 다 걷는
+    것이 목적이라, 이름 하나가 여러 코드가 된다.
+    """
+    path = write_env("JOB_ROLES=백엔드\n")
+    codes = config.load_config(path).job_ids
+    check(len(codes) >= 1, "적어도 하나는 나와야 한다: %r" % codes)
+    check(84 in codes, "백엔드/서버개발(84)이 들어야 한다: %r" % codes)
 
 
 # ─────────────────────────────── 예외 ───────────────────────────────
@@ -63,28 +69,10 @@ def test_EXCEPTION_missing_env_file_says_where():
     raise AssertionError(".env 가 없는데 그냥 돌았다")
 
 
-def test_EXCEPTION_missing_job_ids_explains_how_to_fix():
-    path = write_env("YOE=0\n")
-    try:
-        config.load_config(path)
-    except common_env.ConfigError as error:
-        check("README" in str(error), "코드표가 어디 있는지 알려야 한다")
-        return
-    raise AssertionError("직무 코드 없이 돌았다")
-
-
-def test_EXCEPTION_non_numeric_job_id_is_rejected():
-    path = write_env("SARAMIN_JOB_IDS=84,백엔드\n")
-    try:
-        config.load_config(path)
-    except common_env.ConfigError as error:
-        check("백엔드" in str(error), "어느 값이 문제인지 알려야 한다")
-        return
-    raise AssertionError("숫자가 아닌 코드를 받았다")
 
 
 def test_EXCEPTION_unknown_employment_type_is_rejected():
-    path = write_env("SARAMIN_JOB_IDS=84\nEMPLOYMENT_TYPES=정규직\n")
+    path = write_env("JOB_ROLES=백엔드,웹\nEMPLOYMENT_TYPES=정규직\n")
     try:
         config.load_config(path)
     except common_env.ConfigError as error:
@@ -95,7 +83,7 @@ def test_EXCEPTION_unknown_employment_type_is_rejected():
 
 def test_EXCEPTION_shell_environment_does_not_leak_in():
     # `.env` 에 줄이 없는 항목이 셸에서 새어 들면 엉뚱한 조건으로 긁는다.
-    path = write_env("SARAMIN_JOB_IDS=84\n")
+    path = write_env("JOB_ROLES=백엔드,웹\n")
     os.environ["HOME_LOCATIONS"] = "부산"
     try:
         check_equal(config.load_config(path).home_locations, [],
@@ -116,7 +104,7 @@ def test_EXCEPTION_hash_inside_a_value_is_not_a_comment():
 
 def test_BOUNDARY_yoe_range_is_enforced():
     for value, ok in ((-1, True), (0, True), (20, True), (-2, False), (21, False)):
-        path = write_env("SARAMIN_JOB_IDS=84\nYOE=%d\n" % value)
+        path = write_env("JOB_ROLES=백엔드,웹\nYOE=%d\n" % value)
         try:
             config.load_config(path)
             check(ok, "YOE=%d 를 받으면 안 된다" % value)
@@ -125,14 +113,9 @@ def test_BOUNDARY_yoe_range_is_enforced():
 
 
 def test_BOUNDARY_yoe_defaults_to_all_when_blank():
-    path = write_env("SARAMIN_JOB_IDS=84\nYOE=\n")
+    path = write_env("JOB_ROLES=백엔드,웹\nYOE=\n")
     check_equal(config.load_config(path).yoe, config.YOE_ALL, "안 적으면 전체")
 
-
-def test_BOUNDARY_duplicate_job_ids_collapse():
-    path = write_env("SARAMIN_JOB_IDS=84,84,87\n")
-    check_equal(config.load_config(path).job_ids, [84, 87],
-                "같은 코드를 두 번 적어도 두 번 크롤하지 않는다")
 
 
 def test_BOUNDARY_blank_items_are_dropped():
@@ -141,21 +124,3 @@ def test_BOUNDARY_blank_items_are_dropped():
     check_equal(common_env.csv_list(None), [], "없는 값")
 
 
-def test_EXCEPTION_saramin_never_falls_back_to_wanted_job_codes():
-    # 결함: 짧은 `JOB_IDS` 로 되돌아가게 뒀더니, SARAMIN_JOB_IDS 를 안 적었을 때
-    # 사람인이 Wanted 의 872 를 cat_kewd 로 받았다. **예외도 안 나고 결과도 나온다.**
-    path = write_env("JOB_GROUP_IDS=518\nJOB_IDS=872,873\nYOE=0\n")
-    try:
-        config.load_config(path)
-    except common_env.ConfigError as error:
-        check("SARAMIN_JOB_IDS" in str(error), "무엇을 적어야 하는지 알려야 한다")
-        return
-    raise AssertionError("남의 사이트 직무 코드를 조용히 받았다")
-
-
-def test_BOUNDARY_short_name_is_never_used_for_code_keys():
-    # 짧은 이름으로 되돌아가면 남의 사이트 코드로 긁는다. 어느 사이트든 안 본다.
-    env = {"JOB_IDS": "872"}
-    for site in ("saramin", "wanted", "jobkorea"):
-        check_equal(common_env.site_key(env, site, "JOB_IDS"), None,
-                    "%s 가 접두 없는 이름을 읽으면 안 된다" % site)

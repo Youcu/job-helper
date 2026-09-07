@@ -17,7 +17,7 @@ from lib.collect import Listings
 
 from .helpers import check, check_equal, env_file
 
-NARROW_ENV = "PATHSDOG_JOB_IDS=Backend\nYOE=0\nHOME_LOCATIONS=서울\n"
+NARROW_ENV = "JOB_ROLES=백엔드\nYOE=0\nHOME_LOCATIONS=서울\n"
 
 
 class Recorder:
@@ -38,7 +38,7 @@ def _detail(place="서울 강남구", jobtype="정규직"):
             % (place, jobtype))
 
 
-def _run(env_text=NARROW_ENV, listings=None, blocked_at=None):
+def _run(env_text=NARROW_ENV, listings=None, blocked_at=None, fail_ids=()):
     listings = listings if listings is not None else Listings(
         rows=[{"id": "1", "기업명": "회사", "기술": "Python",
                "조건": "신입 | 근무지: 서울 | 정규직", "마감": "2026-09-30"}],
@@ -49,6 +49,8 @@ def _run(env_text=NARROW_ENV, listings=None, blocked_at=None):
     def fake_detail(_client, job_id):
         if blocked_at is not None and job_id == blocked_at:
             raise BlockedError("403")
+        if job_id in fail_ids:
+            raise RuntimeError("상세 조회 중 오류가 발생했습니다")
         return _detail()
 
     def fake_save(rows, output, ai_rows=None):
@@ -103,11 +105,6 @@ def test_NORMAL_says_the_server_cannot_filter_employment():
     check("고용형태도 **서버가 못 거릅니다**" in text, "알려야 한다: %s" % text)
 
 
-def test_NORMAL_warns_about_an_unknown_role():
-    _code, text, _saved = _run("PATHSDOG_JOB_IDS=Backend,쿠버네티스마스터\nYOE=0\n")
-    check("코드표에 없는 역할" in text and "쿠버네티스마스터" in text, text)
-    check("막지는 않습니다" in text, "막는 게 아니라는 것도 알려야 한다")
-
 
 def test_NORMAL_says_education_and_tech_are_not_applied():
     _code, text, _saved = _run(NARROW_ENV + "EDUCATION=대졸4\nTECH_STACKS=Python\n")
@@ -115,7 +112,7 @@ def test_NORMAL_says_education_and_tech_are_not_applied():
 
 
 def test_EXCEPTION_config_error_returns_one():
-    code, _text, saved = _run("YOE=0\n")          # 역할이 없다
+    code, _text, saved = _run("YOE=0\n")          # JOB_ROLES 가 없다
     check_equal(code, 1, "설정 오류는 1")
     check("rows" not in saved, "저장하면 안 된다")
 
@@ -206,3 +203,60 @@ def test_NORMAL_says_which_employment_types_do_not_exist_here():
     # `dispatch`(파견) 는 다른 사이트에는 있고 여기는 없다.
     _code, text, _saved = _run(NARROW_ENV + "EMPLOYMENT_TYPES=regular,dispatch\n")
     check("dispatch" in text and "없는 값" in text, "무엇이 없는 값인지 알려야 한다: %s" % text)
+
+
+def test_EXCEPTION_every_detail_failing_is_not_a_normal_run():
+    """상세가 **전부** 실패하면 종료 코드 2.
+
+    실제로 있었던 일이다. Pathsdog 의 상세 도구가 죽어 29건이 다 `internal_error` 를
+    냈는데, 공고 하나의 실패를 견디는 코드가 전부의 실패도 똑같이 견뎌 **0** 을 냈다.
+    오케스트레이터 화면에 `정상 · 0행` 이라고 찍혀, 사이트에 공고가 29건 있는데도
+    없는 것처럼 보였다.
+    """
+    listings = Listings(rows=[{"id": "1", "기술": "Python", "조건": ""},
+                              {"id": "2", "기술": "Python", "조건": ""}],
+                        pages=1, reported_total=2, stop_reason="다 읽었다")
+    code, text, saved = _run(listings=listings, fail_ids={"1", "2"})
+    check_equal(code, 2, "전부 실패는 정상이 아니다")
+    check("걷은 것이 없습니다" in text, "왜 0행인지 말해야 한다: %s" % text)
+    check_equal(len(saved.get("rows") or []), 0, "걷은 것이 없다")
+
+
+def test_BOUNDARY_one_success_among_failures_is_still_a_normal_run():
+    # 비율로 자르지 않는다. 하나라도 걷었으면 그 실행은 무언가를 해낸 것이다.
+    listings = Listings(rows=[{"id": "1", "기술": "Python", "조건": ""},
+                              {"id": "2", "기술": "Python", "조건": ""}],
+                        pages=1, reported_total=2, stop_reason="다 읽었다")
+    code, _text, saved = _run(listings=listings, fail_ids={"2"})
+    check_equal(code, 0, "하나라도 걷었으면 정상")
+    check_equal(len(saved.get("rows") or []), 1, "걷은 것은 저장한다")
+
+
+def test_BOUNDARY_last_survivor_filtered_out_is_still_incomplete():
+    """결함이 될 뻔한 곳. **처음 규칙은 이걸 놓쳤다.**
+
+    상세가 하나만 성공하고 그것마저 근무지 조건에 걸려 빠지면 0행인데, `전부 실패`
+    가 아니라서 종료 코드 0 이 나왔다 — 실제 실행에서 그렇게 한 번 새어 나갔다.
+    """
+    listings = Listings(rows=[{"id": "1", "기술": "Python", "조건": ""},
+                              {"id": "2", "기술": "Python", "조건": ""}],
+                        pages=1, reported_total=2, stop_reason="다 읽었다")
+    original = pathsdog.record.matches_locations
+    try:
+        pathsdog.record.matches_locations = lambda *_a, **_k: False
+        code, _text, saved = _run(listings=listings, fail_ids={"2"})
+    finally:
+        pathsdog.record.matches_locations = original
+    check_equal(code, 2, "0행인데 잃은 것이 있으면 정상이 아니다")
+    check_equal(len(saved.get("rows") or []), 0, "남은 행이 없다")
+
+
+def test_BOUNDARY_postings_without_an_id_are_not_counted_as_detail_failures():
+    # 공고번호가 없어 **아예 안 물어본** 것은 상세를 주는 쪽의 잘못이 아니다.
+    # 목록 건수와 견주면 이게 섞여, 상세가 멀쩡한데도 실패로 읽힌다.
+    listings = Listings(rows=[{"id": "", "기술": "Python", "조건": ""},
+                              {"id": "1", "기술": "Python", "조건": ""}],
+                        pages=1, reported_total=2, stop_reason="다 읽었다")
+    code, _text, saved = _run(listings=listings)
+    check_equal(code, 0, "번호 없는 것이 섞여도 정상")
+    check_equal(len(saved.get("rows") or []), 1, "번호 있는 것은 걷는다")

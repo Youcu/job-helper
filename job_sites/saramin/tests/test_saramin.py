@@ -306,7 +306,7 @@ def test_EXCEPTION_config_error_returns_one():
     from _common.env import ConfigError
 
     def boom():
-        raise ConfigError("SARAMIN_JOB_IDS 가 비어 있습니다")
+        raise ConfigError("JOB_ROLES 가 비어 있습니다")
 
     check_equal(_run_with({"load_config": boom}), 1, "설정 오류는 1")
 

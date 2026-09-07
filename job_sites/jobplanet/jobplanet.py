@@ -127,7 +127,7 @@ def _print_skip_notice(listings) -> None:
         print("  한 번에 견디는 것은 %d개쯤입니다 — 중간에 403 이 나서 절반만 걷힙니다."
               % REQUEST_BUDGET)
     print("  **CSV 는 건드리지 않았습니다.** 상세도 한 건도 받지 않았습니다.")
-    print("\n  조건을 좁히면 걷힙니다 — 직무를 줄이거나(JOBPLANET_JOB_IDS),")
+    print("\n  조건을 좁히면 걷힙니다 — 직무를 줄이거나(JOB_ROLES),")
     print("  경력·지역을 좁히세요. 왜 이런 제약이 있는지는 README.md 의 '차단' 절에 있습니다.")
 
 
@@ -141,6 +141,11 @@ def _print_conditions(config, params: dict) -> None:
     print("  지역코드: %s" % (params.get("city") or "(지역 파라미터 없음 = 전국)"))
     print("  고용형태: %s" % (", ".join(config.employment_types) or "(조건 없음)"))
     print()
+    # 이 사이트에 대응 코드가 없어 못 건 역할. **조용히 빠지면 왜 결과가 적은지 못 찾는다.**
+    if config.missing_roles:
+        print("  ! 이 사이트에 없는 직무라 못 걸었습니다: " + ", ".join(config.missing_roles))
+        print("    다른 사이트에서는 걷힙니다. tags/jobplanet_role_map.json 을 보세요.")
+        print()
     # 조용히 무시하지 않는다 — 다른 사이트와 결과가 어긋난 이유를 나중에 찾을 수 있어야 한다.
     if config.education:
         print("  ! 학력(%s)은 **조건으로 걸지 않습니다.**" % config.education)

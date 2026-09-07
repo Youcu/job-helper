@@ -21,6 +21,7 @@ sys.path.insert(0, str(ROOT_DIR))
 from tqdm import tqdm
 
 from _common.env import ConfigError
+from _common.outcome import INCOMPLETE, incomplete
 from _common.runlock import guarded
 from _common.store import ai_csv_path, merge_lines, save
 from lib import record
@@ -67,6 +68,14 @@ def _run() -> int:
         print("\n차단돼서 %d건에서 멈췄습니다. 여기까지 모은 것은 저장했습니다."
               % len(rows), file=sys.stderr)
         return 2
+    if incomplete(stats, rows):
+        # 걷은 것이 없는데 상세를 못 받은 것이 있다. 여기서 0 을 내면 화면에
+        # `정상 · 0행` 이라고 찍혀, 사이트에 공고가 있는데도 없는 것처럼 보인다.
+        print("\n걷은 것이 없습니다 — 상세를 %d건 물어봐서 %d건을 못 받았습니다.\n"
+              "  목록은 %d건 받았으니 사이트가 아니라 상세 쪽 문제일 수 있습니다."
+              % (stats["상세시도"], stats["상세실패"], len(listings.rows)),
+              file=sys.stderr)
+        return INCOMPLETE
     return 0
 
 
@@ -79,13 +88,14 @@ def _collect_details(client, listings: list[dict], places: list[str],
     """
     rows: list[dict] = []
     ai_rows: list[dict] = []
-    stats = {"기술없음": 0, "번호없음": 0, "상세실패": 0, "근무지밖": 0,
+    stats = {"기술없음": 0, "번호없음": 0, "상세실패": 0, "상세시도": 0, "근무지밖": 0,
              "고용형태밖": 0, "차단": False}
 
     for listing in tqdm(listings, desc="상세", unit="건"):
         if not str(listing.get("id") or "").strip():
             stats["번호없음"] += 1
             continue
+        stats["상세시도"] += 1
         try:
             detail = fetch_detail(client, listing["id"])
         except BlockedError as error:
@@ -126,6 +136,11 @@ def _print_conditions(config, arguments: dict, places: list[str],
     print("  근무지  : %s" % (", ".join(places) or "전국"))
     print("  고용형태: %s" % (", ".join(jobtypes) or "(조건 없음)"))
     print()
+    # 이 사이트에 대응 코드가 없어 못 건 역할. **조용히 빠지면 왜 결과가 적은지 못 찾는다.**
+    if config.missing_roles:
+        print("  ! 이 사이트에 없는 직무라 못 걸었습니다: " + ", ".join(config.missing_roles))
+        print("    다른 사이트에서는 걷힙니다. tags/pathsdog_role_map.json 을 보세요.")
+        print()
     # 조용히 무시하지 않는다 — 다른 사이트와 결과가 어긋난 이유를 나중에 찾을 수 있어야 한다.
     if places:
         print("  ! 근무지는 **서버가 못 거릅니다** — 받은 뒤 근무지 글로 우리가 거릅니다.")

@@ -78,8 +78,7 @@ touch ../../.env
 **값은 본인 것을 채운다. 이 문서에는 남기지 않는다** — 공개 저장소에 구직 조건이 그대로 남는다.
 
 ```bash
-WANTED_JOB_GROUP_IDS=       # 필수. 직군 코드 (아래 "직군 코드" 표)
-WANTED_JOB_IDS=             # 직무 코드. 비우면 직군 전체
+JOB_ROLES=           # 필수. 직무 이름 (아래 "직무를 이름으로 적는다")
 EMPLOYMENT_TYPES=    # regular / contract / intern. 비우면 regular,intern
 YOE=                 # 신입=0, N년차=N(1~10), 전체=-1. 비우면 -1
 HOME_LOCATIONS=      # 희망근무지. 비우면 전국
@@ -95,23 +94,18 @@ HOPE_ANNUAL_SALARY=  # Wanted 는 연봉 미공개라 미적용
 
 | 항목 | 필수 | 뜻 |
 |---|---|---|
-| `WANTED_JOB_GROUP_IDS` | O | 직군 코드. comma 구분. 예 `518` |
-| `WANTED_JOB_IDS` | | 직무 코드. comma 구분. **비우면 그 직군 전체** |
+| `JOB_ROLES` | O | 직무. **여섯 사이트가 함께 쓰는 이름**이다. 예 `백엔드,웹` |
 | `EMPLOYMENT_TYPES` | | `regular`(정규직) `contract`(계약직) `intern`(인턴). 기본값 `regular,intern` |
 | `YOE` | | 경력. 신입=`0`, N년차=`N`(1~10), 전체=`-1`. 기본값 `-1` |
 | `HOME_LOCATIONS` | | 희망근무지. 한글 이름 또는 slug. **비우면 전국** |
 | `TECH_STACKS` | | **현재 미적용.** 전량 수집 단계라 스택으로 거르지 않는다 |
 | `HOPE_ANNUAL_SALARY` | | **적용되지 않는다.** Wanted 가 연봉을 안 주므로 실행 끝에 경고만 뜬다 |
 
-예시 — 개발 직군(`518`)에서 서버 개발자(`872`)·웹 개발자(`873`) 공고를 서울에서.
-**본인 조건으로 바꿔 쓴다:**
+예시 — 백엔드·웹 공고를 서울에서. **본인 조건으로 바꿔 쓴다:**
 
 ```bash
-# 직군 코드
-WANTED_JOB_GROUP_IDS=518
-
-# 직무 코드
-WANTED_JOB_IDS=872,873
+# 직무
+JOB_ROLES=백엔드,웹
 
 # 고용형태
 EMPLOYMENT_TYPES=regular,intern
@@ -127,10 +121,22 @@ TECH_STACKS=
 HOPE_ANNUAL_SALARY=
 ```
 
-`WANTED_JOB_GROUP_IDS` 에 여러 직군을 적으면 직군마다 따로 수집해 합친다 —
-Wanted API 가 `job_group_id` 를 하나만 받기 때문이다.
+### 직무를 이름으로 적는다
 
-## 직군 코드 (`WANTED_JOB_GROUP_IDS`)
+`.env` 는 여섯 사이트가 함께 쓰는 한 벌이라, `JOB_ROLES=백엔드,웹` 하나를 적으면 Wanted 가
+`tags/wanted_role_map.json` 으로 자기 코드를 찾는다. 쓸 수 있는 이름은
+`job_sites/_common/roles.json` 에 있고 별칭도 받는다 — `서버`·`Backend` 라고 적어도
+`백엔드` 로 알아듣는다.
+
+**Wanted 에서는 한 이름이 특히 많은 코드로 펼쳐진다.** 여기에는 `자바 개발자`·`파이썬
+개발자` 처럼 **언어별 직무**가 있는데 다른 사이트에는 없다. `백엔드` 하나가 코드 넷이 된다 —
+`872`(서버) `660`(자바) `899`(파이썬) `895`(Node.js).
+
+**직군은 직무에서 유도한다.** 사람이 따로 안 적는다 — 적게 하면 직무와 어긋날 여지만 생긴다.
+직무가 여러 직군에 걸치면 직군마다 따로 수집해 합친다. Wanted API 가 `job_group_id` 를
+하나만 받기 때문이다.
+
+## 직군 코드
 
 | 코드 | 직군 | 직무 수 |
 |---|---|---|
@@ -155,9 +161,12 @@ Wanted API 가 `job_group_id` 를 하나만 받기 때문이다.
 | `515` | 의료·제약·바이오 | 30 |
 | `514` | 공공·복지 | 12 |
 
-## 직무 코드 (`WANTED_JOB_IDS`)
+## 직무 코드
 
-직무는 직군 안에서만 뜻이 있다. `WANTED_JOB_GROUP_IDS` 에 넣은 직군의 표에서 고른다.
+**아래 표는 참고용이다.** `.env` 에 적는 것은 `JOB_ROLES` 의 이름이고, 이 코드들은
+`tags/wanted_role_map.json` 이 그 이름에서 찾아 준다. 대응표를 손볼 때 여기서 고른다.
+
+직무는 직군 안에서만 뜻이 있다.
 
 <details><summary><b>518 개발</b> — 직무 38개</summary>
 

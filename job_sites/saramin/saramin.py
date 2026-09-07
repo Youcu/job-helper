@@ -145,6 +145,11 @@ def _print_conditions(config, params: dict) -> None:
     print("  지역코드: %s" % (locations or "(지역 파라미터 없음 = 전체)"))
     print("  고용형태: %s" % ", ".join(config.employment_types))
     print()
+    # 이 사이트에 대응 코드가 없어 못 건 역할. **조용히 빠지면 왜 결과가 적은지 못 찾는다.**
+    if config.missing_roles:
+        print("  ! 이 사이트에 없는 직무라 못 걸었습니다: " + ", ".join(config.missing_roles))
+        print("    다른 사이트에서는 걷힙니다. tags/saramin_role_map.json 을 보세요.")
+        print()
 
 
 def _print_summary(config, result, ai_rows, stats) -> None:
