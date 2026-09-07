@@ -37,3 +37,10 @@ corpus_candidates.csv
 
 # Playwright MCP 가 남기는 화면 로그·스냅샷. 도구 산출물이라 다시 만들면 된다.
 .playwright-mcp/
+
+# 손에 익은 개인 스크립트. 저장소가 돌아가는 데 필요하지 않다.
+clear_csv.sh
+
+# 설계 과정 문서와 보고서. 만들어 가는 동안의 기록이라 저장소에 남기지 않는다.
+docs/superpowers/
+docs/reports/

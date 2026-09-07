@@ -46,7 +46,7 @@ def _collect(listings, details, places=(), jobtypes=()):
 
 
 def test_NORMAL_builds_rows():
-    rows, _ai, stats = _collect([_listing("1"), _listing("2")],
+    rows, stats = _collect([_listing("1"), _listing("2")],
                                 {"1": _detail(), "2": _detail()})
     check_equal(len(rows), 2, "두 행")
     check(not stats["차단"], "차단 없음")
@@ -54,13 +54,13 @@ def test_NORMAL_builds_rows():
 
 
 def test_NORMAL_real_detail_becomes_a_row():
-    rows, _ai, _stats = _collect([_listing("3354")], {"3354": detail_text()})
+    rows, _stats = _collect([_listing("3354")], {"3354": detail_text()})
     check_equal(len(rows), 1, "실제 응답으로도 행이 나와야 한다")
     check(rows[0]["지원자격"].strip(), "본문이 차야 한다")
 
 
 def test_EXCEPTION_one_broken_detail_does_not_kill_the_run():
-    rows, _ai, stats = _collect([_listing("1"), _listing("2"), _listing("3")],
+    rows, stats = _collect([_listing("1"), _listing("2"), _listing("3")],
                                 {"1": _detail(), "2": ToolError("그런 공고 없음"),
                                  "3": _detail()})
     check_equal(len(rows), 2, "터진 하나만 빠진다")
@@ -68,14 +68,14 @@ def test_EXCEPTION_one_broken_detail_does_not_kill_the_run():
 
 
 def test_EXCEPTION_blocked_stops_but_keeps_earlier_rows():
-    rows, _ai, stats = _collect([_listing("1"), _listing("2"), _listing("3")],
+    rows, stats = _collect([_listing("1"), _listing("2"), _listing("3")],
                                 {"1": _detail(), "2": BlockedError("403"), "3": _detail()})
     check_equal(len(rows), 1, "차단 전까지 모은 것은 살린다")
     check(stats["차단"], "차단을 알려야 한다")
 
 
 def test_EXCEPTION_listing_without_id_is_counted():
-    rows, _ai, stats = _collect([_listing("1"), _listing(""), _listing("3")],
+    rows, stats = _collect([_listing("1"), _listing(""), _listing("3")],
                                 {"1": _detail(), "3": _detail()})
     check_equal(len(rows), 2, "번호 없는 것만 빠진다")
     check_equal(stats["번호없음"], 1, "몇 건 빠졌는지 세어야 한다")
@@ -83,7 +83,7 @@ def test_EXCEPTION_listing_without_id_is_counted():
 
 def test_BOUNDARY_location_filter_runs_after_fetch():
     # MCP search_jobs 에 지역 파라미터가 없어서 여기서 거른다.
-    rows, _ai, stats = _collect(
+    rows, stats = _collect(
         [_listing("1"), _listing("2")],
         {"1": _detail(place="서울 강남구"), "2": _detail(place="부산 해운대구")},
         places=["서울"])
@@ -93,7 +93,7 @@ def test_BOUNDARY_location_filter_runs_after_fetch():
 
 def test_BOUNDARY_employment_filter_runs_after_fetch():
     # 서버가 값 하나만 받아서 `정규직,인턴` 중 하나를 잃는다. 그래서 여기서 거른다.
-    rows, _ai, stats = _collect(
+    rows, stats = _collect(
         [_listing("1"), _listing("2"), _listing("3")],
         {"1": _detail(jobtype="정규직"), "2": _detail(jobtype="계약직"),
          "3": _detail(jobtype="인턴")},
@@ -103,14 +103,14 @@ def test_BOUNDARY_employment_filter_runs_after_fetch():
 
 
 def test_BOUNDARY_posting_without_skills_is_dropped():
-    rows, _ai, stats = _collect([_listing("1", 기술="")],
+    rows, stats = _collect([_listing("1", 기술="")],
                                 {"1": _detail(stacks="").replace("자격요건\nJava 3년", "열정")})
     check_equal(rows, [], "판단할 재료가 없으면 행을 만들지 않는다")
     check_equal(stats["기술없음"], 1, "몇 건 빠졌는지 세어야 한다")
 
 
 def test_BOUNDARY_empty_listing_list():
-    rows, _ai, stats = _collect([], {})
+    rows, stats = _collect([], {})
     check_equal(rows, [], "빈 목록")
     check(not stats["차단"], "차단 아님")
 

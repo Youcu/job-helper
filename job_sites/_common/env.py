@@ -9,17 +9,17 @@
 **뜻이 같으면 이름도 같다.** `YOE` `HOME_LOCATIONS` `TECH_STACKS` `HOPE_ANNUAL_SALARY`
 는 사이트가 달라도 같은 것을 뜻하므로 사이트마다 다른 이름을 붙이지 않는다.
 
-**코드표는 사이트마다 다르므로 앞에 사이트 이름을 붙인다.** Wanted 의 직무 `872` 와
-사람인의 `84` 는 같은 칸에 넣을 수 없는 값이다.
+**직무도 이름으로 적는다.** `JOB_ROLES=백엔드,웹` 하나를 여섯 사이트가 함께 쓰고,
+각 사이트가 자기 `tags/<사이트>_role_map.json` 으로 코드를 찾는다 (`_common/roles.py`).
 
-    WANTED_JOB_IDS=872,873
-    SARAMIN_JOB_IDS=84,87
+전에는 사이트마다 코드를 따로 적게 했다 — `WANTED_JOB_IDS=872`, `SARAMIN_JOB_IDS=84`.
+코드 체계가 사이트마다 달라 어쩔 수 없다고 봤는데, **사람이 여섯 벌을 맞춰 적는 쪽이
+더 위험했다.** 하나를 안 적으면 그 사이트가 남의 코드를 받아 엉뚱한 것을 긁는데
+예외도 안 나고 결과도 나온다. 실제로 그렇게 만들었다가 고쳤다.
 
-`site_key()` 는 `<SITE>_이름` **만** 본다. 짧은 이름으로 되돌아가지 않는다.
-
-되돌아가면 `SARAMIN_JOB_IDS` 를 안 적었을 때 사람인이 Wanted 의 `872` 를 `cat_kewd` 로
-받아 엉뚱한 것을 긁는다 — **예외도 안 나고 결과도 나온다.** 실제로 그렇게 만들었다가
-고쳤다. 못 적었으면 멈추고 무엇을 적어야 하는지 알리는 편이 낫다.
+이름은 그 함정이 없다 — `백엔드` 는 어느 사이트에서도 `백엔드` 다. 모르는 이름이면
+멈추고(`RoleError`), 그 사이트에 없는 직무면 **무엇을 못 걸었는지 화면에 찍는다.**
+사이트마다 다른 항목을 두던 시절의 `site_key()` 는 쓸 곳이 없어져 지웠다.
 """
 from __future__ import annotations
 
@@ -56,9 +56,6 @@ def read_env(path: Path | None = None) -> dict[str, str]:
     return dict(dotenv_values(target))
 
 
-def site_key(env: dict, site: str, name: str) -> str | None:
-    """`<SITE>_이름` 만 본다. 짧은 이름으로 되돌아가지 않는다."""
-    return env.get("%s_%s" % (site.upper(), name))
 
 
 def strip_comment(raw: str | None) -> str:

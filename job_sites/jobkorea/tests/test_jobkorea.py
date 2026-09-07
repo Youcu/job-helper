@@ -53,7 +53,7 @@ def _raise_or(value):
 
 
 def test_NORMAL_builds_rows_from_listings():
-    rows, _ai, stats = _collect(
+    rows, stats = _collect(
         [_listing("1"), _listing("2")],
         {"1": detail("49911986"), "2": detail("49911986")},
         {"1": "<p>Python Django AWS</p>", "2": "<p>Java Spring</p>"})
@@ -63,7 +63,7 @@ def test_NORMAL_builds_rows_from_listings():
 
 
 def test_NORMAL_image_body_leaves_urls_not_skills():
-    rows, _ai, stats = _collect(
+    rows, stats = _collect(
         [_listing("1")], {"1": ""},
         {"1": img("https://file1.jobkorea.co.kr/Mng/2026/9/a.png")})
     check_equal(stats["그림본문"], 1, "그림 본문으로 세어야 한다")
@@ -73,7 +73,7 @@ def test_NORMAL_image_body_leaves_urls_not_skills():
 
 def test_NORMAL_short_text_with_image_still_leaves_urls():
     # 글이 조금 있지만 기술 이름이 하나도 안 잡히는 공고. 그림 주소가 유일한 단서다.
-    rows, _ai, _stats = _collect(
+    rows, _stats = _collect(
         [_listing("1")], {"1": ""},
         {"1": "<p>함께 성장할 분을 찾습니다</p>" + img("https://a.co/1.png")})
     check_equal(len(rows), 1, "버리면 안 된다")
@@ -81,7 +81,7 @@ def test_NORMAL_short_text_with_image_still_leaves_urls():
 
 
 def test_EXCEPTION_one_broken_detail_does_not_kill_the_run():
-    rows, _ai, _stats = _collect(
+    rows, _stats = _collect(
         [_listing("1"), _listing("2"), _listing("3")],
         {"1": "", "2": RuntimeError("끊김"), "3": ""},
         {"1": "<p>Python</p>", "3": "<p>Java</p>"})
@@ -90,7 +90,7 @@ def test_EXCEPTION_one_broken_detail_does_not_kill_the_run():
 
 def test_EXCEPTION_blocked_stops_but_keeps_earlier_rows():
     # 결함이었던 곳(사람인): 차단되면 앞서 모은 것을 통째로 버렸다.
-    rows, _ai, stats = _collect(
+    rows, stats = _collect(
         [_listing("1"), _listing("2"), _listing("3")],
         {"1": "", "2": BlockedError("403"), "3": ""},
         {"1": "<p>Python</p>", "3": "<p>Java</p>"})
@@ -99,7 +99,7 @@ def test_EXCEPTION_blocked_stops_but_keeps_earlier_rows():
 
 
 def test_EXCEPTION_listing_without_gno_is_counted_not_crashed():
-    rows, _ai, stats = _collect(
+    rows, stats = _collect(
         [_listing("1"), _listing(""), _listing("3")],
         {"1": "", "3": ""}, {"1": "<p>Python</p>", "3": "<p>Java</p>"})
     check_equal(len(rows), 2, "번호 없는 것만 빠진다")
@@ -108,7 +108,7 @@ def test_EXCEPTION_listing_without_gno_is_counted_not_crashed():
 
 def test_BOUNDARY_posting_with_neither_skills_nor_images_is_dropped():
     # 기술도 그림도 없으면 판단할 재료가 아무것도 없다.
-    rows, _ai, stats = _collect(
+    rows, stats = _collect(
         [_listing("1")], {"1": ""}, {"1": "<p>%s</p>" % ("경영 지원 인재풀 등록 " * 40)})
     check_equal(rows, [], "빈 행을 만들지 않는다")
     check_equal(stats["기술없음"], 1, "몇 건 빠졌는지 세어야 한다")
@@ -116,7 +116,7 @@ def test_BOUNDARY_posting_with_neither_skills_nor_images_is_dropped():
 
 def test_BOUNDARY_decoration_only_body_is_not_a_pending_image():
     # 편집기 장식뿐이면 나중 단계가 읽어 봐야 아무것도 없다.
-    rows, _ai, stats = _collect(
+    rows, stats = _collect(
         [_listing("1")], {"1": ""},
         {"1": img("http://i.jobkorea.kr/content/images/yocruit/gen/hd_req.png")})
     check_equal(rows, [], "장식만 있는 공고는 남길 것이 없다")
@@ -124,7 +124,7 @@ def test_BOUNDARY_decoration_only_body_is_not_a_pending_image():
 
 
 def test_BOUNDARY_empty_listing_list():
-    rows, _ai, stats = _collect([], {}, {})
+    rows, stats = _collect([], {}, {})
     check_equal(rows, [], "빈 목록")
     check(not stats["차단"], "차단 아님")
 

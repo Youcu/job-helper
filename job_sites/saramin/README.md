@@ -7,7 +7,7 @@
 
 ```
 ../../.venv/bin/python3 saramin.py       # 실행
-../../.venv/bin/python3 tests/run.py     # 테스트 196건
+../../.venv/bin/python3 tests/run.py     # 테스트 255건
 ```
 
 ## `.env` 항목
@@ -17,19 +17,25 @@
 
 | 항목 | 필수 | 뜻 |
 |---|---|---|
-| `SARAMIN_JOB_IDS` | **예** | 직무 코드(`cat_kewd`). 콤마로 여러 개 |
+| `JOB_ROLES` | **예** | 직무. **여섯 사이트가 함께 쓰는 이름**이다 (`백엔드,웹`) |
 | `YOE` | 아니오 | 신입=`0`, N년차=`N`, 전체=`-1` (기본 `-1`) |
 | `HOME_LOCATIONS` | 아니오 | 근무지 이름. 비우면 전국 |
 | `EMPLOYMENT_TYPES` | 아니오 | `regular` `contract` `intern` `parttime` `freelance` `dispatch` (기본 `regular,intern`) |
+| `EDUCATION` | 아니오 | 학력 하나(`대졸4`). **지금은 비워 둔다** — 걸면 143건, 빼면 440건 |
 | `TECH_STACKS` | 아니오 | **아직 안 쓴다.** 지금은 거르지 않고 전량 수집한다 |
 | `HOPE_ANNUAL_SALARY` | 아니오 | **아직 안 쓴다.** 공고 9%만 실금액을 준다 |
 
-`YOE` `HOME_LOCATIONS` `TECH_STACKS` `HOPE_ANNUAL_SALARY` 는 **Wanted 와 같은 이름**을 쓴다.
-직무 코드만 값 체계가 달라 `SARAMIN_` 을 붙인다 — Wanted 의 `872` 와 사람인의 `84` 는
-같은 칸에 넣을 수 없다.
+**직무는 사이트 코드가 아니라 이름으로 적는다.** `.env` 는 여섯 사이트가 함께 쓰는
+한 벌이라, `JOB_ROLES=백엔드,웹` 하나를 적으면 이 사이트가 `tags/saramin_role_map.json` 로 자기 코드를 찾는다.
+쓸 수 있는 이름은 `job_sites/_common/roles.json` 에 있고 별칭도 받는다 — `서버`·`Backend`
+라고 적어도 `백엔드` 로 알아듣는다.
+
+**한 이름이 코드 여럿으로 펼쳐진다.** 같은 일을 하는 공고를 사이트가 어떻게 쪼개 뒀든
+다 걷는 것이 목적이다. 이 사이트에 없는 직무는 조용히 빠지지 않고 **못 걸었다고 화면에
+찍는다** — 조용히 빠지면 왜 결과가 적은지 못 찾는다.
 
 ```bash
-SARAMIN_JOB_IDS=84,87
+JOB_ROLES=백엔드,웹
 YOE=0
 HOME_LOCATIONS=서울,성남시
 ```
@@ -160,8 +166,9 @@ Wanted 는 UA 하나가 게이트였다. 사람인은 다르다.
 `http` 로 시작하니 기술 이름과 섞이지 않는다. 주소는 퍼센트 인코딩해 둔다 —
 회사가 올린 파일 이름에 공백과 한글이 든다.
 
-**읽는 것은 수집이 끝난 뒤 도는 별도 단계의 일이다** (D-13). 그 단계가 채운 행은
-`csv/ai_processed.csv` 로 복사된다 — 그 계약은 `_common/store.py` 에 있다.
+**읽는 것은 수집이 끝난 뒤 도는 별도 단계의 일이다** (D-13). 합본(`csv/merged.csv`)을
+읽어 `csv/merged_read.csv` 를 낸다 — 원본을 그대로 두므로 두 파일을 견주면 무엇이
+채워졌는지 알 수 있다.
 
 ## 종료 코드
 
@@ -188,4 +195,4 @@ Wanted 는 UA 하나가 게이트였다. 사람인은 다르다.
 | `tags/saramin_skill.json` | 기술스택 어휘 140개 |
 | `tags/saramin_location.json` | 지역 코드 (시도 17 · 구시 271) |
 | `tags/saramin_filter.json` | 경력 · 학력 등 코드 |
-| `tests/` | 196건 (일반 61 · 예외 61 · 경계 74). 커버리지 96% |
+| `tests/` | 255건 (일반 77 · 예외 69 · 경계 109). `_common` 의 테스트도 여기 있다 |

@@ -5,14 +5,20 @@
 """
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
+from functools import lru_cache
 from pathlib import Path
 
 from _common.env import ENV_PATH, ConfigError, csv_list, one_int
+from _common import roles
 from _common.env import int_list as _int_list_common
-from _common.env import read_env, site_key, strip_comment
+from _common.env import read_env, strip_comment
 
 SITE = "wanted"
+TAGS_DIR = Path(__file__).resolve().parent.parent / "tags"
+ROLE_MAP = TAGS_DIR / "wanted_role_map.json"
+CATEGORY_FILE = TAGS_DIR / "wanted_category.json"
 
 # `.env` 는 짧은 이름으로 적고, API 에는 긴 키로 보낸다.
 EMPLOYMENT_TYPE_KEYS = {
@@ -42,10 +48,41 @@ class Config:
     home_locations: list[str] = field(default_factory=list)
     tech_stacks: list[str] = field(default_factory=list)
     hope_annual_salary: str | None = None
+    # 이 사이트에 대응 코드가 없어 못 건 역할. **조용히 빠지지 않게** 화면에 찍는다.
+    missing_roles: list[str] = field(default_factory=list)
 
     @property
     def employment_type_keys(self) -> list[str]:
         return [EMPLOYMENT_TYPE_KEYS[t] for t in self.employment_types]
+
+
+@lru_cache(maxsize=1)
+def _group_of() -> dict[str, int]:
+    """직무 코드 → 그 직무가 속한 직군 코드.
+
+    `wanted_category.json` 이 `직군 → 직무들` 로 되어 있어 뒤집어 읽는다.
+    """
+    data = json.loads(CATEGORY_FILE.read_text(encoding="utf-8"))
+    book: dict[str, int] = {}
+    for group in data["category"]:
+        for tag in group.get("tags", []):
+            book[str(tag["id"])] = int(group["id"])
+    return book
+
+
+def group_ids_for(job_ids) -> list[int]:
+    """직무들이 속한 직군들. **중복은 없애고 차례는 지킨다.**
+
+    API 가 직군을 하나씩만 받아서(다중 지정하면 마지막 값만 쓴다) 스크래퍼가 직군마다
+    따로 훑는데, 그 차례가 실행마다 바뀌면 결과 순서도 바뀐다.
+    """
+    book = _group_of()
+    groups: list[int] = []
+    for code in job_ids:
+        group = book.get(str(code))
+        if group is not None and group not in groups:
+            groups.append(group)
+    return groups
 
 
 def load_config(env_path: Path | None = None) -> Config:
@@ -58,14 +95,6 @@ def load_config(env_path: Path | None = None) -> Config:
     path = env_path or ENV_PATH
     env = read_env(path)
 
-    job_group_ids = _int_list_common(site_key(env, SITE, "JOB_GROUP_IDS"), "WANTED_JOB_GROUP_IDS")
-    if not job_group_ids:
-        raise ConfigError(
-            f"WANTED_JOB_GROUP_IDS 가 비어 있습니다. 직군 코드를 comma 로 적어 주세요 ({path}).\n"
-            "  코드표는 job_sites/wanted/README.md 의 '직군 코드' 표에 있습니다.\n"
-            "  예: WANTED_JOB_GROUP_IDS=518   (개발)"
-        )
-
     employment_types = csv_list(env.get("EMPLOYMENT_TYPES")) or list(DEFAULT_EMPLOYMENT_TYPES)
     unknown = [t for t in employment_types if t not in EMPLOYMENT_TYPE_KEYS]
     if unknown:
@@ -77,9 +106,19 @@ def load_config(env_path: Path | None = None) -> Config:
     yoe = one_int(env.get("YOE"), "YOE (신입=0, N년차=N, 전체=-1)",
                   default=-1, low=-1, high=10)
 
+    _role_codes = roles.resolve(env, ROLE_MAP)
+    # **직군은 직무에서 유도한다.** API 가 `job_group_id` 를 따로 요구하지만, 그것은 직무의
+    # 상위 분류일 뿐이라 사람이 또 적을 이유가 없다 — 적게 하면 직무와 어긋날 여지만 생긴다.
+    job_group_ids = group_ids_for(_role_codes[0])
+    if not job_group_ids:
+        raise ConfigError(
+            "고른 직무가 어느 직군에도 속하지 않습니다: %s\n"
+            "  job_sites/wanted/tags/wanted_category.json 과 wanted_role_map.json 이"
+            " 어긋났을 수 있습니다." % _role_codes[0])
     return Config(
         job_group_ids=job_group_ids,
-        job_ids=_int_list_common(site_key(env, SITE, "JOB_IDS"), "WANTED_JOB_IDS"),
+        job_ids=[int(code) for code in _role_codes[0]],
+        missing_roles=_role_codes[1],
         employment_types=employment_types,
         yoe=yoe,
         home_locations=csv_list(env.get("HOME_LOCATIONS")),

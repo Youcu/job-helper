@@ -3,11 +3,11 @@
 여기가 **사용자가 정한 규칙이 지켜지는 자리**다.
 
 1. **수집을 돌 때는 그림을 읽지 않는다.** 장당 40초라 389건이 몇 시간이 된다.
-   본문이 이미지면 **주소만 기술스택 칸에 남기고** 넘어간다.
-2. `ai_processed.csv` 는 **잘라내기가 아니라 복사다.** 나중에 그림을 읽는 단계가 쓴다.
-3. **차단돼도 앞서 모은 것은 버리지 않는다.** 300번째에서 막혔다고 299건을 버리면
+   본문이 이미지면 **주소만 기술스택 칸에 남기고** 넘어간다. 읽는 것은 수집이 끝난
+   뒤 도는 별도 단계의 일이다.
+2. **차단돼도 앞서 모은 것은 버리지 않는다.** 300번째에서 막혔다고 299건을 버리면
    다시 처음부터 받아야 하고, 그게 차단을 더 부른다.
-4. **실패와 빈 결과를 섞지 않는다.**
+3. **실패와 빈 결과를 섞지 않는다.**
 
 네트워크를 안 탄다 — 가짜 클라이언트를 넣는다.
 """
@@ -61,12 +61,11 @@ def restore_image_reader(original):
 
 # ─────────────────────────────── 일반 ───────────────────────────────
 
-def test_NORMAL_text_posting_becomes_a_row_without_ai():
+def test_NORMAL_text_posting_becomes_a_row():
     client = FakeClient({"1": TEXT_BODY})
-    rows, ai_rows, stats = saramin._collect_details(client, [listing("1")])
+    rows, stats = saramin._collect_details(client, [listing("1")])
     check_equal(len(rows), 1, "행 하나")
     check("Java" in rows[0]["기술스택"], "기술스택: %r" % rows[0]["기술스택"])
-    check_equal(ai_rows, [], "글이 있는 공고는 AI 를 안 부른다")
     check_equal(stats["이미지본문"], 0, "이미지 본문이 아니다")
 
 
@@ -81,7 +80,7 @@ def test_EXCEPTION_block_keeps_what_was_collected():
 
     client = FakeClient({"1": TEXT_BODY, "2": TEXT_BODY},
                         raises={"3": BlockedError("막힘")})
-    rows, _, stats = saramin._collect_details(
+    rows, stats = saramin._collect_details(
         client, [listing("1"), listing("2"), listing("3"), listing("4")])
     check_equal(len(rows), 2, "막히기 전에 모은 것은 살아야 한다")
     check(stats["차단"], "막혔다는 사실이 남아야 한다")
@@ -91,7 +90,7 @@ def test_EXCEPTION_block_keeps_what_was_collected():
 def test_EXCEPTION_one_failed_detail_does_not_stop_the_rest():
     client = FakeClient({"1": TEXT_BODY, "3": TEXT_BODY},
                         raises={"2": ConnectionError("끊김")})
-    rows, _, stats = saramin._collect_details(
+    rows, stats = saramin._collect_details(
         client, [listing("1"), listing("2"), listing("3")])
     check_equal(len(rows), 2, "한 건 실패로 나머지를 버리면 안 된다")
     check(not stats["차단"], "일시적 실패는 차단이 아니다")
@@ -99,7 +98,7 @@ def test_EXCEPTION_one_failed_detail_does_not_stop_the_rest():
 
 def test_EXCEPTION_missing_rec_idx_is_counted_not_crashed():
     client = FakeClient({"1": TEXT_BODY})
-    rows, _, stats = saramin._collect_details(client, [{"기업명": "회사"}, listing("1")])
+    rows, stats = saramin._collect_details(client, [{"기업명": "회사"}, listing("1")])
     check_equal(len(rows), 1, "쓸 수 있는 것만 남긴다")
     check_equal(stats["번호없음"], 1, "몇 건을 뺐는지 알려야 한다")
 
@@ -109,15 +108,15 @@ def test_EXCEPTION_missing_rec_idx_is_counted_not_crashed():
 
 def test_BOUNDARY_posting_without_any_skill_is_dropped_and_counted():
     client = FakeClient({"1": NO_SKILL_BODY})
-    rows, _, stats = saramin._collect_details(client, [listing("1")])
+    rows, stats = saramin._collect_details(client, [listing("1")])
     check_equal(rows, [], "판단 재료가 없는 공고는 뺀다")
     check_equal(stats["기술없음"], 1, "뺀 개수를 알려야 한다")
 
 
 
 def test_BOUNDARY_empty_listing_list_is_empty_result():
-    rows, ai_rows, stats = saramin._collect_details(FakeClient({}), [])
-    check_equal((rows, ai_rows), ([], []), "빈 입력")
+    rows, stats = saramin._collect_details(FakeClient({}), [])
+    check_equal(rows, [], "빈 입력")
     check(not stats["차단"], "막힌 것이 아니다")
 
 
@@ -140,15 +139,13 @@ def _paths():
     import tempfile
     from pathlib import Path
 
-    from _common.store import ai_csv_path
     base = Path(tempfile.mkdtemp())
-    output = base / "saramin_post.csv"
-    return output, ai_csv_path(output)
+    return base / "saramin_post.csv"
 
 
-def store_save(rows, output, ai_rows=None):
+def store_save(rows, output):
     from _common.store import save
-    return save(rows, output, ai_rows)
+    return save(rows, output)
 
 
 def _row(url: str, company: str = "회사", skills: str = "Java") -> dict:
@@ -158,55 +155,24 @@ def _row(url: str, company: str = "회사", skills: str = "Java") -> dict:
     return row
 
 
-def test_NORMAL_ai_row_lands_in_both_files():
-    from _common.store import read_csv
-
-    output, ai_output = _paths()
-    row = _row("https://x.test/1")
-    store_save([row], output, [dict(row)])
-    check_equal(len(read_csv(output)), 1, "본 CSV")
-    check_equal(len(read_csv(ai_output)), 1, "AI 사본")
-    check_equal(read_csv(output)[0]["URL"], read_csv(ai_output)[0]["URL"],
-                "URL 로 맞춰 볼 수 있어야 한다")
-
-
 def test_NORMAL_second_run_accumulates_instead_of_overwriting():
     from _common.store import read_csv
 
-    output, ai_output = _paths()
+    output = _paths()
     store_save([_row("https://x.test/1")], output)
     store_save([_row("https://x.test/2")], output)
     urls = {row["URL"] for row in read_csv(output)}
     check_equal(urls, {"https://x.test/1", "https://x.test/2"}, "덮어쓰지 않고 쌓는다")
 
 
-def test_EXCEPTION_no_ai_rows_leaves_no_ai_file():
-    output, ai_output = _paths()
-    store_save([_row("https://x.test/1")], output)
-    check(not ai_output.exists(), "AI 가 관여한 게 없으면 빈 파일도 안 만든다")
-
-
 def test_BOUNDARY_same_posting_twice_stays_one_row():
     from _common.store import read_csv
 
-    output, ai_output = _paths()
+    output = _paths()
     row = _row("https://x.test/1")
-    store_save([row], output, [dict(row)])
-    store_save([row], output, [dict(row)])
-    check_equal(len(read_csv(output)), 1, "같은 URL 은 한 행")
-    check_equal(len(read_csv(ai_output)), 1, "사본도 한 행")
-
-
-def test_BOUNDARY_ai_file_keeps_a_row_the_main_file_no_longer_gets():
-    # 다음 실행에서 그 공고가 글로 바뀌면 AI 사본에는 안 들어온다.
-    # 그래도 **이전에 AI 가 관여했다는 기록은 남아야** 나중에 되짚을 수 있다.
-    from _common.store import read_csv
-
-    output, ai_output = _paths()
-    row = _row("https://x.test/1")
-    store_save([row], output, [dict(row)])
     store_save([row], output)
-    check_equal(len(read_csv(ai_output)), 1, "기록은 남는다")
+    store_save([row], output)
+    check_equal(len(read_csv(output)), 1, "같은 URL 은 한 행")
 
 
 # ────────────────────── 보고 · 실행 잠금 ──────────────────────
@@ -238,7 +204,7 @@ def test_NORMAL_conditions_are_printed_before_collecting():
 
 def test_NORMAL_summary_prints_without_crashing():
     saramin._print_summary(_config(), _merge_result([_row("https://x.test/1")]),
-                           [], _stats())
+                           _stats())
 
 
 def test_EXCEPTION_summary_handles_every_stat_being_set():
@@ -246,7 +212,6 @@ def test_EXCEPTION_summary_handles_every_stat_being_set():
     saramin._print_summary(
         _config(tech_stacks=["Python"], hope_annual_salary="3300"),
         _merge_result([_row("https://x.test/1")]),
-        [_row("https://x.test/1")],
         _stats(이미지본문=5, 그림대기=5, 기술없음=3, 번호없음=1, 차단=True))
 
 
@@ -268,7 +233,7 @@ def test_EXCEPTION_second_run_is_refused_while_one_is_running():
 
 
 def test_BOUNDARY_summary_with_no_rows_does_not_crash():
-    saramin._print_summary(_config(), _merge_result([]), [], _stats())
+    saramin._print_summary(_config(), _merge_result([]), _stats())
 
 
 # ────────────────────── 종료 코드 ──────────────────────
@@ -297,7 +262,7 @@ def test_NORMAL_successful_run_returns_zero():
         "SaraminClient": lambda: FakeClient({"1": TEXT_BODY}),
         "fetch_listings": lambda client, params, **kwargs: listings,
         "fetch_detail": lambda client, rec_idx: TEXT_BODY,
-        "save": lambda rows, output, ai_rows=None: _merge_result(rows),
+        "save": lambda rows, output: _merge_result(rows),
     })
     check_equal(code, 0, "정상 종료")
 
@@ -306,7 +271,7 @@ def test_EXCEPTION_config_error_returns_one():
     from _common.env import ConfigError
 
     def boom():
-        raise ConfigError("SARAMIN_JOB_IDS 가 비어 있습니다")
+        raise ConfigError("JOB_ROLES 가 비어 있습니다")
 
     check_equal(_run_with({"load_config": boom}), 1, "설정 오류는 1")
 
@@ -333,7 +298,7 @@ def test_EXCEPTION_block_returns_two_but_still_saves():
         "SaraminClient": lambda: FakeClient({}),
         "fetch_listings": lambda client, params, **kwargs: listings,
         "fetch_detail": blocked_detail,
-        "save": lambda rows, output, ai_rows=None: saved.append(rows) or _merge_result(rows),
+        "save": lambda rows, output: saved.append(rows) or _merge_result(rows),
     })
     check_equal(code, 2, "차단은 2")
     check_equal(len(saved[0]), 1, "막히기 전에 모은 것은 저장해야 한다")
@@ -375,12 +340,11 @@ def test_NORMAL_location_codes_print_as_one_string_not_characters():
 
 def test_NORMAL_image_body_leaves_urls_in_the_skill_column():
     client = FakeClient({"1": IMAGE_BODY})
-    rows, ai_rows, stats = saramin._collect_details(client, [listing("1")])
+    rows, stats = saramin._collect_details(client, [listing("1")])
     check_equal(len(rows), 1, "그림 공고도 행으로 남긴다")
     check("https://x.test/a.png" in rows[0]["기술스택"],
           "그림 주소를 남겨야 나중에 읽을 대상을 안다: %r" % rows[0]["기술스택"])
     check_equal(stats["그림대기"], 1, "몇 건이 기다리는지 알려야 한다")
-    check_equal(ai_rows, [], "이 단계에서는 AI 가 관여하지 않는다")
 
 
 def test_NORMAL_collection_makes_no_external_call():
@@ -391,8 +355,7 @@ def test_NORMAL_collection_makes_no_external_call():
                  if n.startswith(("extract_from_images", "_ask_", "_download"))]
     check_equal(forbidden, [], "판독 코드가 수집 계층에 남아 있다: %r" % forbidden)
     client = FakeClient({"1": IMAGE_BODY})
-    rows, ai_rows, _ = saramin._collect_details(client, [listing("1")])
-    check_equal(ai_rows, [], "이 단계에서는 AI 가 관여하지 않는다")
+    rows, _stats = saramin._collect_details(client, [listing("1")])
     check(rows[0]["기술스택"].startswith("http"), "주소만 남는다")
 
 
@@ -401,7 +364,7 @@ def test_BOUNDARY_urls_are_distinguishable_from_skill_names():
     body_with_tag = (IMAGE_BODY
                      + '<a href="/zf_user/jobs/list/job-category?cat_kewd=235">#Java</a>')
     client = FakeClient({"1": body_with_tag})
-    rows, _, _ = saramin._collect_details(client, [listing("1")])
+    rows, _stats = saramin._collect_details(client, [listing("1")])
     parts = [p.strip() for p in rows[0]["기술스택"].split(",")]
     urls = [p for p in parts if p.startswith("http")]
     names = [p for p in parts if not p.startswith("http")]
@@ -412,7 +375,7 @@ def test_BOUNDARY_urls_are_distinguishable_from_skill_names():
 def test_BOUNDARY_image_body_is_no_longer_dropped_for_having_no_skill():
     # 전에는 기술이 없어 빠졌다. 이제 주소가 있으니 남고, 나중 단계가 채운다.
     client = FakeClient({"1": IMAGE_BODY})
-    rows, _, stats = saramin._collect_details(client, [listing("1")])
+    rows, stats = saramin._collect_details(client, [listing("1")])
     check_equal(len(rows), 1, "그림 공고를 잃으면 나중에 읽을 대상도 사라진다")
     check_equal(stats["기술없음"], 0, "빈 것으로 세면 안 된다")
 
@@ -420,7 +383,7 @@ def test_BOUNDARY_image_body_is_no_longer_dropped_for_having_no_skill():
 def test_BOUNDARY_image_body_without_any_image_tag_is_still_dropped():
     # 글도 그림도 없는 공고. 나중에 읽을 것도 없으니 판단 재료가 없다.
     client = FakeClient({"1": detail("<p>짧은 글</p>")})
-    rows, _, stats = saramin._collect_details(client, [listing("1")])
+    rows, stats = saramin._collect_details(client, [listing("1")])
     check_equal(rows, [], "읽을 것이 아무것도 없으면 뺀다")
     check_equal(stats["기술없음"], 1, "뺀 개수를 알려야 한다")
 
@@ -431,7 +394,7 @@ def test_BOUNDARY_text_body_with_an_image_but_no_skill_keeps_the_url():
     long_text = "우리 회사를 소개합니다. " * 20          # 기술 이름은 하나도 없다
     page = detail("<p>%s</p><img src=\"https://x.test/a.png\">" % long_text)
     client = FakeClient({"1": page})
-    rows, _, stats = saramin._collect_details(client, [listing("1")])
+    rows, stats = saramin._collect_details(client, [listing("1")])
     check_equal(len(rows), 1, "그림이 있으면 버리면 안 된다 — 나중에 읽을 대상이다")
     check("https://x.test/a.png" in rows[0]["기술스택"], "주소를 남겨야 한다")
     check_equal(stats["기술없음"], 0, "빈 것으로 세면 안 된다")
@@ -442,7 +405,7 @@ def test_BOUNDARY_text_body_with_skills_does_not_get_urls():
     page = detail("<p>자격요건</p><p>Java 와 Spring 경험. " + "본문이 충분히 깁니다. " * 10
                   + "</p><img src=\"https://x.test/a.png\">")
     client = FakeClient({"1": page})
-    rows, _, _ = saramin._collect_details(client, [listing("1")])
+    rows, _stats = saramin._collect_details(client, [listing("1")])
     check("http" not in rows[0]["기술스택"],
           "재료가 이미 있으면 주소를 안 남긴다: %r" % rows[0]["기술스택"])
     check("Java" in rows[0]["기술스택"], "기술은 그대로")
@@ -452,6 +415,6 @@ def test_BOUNDARY_neither_skill_nor_image_is_still_dropped():
     # 기술도 그림도 없으면 판단할 재료가 아무것도 없다. 그건 빼는 게 맞다.
     page = detail("<p>" + "회사 소개만 있습니다. " * 15 + "</p>")
     client = FakeClient({"1": page})
-    rows, _, stats = saramin._collect_details(client, [listing("1")])
+    rows, stats = saramin._collect_details(client, [listing("1")])
     check_equal(rows, [], "재료가 없으면 뺀다")
     check_equal(stats["기술없음"], 1, "뺀 개수를 알린다")

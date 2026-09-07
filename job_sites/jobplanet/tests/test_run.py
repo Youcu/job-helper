@@ -19,7 +19,7 @@ from lib.collect import Listings
 
 from .helpers import check, check_equal, env_file
 
-NARROW_ENV = ("JOBPLANET_JOB_IDS=11904\nYOE=0\n"
+NARROW_ENV = ("JOB_ROLES=백엔드\nYOE=0\n"
               "HOME_LOCATIONS=서울\nEMPLOYMENT_TYPES=regular\n")
 
 
@@ -53,7 +53,7 @@ def _run(env_text=NARROW_ENV, listings=None, details=None, blocked_at=None):
                                  "required_qualification": "Java 3년",
                                  "location": "서울 강남구"})
 
-    def fake_save(rows, output, ai_rows=None):
+    def fake_save(rows, output):
         saved["rows"] = rows
         saved["output"] = output
 
@@ -108,18 +108,18 @@ def test_NORMAL_prints_why_education_is_not_applied():
 
 def test_NORMAL_prints_which_employment_types_are_unsupported():
     _code, text, _saved = _run(
-        "JOBPLANET_JOB_IDS=11904\nEMPLOYMENT_TYPES=regular,intern\n")
+        "JOB_ROLES=백엔드\nEMPLOYMENT_TYPES=regular,intern\n")
     check("intern" in text and "못 겁니다" in text, "못 건 것을 알려야 한다: %s" % text)
 
 
 def test_EXCEPTION_config_error_returns_one():
-    code, _text, saved = _run("YOE=0\n")          # 직무 코드가 없다
+    code, _text, saved = _run("YOE=0\n")          # JOB_ROLES 가 없다
     check_equal(code, 1, "설정 오류는 1")
     check("rows" not in saved, "저장하면 안 된다")
 
 
 def test_EXCEPTION_unknown_location_returns_one():
-    code, _text, saved = _run("JOBPLANET_JOB_IDS=11904\nHOME_LOCATIONS=뉴욕\n")
+    code, _text, saved = _run("JOB_ROLES=백엔드\nHOME_LOCATIONS=뉴욕\n")
     check_equal(code, 1, "옮길 수 없는 근무지도 설정 오류다")
     check("rows" not in saved, "저장하면 안 된다")
 
@@ -217,7 +217,7 @@ def test_BOUNDARY_summary_prints_every_counter():
     """요약의 **모든 줄**을 한 번씩 찍어 본다.
 
     출력은 수집이 다 끝난 뒤에 돈다. 여기서 서식이 틀리면 걷어 온 것을 눈앞에서
-    잃는다 — 실제로 `ai_csv_path(...).relative_to(...)` 처럼 터질 수 있는 호출이 있다.
+    잃는다 — 실제로 `relative_to(...)` 처럼 터질 수 있는 호출이 있다.
     """
     printed = Recorder()
 
@@ -234,7 +234,7 @@ def test_BOUNDARY_summary_prints_every_counter():
     original = jobplanet.print if hasattr(jobplanet, "print") else None
     jobplanet.print = printed
     try:
-        jobplanet._print_summary(Config(), Result(), [{"URL": "u"}], stats, listings)
+        jobplanet._print_summary(Config(), Result(), stats, listings)
     finally:
         if original is None:
             del jobplanet.print
@@ -242,7 +242,7 @@ def test_BOUNDARY_summary_prints_every_counter():
             jobplanet.print = original
 
     for word in ("이번에 안 보인 공고", "넘게 안 보여 뺀 공고", "최종확인일을 알 수 없어",
-                 "근무지가 조건 밖", "본문이 빈 것", "AI 가 관여한",
+                 "근무지가 조건 밖", "본문이 빈 것",
                  "기술스택이 하나도 없어", "공고번호가 없어", "적용하지 않은 조건"):
         check(word in printed.text, "'%s' 를 못 찍었다:\n%s" % (word, printed.text))
 

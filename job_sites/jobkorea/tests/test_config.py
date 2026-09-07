@@ -28,14 +28,14 @@ def _env(text: str):
 
 def test_NORMAL_reads_every_field():
     config = load_config(_env(
-        "JOBKOREA_JOB_IDS=1000229,1000231\n"
+        "JOB_ROLES=백엔드\n"
         "EMPLOYMENT_TYPES=regular,intern\n"
         "YOE=3\n"
         "EDUCATION=대졸4\n"
         "HOME_LOCATIONS=서울,성남시\n"
         "TECH_STACKS=Python,Django\n"
         "HOPE_ANNUAL_SALARY=3300\n"))
-    check_equal(config.job_ids, [1000229, 1000231], "직무 코드")
+    check_equal(config.job_ids, [1000229], "직무 코드")
     check_equal(config.employment_types, ["regular", "intern"], "고용형태")
     check_equal(config.yoe, 3, "년차")
     check_equal(config.education, "대졸4", "학력")
@@ -44,7 +44,7 @@ def test_NORMAL_reads_every_field():
 
 
 def test_NORMAL_defaults_when_optional_fields_missing():
-    config = load_config(_env("JOBKOREA_JOB_IDS=1000229\n"))
+    config = load_config(_env("JOB_ROLES=백엔드\n"))
     check_equal(config.employment_types, DEFAULT_EMPLOYMENT_TYPES, "고용형태 기본값")
     check_equal(config.yoe, YOE_ALL, "년차 기본값은 전체")
     check_equal(config.education, "", "학력 기본값은 조건 없음")
@@ -52,26 +52,14 @@ def test_NORMAL_defaults_when_optional_fields_missing():
 
 
 def test_NORMAL_strips_inline_comment():
-    config = load_config(_env("JOBKOREA_JOB_IDS=1000229\nEDUCATION=대졸4   # 4년제\n"))
+    config = load_config(_env("JOB_ROLES=백엔드\nEDUCATION=대졸4   # 4년제\n"))
     check_equal(config.education, "대졸4", "주석을 떼고 읽어야 한다")
 
-
-def test_EXCEPTION_job_ids_required():
-    error = check_raises(ConfigError, lambda: load_config(_env("YOE=0\n")),
-                         "직무 코드 없이 돌면 전체를 긁는다")
-    check("JOBKOREA_JOB_IDS" in str(error), "무엇을 채워야 하는지 이름을 알려야 한다")
-    check("중분류" in str(error), "대분류 함정을 여기서 미리 알려야 한다")
-
-
-def test_EXCEPTION_does_not_fall_back_to_unprefixed_name():
-    # 결함이 될 뻔한 곳: `JOB_IDS` 로 물러서면 사람인 코드로 잡코리아를 긁는다.
-    check_raises(ConfigError, lambda: load_config(_env("JOB_IDS=84,92\n")),
-                 "접두사 없는 JOB_IDS 는 잡코리아 것이 아니다")
 
 
 def test_EXCEPTION_unknown_employment_type():
     error = check_raises(ConfigError, lambda: load_config(_env(
-        "JOBKOREA_JOB_IDS=1000229\nEMPLOYMENT_TYPES=regular,정규직\n")),
+        "JOB_ROLES=백엔드\nEMPLOYMENT_TYPES=regular,정규직\n")),
         "모르는 고용형태")
     check("정규직" in str(error), "어느 값이 문제인지 짚어야 한다")
     check("regular" in str(error), "쓸 수 있는 값을 알려야 한다")
@@ -79,33 +67,29 @@ def test_EXCEPTION_unknown_employment_type():
 
 def test_EXCEPTION_unknown_education():
     error = check_raises(ConfigError, lambda: load_config(_env(
-        "JOBKOREA_JOB_IDS=1000229\nEDUCATION=학사\n")), "모르는 학력")
+        "JOB_ROLES=백엔드\nEDUCATION=학사\n")), "모르는 학력")
     check("대졸4" in str(error), "쓸 수 있는 이름을 알려야 한다")
 
-
-def test_EXCEPTION_non_numeric_job_id():
-    check_raises(ConfigError, lambda: load_config(_env("JOBKOREA_JOB_IDS=백엔드\n")),
-                 "직무 코드는 숫자다")
 
 
 def test_BOUNDARY_yoe_zero_is_new_grad_not_missing():
     # `0` 은 거짓값이라 `or` 로 처리하면 조용히 전체(-1)가 된다.
-    check_equal(load_config(_env("JOBKOREA_JOB_IDS=1000229\nYOE=0\n")).yoe, 0,
+    check_equal(load_config(_env("JOB_ROLES=백엔드\nYOE=0\n")).yoe, 0,
                 "YOE=0 은 신입이지 미지정이 아니다")
 
 
 def test_BOUNDARY_yoe_out_of_range():
     check_raises(ConfigError,
-                 lambda: load_config(_env("JOBKOREA_JOB_IDS=1000229\nYOE=99\n")),
+                 lambda: load_config(_env("JOB_ROLES=백엔드\nYOE=99\n")),
                  "범위 밖 년차")
     check_raises(ConfigError,
-                 lambda: load_config(_env("JOBKOREA_JOB_IDS=1000229\nYOE=-2\n")),
+                 lambda: load_config(_env("JOB_ROLES=백엔드\nYOE=-2\n")),
                  "-1 보다 작은 값")
 
 
 def test_BOUNDARY_empty_values_are_not_conditions():
     config = load_config(_env(
-        "JOBKOREA_JOB_IDS=1000229\nEDUCATION=\nHOME_LOCATIONS=\nEMPLOYMENT_TYPES=\n"))
+        "JOB_ROLES=백엔드\nEDUCATION=\nHOME_LOCATIONS=\nEMPLOYMENT_TYPES=\n"))
     check_equal(config.education, "", "빈 학력")
     check_equal(config.home_locations, [], "빈 근무지")
     check_equal(config.employment_types, DEFAULT_EMPLOYMENT_TYPES,
@@ -115,8 +99,8 @@ def test_BOUNDARY_empty_values_are_not_conditions():
 def test_BOUNDARY_every_code_table_entry_is_reachable():
     # 코드표에 있는 이름은 전부 `.env` 에 적을 수 있어야 한다.
     for name in EMPLOYMENT_TYPE_CODES:
-        config = load_config(_env("JOBKOREA_JOB_IDS=1000229\nEMPLOYMENT_TYPES=%s\n" % name))
+        config = load_config(_env("JOB_ROLES=백엔드\nEMPLOYMENT_TYPES=%s\n" % name))
         check_equal(config.employment_types, [name], "고용형태 %s" % name)
     for name in EDUCATION_CODES:
-        config = load_config(_env("JOBKOREA_JOB_IDS=1000229\nEDUCATION=%s\n" % name))
+        config = load_config(_env("JOB_ROLES=백엔드\nEDUCATION=%s\n" % name))
         check_equal(config.education, name, "학력 %s" % name)

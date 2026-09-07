@@ -22,7 +22,13 @@ job_sites/
 | `normalize.py` | 기술 이름을 표준 표기로 (`canonical()` `kind_of()`) |
 | `skills.py` | 산문에서 기술 이름을 찾는 엔진. 사이트는 **자기 어휘만** 넘긴다 |
 | `store.py` | CSV 스키마 12컬럼 · 누적 병합 · 30일 보존 · 원자적 쓰기 |
-| `runlock.py` | 실행 락. 겹쳐 도는 실행을 막는다 |
+| `runlock.py` | 실행 락. 겹쳐 도는 실행을 막는다. **종료 코드 3** |
+| `env.py` | `.env` 를 읽는 유일한 곳. 주석 처리·셸 환경변수 차단 |
+| `roles.py` `roles.json` | `JOB_ROLES` 의 표준 이름 → 그 사이트 코드. **`_common` 은 사이트 코드를 모른다** — 대응표는 각 사이트 `tags/` 에 있다 |
+| `outcome.py` | 수집이 온전했는가의 판정. **종료 코드 2** |
+| `sections.py` | 본문을 지원자격·우대사항으로 가르는 규칙 |
+| `html_text.py` | HTML → 글. 줄바꿈과 목록 표시를 살린다 |
+| `corpus_candidates.py` | 표준 이름으로 못 푼 기술 이름을 쌓는다 |
 
 사전 파일(`tech_corpus.json` `tech_aliases.json` `tech_blocklist.txt`
 `tech_ko_allowlist.txt`)도 여기 있다. 사이트마다 두면 같은 오탐을 여러 번 고치게 된다.

@@ -50,25 +50,6 @@ LAST_SEEN = "최종확인일"
 # 지원할 수도 없는 공고가 지금 열려 있는 것과 섞인다.
 RETENTION_DAYS = 30
 
-# 본문이 그림뿐이라 사람이 못 읽는 공고가 있다. 그건 **나중 단계**가 그림을 보고 채운다.
-# 그 단계가 손댄 행은 같은 스키마로 여기에 **복사**해 둔다 — 잘라내기가 아니다.
-#
-#   csv/<사이트>_post.csv    전부
-#   csv/ai_processed.csv    그중 AI 가 채운 행만 (URL 로 원본과 맞춰 본다)
-#
-# **스키마를 늘리지 않는 이유** — 12칸은 사이트가 공유한다. "AI가 채웠나" 칸을 더하면
-# 그 칸을 안 쓰는 사이트에도 빈 칸이 생기고, 합칠 때 어긋난다. 파일을 나누면 안 그렇다.
-#
-# 사람인·잡코리아·잡플래닛이 같은 이름을 쓴다. 이름을 사이트마다 다르게 두면
-# 오케스트레이터가 어느 파일을 봐야 할지 매번 알아야 한다.
-AI_CSV_NAME = "ai_processed.csv"
-
-
-def ai_csv_path(output: Path) -> Path:
-    """산출물 CSV 옆의 AI 사본 경로."""
-    return Path(output).parent / AI_CSV_NAME
-
-
 @dataclass
 class MergeResult:
     rows: list[dict]
@@ -165,17 +146,10 @@ def merge(
     )
 
 
-def save(rows: list[dict], output: Path, ai_rows: list[dict] | None = None):
-    """덮어쓰지 않고 쌓는다. AI 가 채운 행은 사본으로도 남긴다.
-
-    사이트마다 이 흐름이 같아서 여기 둔다 — `merge` 로 기존 것과 합치고, 원자적으로 쓴다.
-    `ai_rows` 는 **`rows` 에서 골라낸 사본**이어야 한다. 옮기는 게 아니다.
-    """
+def save(rows: list[dict], output: Path):
+    """걷은 행을 기존 CSV 와 병합해 쓴다. 덮어쓰지 않고 쌓는다 (D-07)."""
     result = merge(read_csv(output), rows)
     write_csv(output, result.rows)
-    if ai_rows:
-        target = ai_csv_path(output)
-        write_csv(target, merge(read_csv(target), ai_rows).rows)
     return result
 
 

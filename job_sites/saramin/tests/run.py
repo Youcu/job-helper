@@ -29,6 +29,8 @@ MODULES = [
     "tests.test_html_text",
     "tests.test_runlock",
     "tests.test_store",
+    "tests.test_roles",
+    "tests.test_outcome",
     "tests.test_corpus_candidates",
     "tests.test_config",
     "tests.test_client",
@@ -57,7 +59,24 @@ def collect_tests() -> list[tuple[str, str, str, callable]]:
     return found
 
 
+def _check_module_list_is_complete() -> None:
+    """`MODULES` 가 `tests/` 의 파일을 다 담고 있는가.
+
+    **손으로 적는 목록이라 새 파일을 빠뜨리면 그 테스트가 조용히 안 돈다.**
+    실제로 그랬다 — 새로 쓴 `test_outcome.py` 열 건이 통과도 실패도 하지 않고
+    없는 것처럼 지나갔고, 개수만 보고는 알 수 없었다.
+    """
+    here = Path(__file__).resolve().parent
+    on_disk = {"tests.%s" % p.stem for p in here.glob("test_*.py")}
+    missing = sorted(on_disk - set(MODULES))
+    if missing:
+        raise SystemExit(
+            "tests/run.py 의 MODULES 에 안 적힌 테스트 파일이 있습니다: %s\n"
+            "  적지 않으면 그 테스트는 돌지 않습니다. MODULES 에 넣어 주세요."
+            % ", ".join(missing))
+
 def main() -> int:
+    _check_module_list_is_complete()
     tests = collect_tests()
     failed: list[tuple[str, Exception]] = []
 

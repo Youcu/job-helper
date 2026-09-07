@@ -20,10 +20,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from _common import roles
 from _common.env import (ENV_PATH, ConfigError, csv_list, int_list, one_int,
-                         read_env, site_key, strip_comment)
+                         read_env, strip_comment)
 
 SITE = "jumpit"
+ROLE_MAP = Path(__file__).resolve().parent.parent / "tags" / "jumpit_role_map.json"
 
 # `.env` 의 짧은 이름 → 점핏에 있는지. **점핏은 고용형태를 안 거른다** —
 # 필터 파라미터가 없다. 적어도 무시하되, 무시했다는 사실은 화면에 남긴다.
@@ -47,6 +49,8 @@ class Config:
     home_locations: list[str] = field(default_factory=list)
     tech_stacks: list[str] = field(default_factory=list)
     hope_annual_salary: str | None = None
+    # 이 사이트에 대응 코드가 없어 못 건 역할. **조용히 빠지지 않게** 화면에 찍는다.
+    missing_roles: list[str] = field(default_factory=list)
 
     @property
     def unsupported_employment_types(self) -> list[str]:
@@ -62,13 +66,7 @@ class Config:
 def load_config(env_path: Path | None = None) -> Config:
     env = read_env(env_path or ENV_PATH)
 
-    job_ids = int_list(site_key(env, SITE, "JOB_IDS"), "JUMPIT_JOB_IDS")
-    if not job_ids:
-        raise ConfigError(
-            "JUMPIT_JOB_IDS 가 비어 있습니다. 점핏 직무 코드를 comma 로 적어 주세요.\n"
-            "  코드표는 job_sites/jumpit/README.md 의 '직무 코드' 표에 있습니다.\n"
-            "  예: JUMPIT_JOB_IDS=1,3   (서버/백엔드 개발자, 웹 풀스택 개발자)")
-
+    job_ids, missing_roles = roles.resolve(env, ROLE_MAP)
     employment_types = csv_list(env.get("EMPLOYMENT_TYPES"))
     unknown = [name for name in employment_types if name not in KNOWN_ELSEWHERE]
     if unknown:
@@ -84,7 +82,8 @@ def load_config(env_path: Path | None = None) -> Config:
                           % (education, ", ".join(EDUCATION_NAMES)))
 
     return Config(
-        job_ids=job_ids,
+        job_ids=[int(code) for code in job_ids],
+        missing_roles=missing_roles,
         employment_types=employment_types,
         yoe=one_int(env.get("YOE"), "YOE (신입=0, N년차=N, 전체=-1)",
                     default=YOE_ALL, low=YOE_ALL, high=YOE_MAX),

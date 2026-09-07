@@ -17,7 +17,7 @@ from lib.collect import Listings
 
 from .helpers import check, check_equal, env_file
 
-NARROW_ENV = "JUMPIT_JOB_IDS=1\nYOE=0\nHOME_LOCATIONS=서울\n"
+NARROW_ENV = "JOB_ROLES=백엔드\nYOE=0\nHOME_LOCATIONS=서울\n"
 
 
 class Recorder:
@@ -34,7 +34,7 @@ class Recorder:
         return "\n".join(self.lines)
 
 
-def _run(env_text=NARROW_ENV, listings=None, blocked_at=None):
+def _run(env_text=NARROW_ENV, listings=None, blocked_at=None, fail_ids=()):
     """`_run()` 을 네트워크·파일 없이 돌린다. 찍힌 글과 종료 코드를 돌려준다."""
     listings = listings if listings is not None else Listings(
         rows=[{"id": 1, "techStacks": ["java"], "companyName": "회사"}],
@@ -45,11 +45,13 @@ def _run(env_text=NARROW_ENV, listings=None, blocked_at=None):
     def fake_detail(_client, pid):
         if blocked_at is not None and pid == blocked_at:
             raise BlockedError("403")
+        if pid in fail_ids:
+            raise RuntimeError("상세 조회에 실패했습니다")
         return {"companyName": "회사", "qualifications": "Java 3년",
                 "location": "서울 강남구", "techStacks": [{"stack": "java"}],
                 "newcomer": True}
 
-    def fake_save(rows, output, ai_rows=None):
+    def fake_save(rows, output):
         saved["rows"] = rows
         saved["output"] = output
 
@@ -108,13 +110,13 @@ def test_NORMAL_prints_why_education_is_not_applied():
 
 
 def test_EXCEPTION_config_error_returns_one():
-    code, _text, saved = _run("YOE=0\n")          # 직무 코드가 없다
+    code, _text, saved = _run("YOE=0\n")          # JOB_ROLES 가 없다
     check_equal(code, 1, "설정 오류는 1")
     check("rows" not in saved, "저장하면 안 된다")
 
 
 def test_EXCEPTION_unknown_location_returns_one():
-    code, _text, saved = _run("JUMPIT_JOB_IDS=1\nHOME_LOCATIONS=뉴욕\n")
+    code, _text, saved = _run("JOB_ROLES=백엔드\nHOME_LOCATIONS=뉴욕\n")
     check_equal(code, 1, "옮길 수 없는 근무지도 설정 오류다")
     check("rows" not in saved, "저장하면 안 된다")
 
@@ -192,7 +194,7 @@ def test_BOUNDARY_summary_prints_every_counter():
     """요약의 **모든 줄**을 한 번씩 찍어 본다.
 
     출력은 수집이 다 끝난 뒤에 돈다. 여기서 서식이 틀리면 걷어 온 것을 눈앞에서
-    잃는다 — `ai_csv_path(...).relative_to(...)` 처럼 터질 수 있는 호출이 있다.
+    잃는다 — `relative_to(...)` 처럼 터질 수 있는 호출이 있다.
     """
     printed = Recorder()
 
@@ -207,10 +209,36 @@ def test_BOUNDARY_summary_prints_every_counter():
     stats = {"기술없음": 6, "상세실패": 7, "번호없음": 8, "차단": False}
     jumpit.print = printed
     try:
-        jumpit._print_summary(Config(), Result(), [{"URL": "u"}], stats)
+        jumpit._print_summary(Config(), Result(), stats)
     finally:
         del jumpit.print
 
-    for word in ("AI 가 관여한", "기술스택이 하나도 없어", "상세를 못 받아",
+    for word in ("기술스택이 하나도 없어", "상세를 못 받아",
                  "공고번호가 없어", "적용하지 않은 조건", "연봉은 이 사이트가"):
         check(word in printed.text, "'%s' 를 못 찍었다:\n%s" % (word, printed.text))
+
+
+def test_EXCEPTION_every_detail_failing_is_not_a_normal_run():
+    """상세가 **전부** 실패하면 종료 코드 2.
+
+    Pathsdog 에서 실제로 난 일이다 — 상세 도구가 죽어 29건이 다 실패했는데, 공고
+    하나의 실패를 견디는 코드가 전부의 실패도 똑같이 견뎌 **0** 을 냈다. 화면에는
+    `정상 · 0행` 이라고 찍혔다. 여기도 같은 구조라 같이 굳힌다.
+    """
+    listings = Listings(rows=[{"id": 1, "techStacks": ["java"], "companyName": "회사"},
+                              {"id": 2, "techStacks": ["java"], "companyName": "회사"}],
+                        received=2, pages=1, reported_total=2, stop_reason="다 모았다")
+    code, text, saved = _run(listings=listings, fail_ids={1, 2})
+    check_equal(code, 2, "전부 실패는 정상이 아니다")
+    check("걷은 것이 없습니다" in text, "왜 0행인지 말해야 한다: %s" % text)
+    check_equal(len(saved.get("rows") or []), 0, "걷은 것이 없다")
+
+
+def test_BOUNDARY_one_success_among_failures_is_still_a_normal_run():
+    # 비율로 자르지 않는다. 하나라도 걷었으면 그 실행은 무언가를 해낸 것이다.
+    listings = Listings(rows=[{"id": 1, "techStacks": ["java"], "companyName": "회사"},
+                              {"id": 2, "techStacks": ["java"], "companyName": "회사"}],
+                        received=2, pages=1, reported_total=2, stop_reason="다 모았다")
+    code, _text, saved = _run(listings=listings, fail_ids={2})
+    check_equal(code, 0, "하나라도 걷었으면 정상")
+    check_equal(len(saved.get("rows") or []), 1, "걷은 것은 저장한다")

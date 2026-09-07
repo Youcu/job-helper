@@ -21,7 +21,7 @@ from tqdm import tqdm
 
 from _common.env import ConfigError
 from _common.runlock import guarded
-from _common.store import ai_csv_path, merge_lines, save
+from _common.store import merge_lines, save
 from lib import body, record
 from lib.client import BlockedError, SaraminClient
 from lib.collect import fetch_detail, fetch_listings
@@ -62,13 +62,13 @@ def _run() -> int:
         print("\n조건에 맞는 공고가 없습니다. .env 조건을 넓혀 보세요.")
         return 0
 
-    rows, ai_rows, stats = _collect_details(client, listings.rows)
+    rows, stats = _collect_details(client, listings.rows)
 
     # 차단됐어도 **여기까지 모은 것은 쓴다.** 300번째에서 막혔다고 앞의 299건을 버리면
     # 다시 처음부터 받아야 하고, 그건 차단을 더 부른다. 목록 쪽도 같은 규칙이다.
-    result = save(rows, OUTPUT, ai_rows)
+    result = save(rows, OUTPUT)
 
-    _print_summary(config, result, ai_rows, stats)
+    _print_summary(config, result, stats)
     if stats["차단"]:
         print("\n차단돼서 %d건에서 멈췄습니다. 여기까지 모은 것은 저장했습니다."
               % len(rows), file=sys.stderr)
@@ -84,7 +84,6 @@ def _collect_details(client, listings: list[dict]):
     막혀서 적게 모은 것은 다르다.
     """
     rows: list[dict] = []
-    ai_rows: list[dict] = []
     stats = {"이미지본문": 0, "그림대기": 0, "기술없음": 0, "번호없음": 0, "차단": False}
 
     for listing in tqdm(listings, desc="상세", unit="건"):
@@ -130,7 +129,7 @@ def _collect_details(client, listings: list[dict]):
             stats["기술없음"] += 1
             continue
         rows.append(row)
-    return rows, ai_rows, stats
+    return rows, stats
 
 
 def _print_conditions(config, params: dict) -> None:
@@ -145,9 +144,14 @@ def _print_conditions(config, params: dict) -> None:
     print("  지역코드: %s" % (locations or "(지역 파라미터 없음 = 전체)"))
     print("  고용형태: %s" % ", ".join(config.employment_types))
     print()
+    # 이 사이트에 대응 코드가 없어 못 건 역할. **조용히 빠지면 왜 결과가 적은지 못 찾는다.**
+    if config.missing_roles:
+        print("  ! 이 사이트에 없는 직무라 못 걸었습니다: " + ", ".join(config.missing_roles))
+        print("    다른 사이트에서는 걷힙니다. tags/saramin_role_map.json 을 보세요.")
+        print()
 
 
-def _print_summary(config, result, ai_rows, stats) -> None:
+def _print_summary(config, result, stats) -> None:
     print("\n%s — 모두 %d행" % (OUTPUT.relative_to(ROOT_DIR), len(result.rows)))
     for line in merge_lines(result):
         print(line)
@@ -155,9 +159,6 @@ def _print_summary(config, result, ai_rows, stats) -> None:
         print("  본문이 이미지인 공고 : %d건 (그중 그림 주소를 남긴 것 %d건)"
               % (stats["이미지본문"], stats["그림대기"]))
         print("    기술스택 칸에 http 로 시작하는 주소가 들어 있습니다 — 아직 안 읽었다는 뜻입니다.")
-    if ai_rows:
-        print("  %s — AI 가 관여한 %d행을 복사해 두었습니다"
-              % (ai_csv_path(OUTPUT).relative_to(ROOT_DIR), len(ai_rows)))
     if stats["기술없음"]:
         print("  기술스택이 하나도 없어 제외: %d건" % stats["기술없음"])
     if stats["번호없음"]:

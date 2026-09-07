@@ -6,10 +6,11 @@
 ## 직무를 `skills` 로 넣는다
 
 이 사이트는 **직무와 기술을 한 칸에 섞어 쓴다.** MCP 문서가 그렇게 쓰라고 명시한다 —
-`"신입 백엔드" → experience_filter: "신입" + skills: ["Backend"]`. 그래서 `.env` 의
-직무 항목(`PATHSDOG_JOB_IDS`)에 코드가 아니라 **역할 이름**(`Backend`, `Frontend`)을 적는다.
+`"신입 백엔드" → experience_filter: "신입" + skills: ["Backend"]`. 그래서 이 사이트의
+`tags/pathsdog_role_map.json` 만 값이 숫자가 아니라 **이름**이다 — `백엔드` → `Backend`.
 
-이름이 다른 사이트와 어긋나 보이지만, 이 사이트에는 직무 코드라는 것이 없다.
+`.env` 에 적는 것은 다른 사이트와 똑같이 `JOB_ROLES=백엔드` 다. 이 사이트에는 직무
+코드라는 것이 없어서 대응표의 오른쪽이 이름일 뿐이다.
 
 ## 근무지는 서버가 못 거른다
 
@@ -21,10 +22,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from _common import roles
 from _common.env import (ENV_PATH, ConfigError, csv_list, one_int, read_env,
-                         site_key, strip_comment)
+                         strip_comment)
 
 SITE = "pathsdog"
+ROLE_MAP = Path(__file__).resolve().parent.parent / "tags" / "pathsdog_role_map.json"
 # `.env` 의 짧은 이름 → 이 사이트의 고용형태 이름.
 EMPLOYMENT_TYPE_NAMES = {
     "regular": "정규직", "contract": "계약직",
@@ -50,6 +53,8 @@ class Config:
     home_locations: list[str] = field(default_factory=list)
     tech_stacks: list[str] = field(default_factory=list)
     hope_annual_salary: str | None = None
+    # 이 사이트에 대응 코드가 없어 못 건 역할. **조용히 빠지지 않게** 화면에 찍는다.
+    missing_roles: list[str] = field(default_factory=list)
 
     @property
     def employment_names(self) -> list[str]:
@@ -76,15 +81,7 @@ class Config:
 def load_config(env_path: Path | None = None) -> Config:
     env = read_env(env_path or ENV_PATH)
 
-    job_ids = csv_list(site_key(env, SITE, "JOB_IDS"))
-    if not job_ids:
-        raise ConfigError(
-            "PATHSDOG_JOB_IDS 가 비어 있습니다. 역할 이름을 comma 로 적어 주세요.\n"
-            "  **이 사이트는 숫자 코드가 아니라 이름을 받습니다** — 직무와 기술을 한 칸에\n"
-            "  섞어 쓰기 때문입니다 (MCP 문서: \"신입 백엔드\" → skills: [\"Backend\"]).\n"
-            "  쓸 수 있는 이름은 job_sites/pathsdog/README.md 의 '역할 이름' 표에 있습니다.\n"
-            "  예: PATHSDOG_JOB_IDS=Backend,Fullstack")
-
+    job_ids, missing_roles = roles.resolve(env, ROLE_MAP)
     employment_types = csv_list(env.get("EMPLOYMENT_TYPES"))
     unknown = [name for name in employment_types
                if name not in EMPLOYMENT_TYPE_NAMES and name not in KNOWN_ELSEWHERE]
@@ -97,7 +94,8 @@ def load_config(env_path: Path | None = None) -> Config:
                ", ".join(EMPLOYMENT_TYPE_NAMES)))
 
     return Config(
-        job_ids=job_ids,
+        job_ids=[code for code in job_ids],
+        missing_roles=missing_roles,
         employment_types=employment_types,
         yoe=one_int(env.get("YOE"), "YOE (신입=0, N년차=N, 전체=-1)",
                     default=YOE_ALL, low=YOE_ALL, high=YOE_MAX),
