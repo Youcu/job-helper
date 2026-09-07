@@ -10,6 +10,12 @@
 
 내려받기 실패를 조용히 "빈 결과" 로 넘기면 **버림 판정이 오염된다.** 우리가 못 받은 것을
 그림에 내용이 없는 것으로 읽어 멀쩡한 공고를 버리게 된다. 그래서 예외로 알린다.
+
+**파일을 아예 못 여는 것도 같은 실패다.** 200 으로 받았는데 내용이 안내 페이지의 HTML
+이거나, AVIF·HEIC 처럼 Pillow 가 기본으로 모르는 형식이면 `Image.open` 이 터진다. 그것을
+"글이 담길 수 없는 그림" 으로 세면 그 공고는 버려지고 캐시에까지 들어가 **영영 다시
+시도하지 않는다.** 그래서 `is_junk` 는 크기만 판정하고, 못 여는 것은 `FetchError` 로
+올린다 — 껍데기(버림)와 우리 쪽 실패(보류)는 다른 사실이다.
 """
 from __future__ import annotations
 
@@ -49,10 +55,16 @@ def download(url: str, dest: Path, *, timeout: int = TIMEOUT, opener=None) -> Pa
 
 
 def is_junk(path: Path) -> bool:
-    """글이 담길 수 없는 그림인가. 여기 걸리면 모델을 부르지 않는다."""
+    """글이 담길 수 없는 **크기**인가. 여기 걸리면 모델을 부르지 않고 버린다.
+
+    **못 여는 파일은 여기서 판정하지 않는다** — `FetchError` 로 올린다. "열었는데 너무
+    작다" 는 그림에 대한 사실이고, "아예 못 열었다" 는 우리 쪽 사실이다. 둘을 같이
+    다루면 안 열린 공고가 버려지고 그 버림이 캐시에 남는다.
+    """
     try:
         with Image.open(path) as image:
             width, height = image.size
-    except Exception:
-        return True
+    except Exception as error:
+        raise FetchError("%s 를 못 열었습니다: %s: %s"
+                         % (path.name, type(error).__name__, error)) from error
     return width < MIN_SIDE or height < MIN_SIDE

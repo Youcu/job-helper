@@ -4,18 +4,88 @@
 파이프라인 전체가 멎고, `2`(차단)를 정상으로 읽으면 절반만 든 CSV 를 온전한 것으로
 착각한다. 그 판정이 이 파일의 절반이다.
 
-자식 프로세스도 네트워크도 타지 않는다 — `_run_one` 을 가짜로 바꿔 넣는다.
+이미지 판독 단계의 **배선**도 여기서 본다 — 합친 뒤에 부르는가, 그 단계가 실패해도 합본이
+남는가, 어느 쪽이 실패하든 1 로 끝나는가. 소스 문자열을 견주지 않고 `main()` 을 실제로
+돌린다. 글자만 보면 호출이 통째로 사라져도 통과하거나 오류로 터진다 — 실패가 아니라.
+
+자식 프로세스도 네트워크도 타지 않는다 — `_run_one` 과 `_run_image_stage` 를 가짜로 바꿔
+넣고, 합치기는 진짜를 임시 폴더에 돌린다. **저장소의 `csv/` 에는 손대지 않는다.**
 """
 from __future__ import annotations
 
+import contextlib
+import io
+import sys
+
 import job_crawling_ochestrator as orch
 
-from .helpers import check, check_equal, temp_dir
+from .helpers import check, check_equal, read_csv, temp_dir, write_csv
 
 
-def _result(site, code=0, rows=0, log="", error="", seconds=1.0):
+def _result(site, code=0, rows=0, log="", error="", seconds=1.0, output=None):
     return orch.Result(site=site, code=code, rows=rows, log=log, error=error,
-                       seconds=seconds)
+                       seconds=seconds, output=output)
+
+
+def _image(code=0, log=""):
+    """이미지 판독 단계의 결과. **뜻풀이 표가 스크래퍼와 다르다.**"""
+    return orch.Result(site="이미지판독", code=code, log=log,
+                       meanings=orch.IMAGE_EXIT_MEANING)
+
+
+def _fakes_with_csvs():
+    """여섯 사이트가 저마다 한 행짜리 CSV 를 냈다고 치자. 합치기가 진짜로 돌 재료다."""
+    home = temp_dir()
+    fakes = {}
+    for number, site in enumerate(orch.SITES, start=1):
+        path = write_csv(home / ("%s.csv" % site),
+                         [{"기업명": site, "URL": "https://ex/%d" % number}],
+                         list(orch.COLUMNS))
+        fakes[site] = _result(site, rows=1, output=path)
+    return fakes
+
+
+def _main_with(fake_results, image):
+    """`main()` 을 **통째로** 돌린다. 자식 프로세스는 하나도 안 띄운다.
+
+    스크래퍼(`_run_one`)와 이미지 단계(`_run_image_stage`)만 가짜로 바꾸고 **합치기는
+    진짜를 돌린다** — 어디로 쓰는지만 임시 폴더로 옮긴다. 그래야 "합친 뒤에 부른다" 와
+    "이미지 단계가 실패해도 합본은 남는다" 가 말이 아니라 사실로 확인된다.
+
+    `(종료코드, 벌어진 일의 차례, 합본 경로, 화면에 찍힌 것)` 을 준다.
+    """
+    home = temp_dir()
+    events = []
+    real_merge = orch.merge_csvs
+
+    def merge(paths, output):
+        events.append("합치기")
+        return real_merge(paths, output)
+
+    def image_stage():
+        events.append("이미지")
+        return image
+
+    saved = (orch._run_one, orch._run_image_stage, orch.merge_csvs,
+             orch.ROOT_DIR, orch.OUTPUT)
+    orch._run_one = lambda site, path: fake_results[site]
+    orch._run_image_stage = image_stage
+    orch.merge_csvs = merge
+    orch.ROOT_DIR, orch.OUTPUT = home, home / "csv" / "merged.csv"
+    noise = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(noise), contextlib.redirect_stderr(noise):
+            code = orch.main()
+    finally:
+        (orch._run_one, orch._run_image_stage, orch.merge_csvs,
+         orch.ROOT_DIR, orch.OUTPUT) = saved
+    return code, events, home / "csv" / "merged.csv", noise.getvalue()
+
+
+class _Done:
+    """`subprocess.run` 이 돌려주는 것 흉내."""
+    def __init__(self, code=0, stdout="", stderr=""):
+        self.returncode, self.stdout, self.stderr = code, stdout, stderr
 
 
 def _run_with(fake_results):
@@ -164,21 +234,99 @@ def test_BOUNDARY_successful_site_is_never_stale():
 
 
 def test_NORMAL_image_stage_runs_after_merging():
-    # 합본이 있어야 읽을 것이 있다. **순서가 뒤집히면 빈 파일을 읽는다.**
-    import inspect
-    source = inspect.getsource(orch.main)
-    check(source.index("merge_csvs") < source.index("_run_image_stage"),
-          "합치기가 먼저여야 한다")
+    """합본이 있어야 읽을 것이 있다. **순서가 뒤집히면 빈 파일을 읽는다.**
+
+    글자만 견주면(예전처럼 `inspect.getsource` 로 문자열 위치를 재면) 호출이 사라져도
+    통과하거나 `ValueError` 로 터진다 — 실패가 아니라 오류로. 그래서 진짜로 돌린다.
+    """
+    code, events, merged, _ = _main_with(_fakes_with_csvs(), _image(code=0))
+    check_equal(events, ["합치기", "이미지"], "합치기가 먼저다: %r" % events)
+    check_equal(code, 0, "둘 다 멀쩡하면 0")
+    check_equal(len(read_csv(merged)), len(orch.SITES), "합본에 여섯 행이 들어 있다")
 
 
 def test_BOUNDARY_image_stage_is_a_child_process_not_an_import():
-    # 불러들이면 오케스트레이터가 피하려던 sys.path 오염을 새로 만든다.
-    import inspect
-    source = inspect.getsource(orch._run_image_stage)
-    check("subprocess" in source, "자식 프로세스로 불러야 한다")
+    # 불러들이면 오케스트레이터가 피하려던 `sys.path` 오염을 새로 만든다.
+    # **무엇으로 부르는지**를 본다 — 소스에 "subprocess" 라는 글자가 있는지가 아니라.
+    calls = []
+    saved = orch.subprocess.run
+
+    def fake_run(argv, **kwargs):
+        calls.append((argv, kwargs))
+        return _Done(code=0, stdout="이미지 본문 0건을 읽습니다")
+
+    orch.subprocess.run = fake_run
+    try:
+        result = orch._run_image_stage()
+    finally:
+        orch.subprocess.run = saved
+
+    check_equal(len(calls), 1, "한 번 불러야 한다")
+    argv, kwargs = calls[0]
+    check_equal(argv, [sys.executable, orch.IMAGE_STAGE.name],
+                "엔트리포인트를 자식 프로세스로 부른다")
+    check_equal(kwargs["cwd"], orch.ROOT_DIR, "저장소 뿌리에서 돈다")
+    check_equal(result.code, 0, "자식의 종료 코드를 그대로 읽는다")
+    check("이미지 본문" in result.log, "자식이 한 말을 붙잡아 둔다")
 
 
 def test_BOUNDARY_image_stage_failure_does_not_lose_the_merged_file():
-    # 이 단계가 실패해도 merged.csv 는 이미 나와 있다. 걷은 것을 잃으면 안 된다.
-    result = _result("이미지", code=1)
-    check(not result.ok, "1 은 실패")
+    # 이 단계가 실패해도 `merged.csv` 는 이미 나와 있다. **걷은 것을 잃으면 안 된다.**
+    code, events, merged, screen = _main_with(_fakes_with_csvs(), _image(code=2))
+    check_equal(events, ["합치기", "이미지"], "합치기는 이미 끝났다: %r" % events)
+    check(merged.exists(), "합본 파일이 남아 있어야 한다: %s" % merged)
+    check_equal(len(read_csv(merged)), len(orch.SITES), "걷은 행을 하나도 잃지 않는다")
+    check_equal(code, 1, "그래도 오케스트레이터 자신은 1 로 끝난다")
+    check("csv/merged.csv 는 그대로 있습니다" in screen, "그렇다고 사람에게 말해 준다")
+
+
+def test_EXCEPTION_a_scraper_failure_and_an_image_failure_each_give_exit_one():
+    # 둘은 서로 다른 이유다. 하나만 실패해도 1 이어야 하고, 다른 하나를 가려서도 안 된다.
+    check_equal(_main_with(_fakes_with_csvs(), _image(code=0))[0], 0, "둘 다 멀쩡하면 0")
+
+    broken = _fakes_with_csvs()
+    broken["saramin"] = _result("saramin", code=1, log="설정 오류: SARAMIN_X 가 비었습니다")
+    code, _events, _merged, screen = _main_with(broken, _image(code=0))
+    check_equal(code, 1, "스크래퍼 하나가 실패하면 1")
+    check("SARAMIN_X" in screen, "스크래퍼가 한 말을 그대로 보여 준다")
+
+    check_equal(_main_with(_fakes_with_csvs(), _image(code=1))[0], 1,
+                "이미지 단계만 실패해도 1")
+
+
+def test_BOUNDARY_image_stage_does_not_borrow_the_scrapers_wording():
+    """**`2` 가 "차단이거나 상세를 못 받음" 으로 찍히면 엉뚱한 곳을 뒤진다.**
+
+    이 단계는 사이트를 긁지 않는다. 숫자 계약은 같아도 그 코드가 가리키는 사건이 다르다.
+    """
+    image = _image(code=2)
+    check(not image.ok, "2 는 실패다")
+    check("차단" not in image.meaning, "차단은 이 단계의 말이 아니다: %s" % image.meaning)
+    check("못 읽" in image.meaning, "무엇이 안 됐는지 말해야 한다: %s" % image.meaning)
+    check_equal(orch.EXIT_MEANING[2][0],
+                "온전히 못 걷음 — 차단이거나 상세를 못 받음 (모은 것은 저장됨)",
+                "스크래퍼 표는 건드리지 않는다")
+    _code, _events, _merged, screen = _main_with(_fakes_with_csvs(), _image(code=2))
+    check("차단" not in screen, "화면에도 안 새어 나가야 한다")
+
+
+def test_BOUNDARY_the_image_stage_has_no_skip_code():
+    # `4`(조건이 넓어 건너뜀)는 잡플래닛의 신호다. 이 단계에는 건너뛸 조건이 없다.
+    check(4 not in orch.IMAGE_EXIT_MEANING, "건너뜀은 이 단계에 없다")
+    for code in (0, 1, 2, 3):
+        check(code in orch.IMAGE_EXIT_MEANING, "%d 의 뜻이 없다" % code)
+    ok = {code for code, (_, good) in orch.IMAGE_EXIT_MEANING.items() if good}
+    check_equal(ok, {0}, "성공으로 세는 코드는 0 뿐이어야 한다: %r" % ok)
+
+
+def test_BOUNDARY_image_stage_does_not_report_a_leftover_output_file():
+    # 이 단계가 파일을 쓰기 전에 끝났으면 거기 있는 `merged_read.csv` 는 **지난 실행의
+    # 것**이다. 그걸 이번 결과로 적어 두면 언젠가 지난 데이터가 이번 것으로 보고된다.
+    saved = orch.subprocess.run
+    orch.subprocess.run = lambda argv, **kwargs: _Done(code=1, stderr="merged.csv 가 없습니다")
+    try:
+        result = orch._run_image_stage()
+    finally:
+        orch.subprocess.run = saved
+    check_equal(result.rows, 0, "지난 실행이 남긴 행 수를 이번 결과로 적지 않는다")
+    check_equal(result.output, None, "가리킬 산출물이 없다")

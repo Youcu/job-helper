@@ -2,16 +2,26 @@
 
 가장 중요한 것은 **버림과 실패를 가르는가**다. 그게 뚫리면 우리 쪽 사고로 멀쩡한 공고가
 조용히 사라진다.
+
+앞쪽은 `process_one()` 한 건씩, 뒤쪽(`_run()` 을 통째로 돌린다)은 **한 판 전체**다 —
+행을 골라 처리하고 없어진 것을 뺀 채 다시 쓰는 재조립은 조각 함수를 아무리 시험해도
+안 돈다. 네트워크도 `claude` 도 안 타고, 저장소의 `csv/` 에도 손대지 않는다.
 """
 from __future__ import annotations
+
+import contextlib
+import io
+import shutil as real_shutil
+from pathlib import Path
 
 from PIL import Image
 
 import job_image_process as stage
+from image_process import cache
 from image_process import config as cfg
 from image_process import fetch, reader
 
-from .helpers import check, check_equal, temp_dir
+from .helpers import check, check_equal, read_csv, temp_dir, write_csv
 
 CONFIG = cfg.Config(model="sonnet", workers=1, timeout=60)
 FULL = {"기술스택": ["Java"], "자격요건": ["3년 이상"], "우대사항": []}
@@ -80,6 +90,34 @@ def test_EXCEPTION_download_failure_keeps_the_row():
     check_equal(got.row["기술스택"], "https://img/1.png", "원래 모습 그대로 남긴다")
 
 
+def test_EXCEPTION_a_row_without_image_urls_is_never_dropped():
+    # `_run()` 은 그림 행만 넘기지만, 이 함수는 공개된 문이다. 잘못 불렸을 때 **버리는
+    # 쪽으로 흐르면** 그림도 아닌 행이 사라지고 빈 주소 목록이 캐시 열쇠가 된다.
+    book = {}
+    got = _run_one(_row(tech="Java, Spring"), book=book)
+    check_equal(got.kind, "못읽음", "버림이 아니다")
+    check_equal(got.row["기술스택"], "Java, Spring", "행을 건드리지 않는다")
+    check_equal(book, {}, "빈 열쇠를 캐시에 만들면 안 된다")
+
+
+def test_EXCEPTION_an_unopenable_image_keeps_the_row_and_is_not_cached():
+    """**껍데기와 "못 열었다" 를 같이 다루면 그 공고는 영영 사라진다.**
+
+    200 인데 안내 페이지 HTML 이거나 AVIF·HEIC 라서 Pillow 가 못 여는 경우다. 껍데기로
+    세면 버려지고 그 버림이 캐시에 남아 다음 실행에도 다시 시도하지 않는다.
+    """
+    def html_instead_of_an_image(url, dest, **kwargs):
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(b"<!DOCTYPE html><html>expired</html>")
+        return dest
+
+    book = {}
+    got = _run_one(_row(), book=book, download=html_instead_of_an_image)
+    check_equal(got.kind, "못읽음", "못 연 것은 껍데기가 아니다")
+    check_equal(got.row["기술스택"], "https://img/1.png", "원래 모습 그대로 남긴다")
+    check_equal(book, {}, "캐시에 넣으면 다음 실행에도 안 시도한다")
+
+
 def test_EXCEPTION_read_failure_keeps_the_row():
     def boom(paths, **kwargs):
         raise reader.ReadError("시간 초과")
@@ -116,8 +154,7 @@ def test_BOUNDARY_junk_image_is_dropped_without_calling_the_model():
 def test_BOUNDARY_cache_hit_skips_the_model():
     called = []
     book = {}
-    from image_process import cache
-    cache.put(book, "https://img/1.png", FULL, "sonnet")
+    cache.put(book, ["https://img/1.png"], FULL, "sonnet")
 
     def watcher(paths, **kwargs):
         called.append(paths)
@@ -138,7 +175,8 @@ def test_BOUNDARY_cache_hit_skips_the_model():
 def test_BOUNDARY_empty_answer_is_cached_but_failure_is_not():
     book = {}
     _run_one(_row(), answer=EMPTY, book=book)
-    check("https://img/1.png" in book, "빈 결과는 기억한다 — 매번 다시 읽지 않으려고")
+    check(cache.key(["https://img/1.png"]) in book,
+          "빈 결과는 기억한다 — 매번 다시 읽지 않으려고: %r" % book)
 
     book2 = {}
 
@@ -194,8 +232,9 @@ def test_BOUNDARY_a_second_try_that_succeeds_is_used():
     check_equal(got.kind, "채움", "두 번째에 성공하면 쓴다")
 
 
-def test_BOUNDARY_rows_that_are_not_images_keep_their_place():
-    # 그림 행만 손대고 나머지는 차례까지 그대로여야 한다 — 순서가 바뀌면 눈으로 견주기 어렵다.
+def test_BOUNDARY_only_image_rows_are_targeted():
+    # 대상 고르기만 본다. **자리를 지키는가**는 `_run()` 을 실제로 돌려서 본다 —
+    # 아래 `test_NORMAL_run_keeps_every_surviving_row_in_place` 다.
     rows = [_row(tech="Java"), _row(tech="https://img/1.png"), _row(tech="Go")]
     check_equal([bool(stage.image_urls(r)) for r in rows], [False, True, False], "가운데만 대상")
 
@@ -218,3 +257,166 @@ def test_BOUNDARY_main_returns_three_when_locked():
             check_equal(stage.main(), 3, "겹쳐 돌면 3")
     finally:
         stage.LOCK = original
+
+
+# ── `_run()` 을 통째로 돌린다 ────────────────────────────────────────────────
+#
+# 여기서만 도는 것: CSV 를 읽고 → 대상만 골라 처리하고 → **없어진 행을 뺀 채 나머지의
+# 자리를 지켜** 다시 쓰고 → 종료 코드를 정한다. 그 재조립이 틀어지면 멀쩡한 공고가
+# 남의 자리에 가거나 사라지는데, 조각 함수만 시험해서는 절대 드러나지 않는다.
+#
+# 네트워크도 `claude` 도 안 탄다 — 내려받기·판독·`which` 를 가짜로 바꿔 넣고, 입출력과
+# 캐시는 임시 폴더로 옮긴다. **저장소의 `csv/` 에는 손대지 않는다.**
+
+WIDE, NARROW = 800, 300      # 가짜 판독이 답을 고르는 실마리 (아래 참조)
+
+
+class _FakeShutil:
+    """`shutil` 을 통째로 갈아 끼운다 — 진짜 모듈의 `which` 를 건드리지 않으려고."""
+    which = staticmethod(lambda name: "/가짜/claude")
+    rmtree = staticmethod(real_shutil.rmtree)
+
+
+def _answer_by_width(paths, **kwargs):
+    """가짜 판독. 조각 파일에는 어느 행의 그림이었는지가 안 남으므로 **너비로 가른다** —
+    넓은 그림은 읽히고, 좁은 그림은 셋 다 비어 버려진다."""
+    with Image.open(paths[0]) as image:
+        width = image.size[0]
+    return FULL if width >= WIDE else EMPTY
+
+
+def _download_by_url(sizes: dict):
+    def download(url, dest, **kwargs):
+        return _draw(dest, *sizes.get(url, (WIDE, 1200)))
+    return download
+
+
+def _run_stage(rows, *, download=None, read=None, book=None):
+    """임시 폴더에 CSV 를 깔고 `_run()` 을 돌린다. `(종료코드, 나온 행, 캐시)` 를 준다."""
+    home = temp_dir()
+    write_csv(home / "csv" / "merged.csv", rows, list(stage.COLUMNS))
+    output = home / "csv" / "merged_read.csv"
+    cache_path = home / "cache" / "image_reads.json"
+    if book:
+        cache.save(cache_path, book)
+
+    saved = (stage.ROOT_DIR, stage.INPUT, stage.OUTPUT, stage.shutil,
+             stage.fetch.download, stage.reader.read, stage.config.load_config,
+             stage.cache.CACHE_PATH)
+    stage.ROOT_DIR, stage.INPUT, stage.OUTPUT = home, home / "csv" / "merged.csv", output
+    stage.shutil = _FakeShutil
+    stage.fetch.download = download or _download_by_url({})
+    stage.reader.read = read or _answer_by_width
+    stage.config.load_config = lambda *args, **kwargs: CONFIG
+    stage.cache.CACHE_PATH = cache_path
+    noise = io.StringIO()                 # 진행 막대와 요약은 시험 화면을 어지럽힌다
+    try:
+        with contextlib.redirect_stdout(noise), contextlib.redirect_stderr(noise):
+            code = stage._run()
+    finally:
+        (stage.ROOT_DIR, stage.INPUT, stage.OUTPUT, stage.shutil,
+         stage.fetch.download, stage.reader.read, stage.config.load_config,
+         stage.cache.CACHE_PATH) = saved
+    got = read_csv(output) if output.exists() else []
+    return code, got, cache.load(cache_path)
+
+
+def _at(url, tech, company="회사"):
+    return _row(tech=tech, URL=url, 기업명=company)
+
+
+def test_NORMAL_run_keeps_every_surviving_row_in_place():
+    """**버린 행 하나가 나머지의 자리를 밀면 안 된다.**
+
+    그림 아닌 행은 손대지 않고, 읽힌 행은 채우고, 셋 다 빈 행은 없앤다. 남은 것들의
+    차례는 `merged.csv` 그대로여야 한다 — 두 파일을 눈으로 견주는 것이 이 단계가
+    무엇을 했는지 확인하는 유일한 길이다.
+    """
+    rows = [
+        _at("https://ex/1", "Python"),                      # 그림이 아니다
+        _at("https://ex/2", "https://img/채움.png"),         # 읽혀서 채워진다
+        _at("https://ex/3", "Go"),                          # 그림이 아니다
+        _at("https://ex/4", "https://img/빈것.png"),         # 셋 다 비어 버려진다
+    ]
+    code, got, _ = _run_stage(rows, download=_download_by_url({
+        "https://img/채움.png": (WIDE, 1200),
+        "https://img/빈것.png": (NARROW, 400),
+    }))
+    check_equal(code, 0, "하나라도 해냈으면 정상")
+    check_equal([r["URL"] for r in got], ["https://ex/1", "https://ex/2", "https://ex/3"],
+                "버린 행만 빠지고 차례는 그대로")
+    check_equal(got[0]["기술스택"], "Python", "그림 아닌 행은 손대지 않는다")
+    check_equal(got[1]["기술스택"], "Java", "읽어 낸 기술로 갈아끼운다")
+    check("3년 이상" in got[1]["지원자격"], "자격요건도 채운다: %r" % got[1]["지원자격"])
+    check_equal(got[2]["기술스택"], "Go", "뒤에 있던 행이 앞으로 밀리면 안 된다")
+
+
+def test_NORMAL_run_writes_nothing_but_the_output_file():
+    # 원본을 덮으면 없어진 행의 원본이 어디에도 안 남는다.
+    rows = [_at("https://ex/1", "https://img/채움.png")]
+    code, got, _ = _run_stage(rows)
+    check_equal(code, 0, "정상")
+    check_equal(len(got), 1, "한 행")
+    check_equal(got[0]["기술스택"], "Java", "채워졌다")
+
+
+def test_EXCEPTION_run_returns_two_when_nothing_at_all_succeeded():
+    def boom(url, dest, **kwargs):
+        raise fetch.FetchError("%s 를 못 받았습니다" % url)
+
+    rows = [_at("https://ex/1", "https://img/1.png")]
+    code, got, book = _run_stage(rows, download=boom)
+    check_equal(code, 2, "하나도 못 해냈으면 2")
+    check_equal(len(got), 1, "**못 읽은 행은 버리지 않는다**")
+    check_equal(got[0]["기술스택"], "https://img/1.png", "원래 모습 그대로 남는다")
+    check_equal(book, {}, "우리 실패는 캐시에 안 넣는다 — 다음 실행에 다시 시도한다")
+
+
+def test_EXCEPTION_run_does_not_touch_rows_it_never_looked_at():
+    # 그림 행이 하나도 없으면 할 일이 없다. 그래도 파일은 나오고 종료 코드는 0 이다.
+    rows = [_at("https://ex/1", "Java"), _at("https://ex/2", "Go")]
+    code, got, _ = _run_stage(rows)
+    check_equal(code, 0, "대상이 0건이어도 정상")
+    check_equal([r["기술스택"] for r in got], ["Java", "Go"], "그대로 통과")
+
+
+def test_BOUNDARY_one_read_failure_among_cache_hits_is_not_a_total_failure():
+    """**정상 상태에서 가장 잘 터질 곳이었다.**
+
+    자리 잡힌 뒤에는 거의 모든 건이 캐시 적중이다. 캐시를 "해낸 것" 에서 빼고 세면
+    캐시 28 + 새 공고 1건 시간 초과 → `2` → 오케스트레이터가 여덟 분짜리 수집 전체를
+    실패로 적는다. 못 읽은 한 건은 요약에 찍히고 다음 실행에 다시 시도한다.
+    """
+    book = {}
+    cache.put(book, ["https://img/캐시.png"], FULL, "sonnet")
+
+    def boom(url, dest, **kwargs):
+        if url == "https://img/새것.png":
+            raise fetch.FetchError("시간 초과")
+        return _draw(dest, WIDE, 1200)
+
+    rows = [_at("https://ex/1", "https://img/캐시.png"),
+            _at("https://ex/2", "https://img/새것.png")]
+    code, got, _ = _run_stage(rows, download=boom, book=book)
+    check_equal(code, 0, "캐시로 건진 것이 있으면 전량 실패가 아니다")
+    check_equal(len(got), 2, "두 행 다 남는다")
+    check_equal(got[0]["기술스택"], "Java", "캐시에서 채운 행")
+    check_equal(got[1]["기술스택"], "https://img/새것.png", "못 읽은 행은 그대로")
+
+
+def test_BOUNDARY_a_run_that_only_dropped_rows_is_still_a_success():
+    # 다 버렸어도 **판정은 해낸 것**이다. `2` 는 "아무것도 못 해냈다" 일 때만이다.
+    rows = [_at("https://ex/1", "https://img/빈것.png")]
+    code, got, _ = _run_stage(rows, download=_download_by_url(
+        {"https://img/빈것.png": (NARROW, 400)}))
+    check_equal(code, 0, "버림은 실패가 아니다")
+    check_equal(got, [], "버린 행은 안 남는다")
+
+
+def test_BOUNDARY_run_remembers_what_it_read_for_the_next_time():
+    rows = [_at("https://ex/1", "https://img/1.png, https://img/2.png")]
+    code, _got, book = _run_stage(rows)
+    check_equal(code, 0, "정상")
+    check_equal(list(book), [cache.key(["https://img/1.png", "https://img/2.png"])],
+                "**공고 하나에 항목 하나** — 낱장으로 흩어 놓으면 남의 공고가 받아 간다: %r"
+                % book)

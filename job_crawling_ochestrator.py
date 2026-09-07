@@ -63,6 +63,17 @@ UNKNOWN = ("알 수 없는 종료 코드", False)
 
 IMAGE_STAGE = ROOT_DIR / "job_image_process.py"
 
+# 이미지 판독 단계가 내는 코드. **스크래퍼의 표를 빌려 쓰면 거짓말이 된다** — 이 단계는
+# 사이트를 긁지 않는데 `2` 에 "차단이거나 상세를 못 받음" 이라고 찍혔다. 코드 숫자는
+# 같은 계약이지만 뜻하는 사건이 다르므로 표를 따로 둔다. `4` 는 이 단계에 없다 —
+# 건너뛸 조건이 없다.
+IMAGE_EXIT_MEANING = {
+    0: ("정상", True),
+    1: ("단계를 못 돌림 — merged.csv 가 없거나 claude 명령을 못 찾음", False),
+    2: ("시도한 그림을 하나도 못 읽음 (merged.csv 는 그대로)", False),
+    3: ("이미 돌고 있음", False),
+}
+
 
 @dataclass
 class Result:
@@ -73,15 +84,17 @@ class Result:
     output: Path | None = None
     log: str = ""
     error: str = ""
+    # 어느 종료 코드 표로 읽을 것인가. 기본은 스크래퍼의 표다.
+    meanings: dict = field(default_factory=lambda: EXIT_MEANING)
 
     @property
     def meaning(self) -> str:
-        return EXIT_MEANING.get(self.code, UNKNOWN)[0] if self.code is not None else self.error
+        return self.meanings.get(self.code, UNKNOWN)[0] if self.code is not None else self.error
 
     @property
     def ok(self) -> bool:
         """**실패가 아닌가.** 건너뛴 것(4)은 실패가 아니다."""
-        return self.code is not None and EXIT_MEANING.get(self.code, UNKNOWN)[1]
+        return self.code is not None and self.meanings.get(self.code, UNKNOWN)[1]
 
     @property
     def stale(self) -> bool:
@@ -214,7 +227,7 @@ def _run_image_stage() -> Result:
     불러들이지(import) 않는다 — 위의 "왜 프로세스를 나누나" 와 같은 이유다. 그리고
     이 단계는 혼자서도 도는 엔트리포인트라, 여기서만 쓰는 다른 길을 만들 이유가 없다.
     """
-    result = Result(site="이미지판독")
+    result = Result(site="이미지판독", meanings=IMAGE_EXIT_MEANING)
     started = time.monotonic()
     try:
         done = subprocess.run(
@@ -228,10 +241,10 @@ def _run_image_stage() -> Result:
     except Exception as error:
         result.error = "%s: %s" % (type(error).__name__, error)
     result.seconds = time.monotonic() - started
-    read_output = ROOT_DIR / "csv" / "merged_read.csv"
-    if read_output.exists():
-        result.output = read_output
-        result.rows = count_rows(read_output)
+    # **`output`/`rows` 는 채우지 않는다.** 이 단계가 파일을 쓰기 전에 끝났으면 거기 있는
+    # `merged_read.csv` 는 **지난 실행이 남긴 것**이다. 그것을 이번 결과로 적어 두면,
+    # 나중에 누가 이 값을 화면에 끌어다 쓰는 순간 지난 데이터가 이번 것으로 보고된다.
+    # 사이트 CSV 와 달리 여기서는 그 수를 밝힐 곳도 없다(`stale` 은 합치기 얘기다).
     return result
 
 

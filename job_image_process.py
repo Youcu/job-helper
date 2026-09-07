@@ -14,6 +14,13 @@
 
 모델이 답했는데 셋 다 비면 **버린다.** 우리가 못 받거나 못 읽은 것은 **안 버린다** —
 원래 모습대로 남기고 몇 건인지 찍는다. 이 구분이 뚫리면 우리 사고로 데이터가 사라진다.
+
+## 캐시는 공고 하나에 열쇠 하나다
+
+한 공고의 그림들을 합쳐 한 번 읽으므로, 그 답은 **주소 목록 전체**의 답이다. 낱장 주소를
+열쇠로 쓰면 같은 그림을 쓰는 다른 공고가 남의 답을 받아 간다(`image_process/cache.py`).
+그래서 옛 캐시 파일의 낱장 열쇠는 **전부 빗나가고**, 첫 실행에서 공고 단위로 다시 채워진다.
+캐시는 편의지 진실이 아니므로 그래도 된다.
 """
 from __future__ import annotations
 
@@ -64,13 +71,17 @@ def image_urls(row: dict) -> list[str]:
 def process_one(row: dict, *, cfg, book: dict, work_dir: Path, reader_fn=None) -> Outcome:
     urls = image_urls(row)
     read_fn = reader_fn or (lambda paths, **kw: reader.read(paths, **kw))
+    if not urls:
+        # 그림 행이 아닌데 불렸다. **행을 건드리지 않고 돌려준다** — 여기서 껍데기로
+        # 흘러가면 그림도 아닌 행이 버려지고, 빈 주소 목록이 캐시 열쇠가 된다.
+        return Outcome("못읽음", dict(row), "그림 주소가 없다")
 
-    cached = [cache.get(book, url) for url in urls]
-    if urls and all(one is not None for one in cached):
-        merged = {name: [x for one in cached for x in one[name]] for name in reader.FIELDS}
-        if not fill.has_anything(merged):
+    # **공고 하나에 열쇠 하나.** 낱장으로 맞춰 보면 남의 공고 답을 받아 온다.
+    cached = cache.get(book, urls)
+    if cached is not None:
+        if not fill.has_anything(cached):
             return Outcome("버림", None, "캐시: 쓸 게 없음")
-        return Outcome("캐시", fill.apply(row, merged))
+        return Outcome("캐시", fill.apply(row, cached))
 
     work = Path(work_dir) / "그림"
     work.mkdir(parents=True, exist_ok=True)
@@ -79,16 +90,18 @@ def process_one(row: dict, *, cfg, book: dict, work_dir: Path, reader_fn=None) -
         target = work / ("%02d%s" % (index, Path(url.split("?")[0]).suffix or ".img"))
         try:
             fetch.download(url, target)
+            # **못 받은 것과 못 연 것은 같은 종류의 실패다.** 둘 다 "그림에 내용이 없다"
+            # 가 아니라 "우리가 못 봤다" 라서, 버리지도 캐시에 넣지도 않는다.
+            junk = fetch.is_junk(target)
         except fetch.FetchError as error:
             return Outcome("못읽음", dict(row), str(error))
-        if fetch.is_junk(target):
+        if junk:
             continue
         pieces.extend(slicing.slice_image(target, work / ("조각%02d" % index)))
 
     if not pieces:
         # 껍데기뿐이다. **모델을 부르지 않고** 버린다 — 부를 이유도 없고 돈만 든다.
-        for url in urls:
-            cache.put(book, url, {name: [] for name in reader.FIELDS}, cfg.model)
+        cache.put(book, urls, {name: [] for name in reader.FIELDS}, cfg.model)
         return Outcome("껍데기", None, "글이 담길 수 없는 그림뿐")
 
     # **한 번만 다시 건다.** 실패는 대개 한도에 걸린 것이라 잠깐 쉬었다 걸면 통과한다.
@@ -106,8 +119,7 @@ def process_one(row: dict, *, cfg, book: dict, work_dir: Path, reader_fn=None) -
         # **우리가 못 읽은 것이지 그림에 내용이 없는 게 아니다.** 캐시에도 안 넣는다.
         return Outcome("못읽음", dict(row), str(last))
 
-    for url in urls:
-        cache.put(book, url, got, cfg.model)
+    cache.put(book, urls, got, cfg.model)
     if not fill.has_anything(got):
         return Outcome("버림", None, "읽었는데 쓸 게 없음")
     return Outcome("채움", fill.apply(row, got))
@@ -175,10 +187,13 @@ def _run() -> int:
     write_csv(OUTPUT, out)
     _report(stats, len(rows), len(out))
 
-    attempted = stats["채움"] + stats["버림"] + stats["못읽음"]
-    if attempted and stats["못읽음"] == attempted:
-        print("\n시도한 %d건을 전부 못 읽었습니다 — 온전한 결과가 아닙니다."
-              % attempted, file=sys.stderr)
+    # **`2` 는 "아무것도 못 해냈다" 는 뜻이다.** 캐시 적중도 해낸 것이다 — 안 그러면
+    # 정상 상태(거의 전부 캐시)에서 새 공고 하나가 시간 초과만 나도 실행 전체가 실패로
+    # 보고되고, 오케스트레이터는 여덟 분짜리 수집을 실패로 적는다.
+    usable = stats["채움"] + stats["캐시"] + stats["버림"] + stats["껍데기"]
+    if stats["못읽음"] and not usable:
+        print("\n%d건을 시도해 하나도 못 읽었습니다 — 온전한 결과가 아닙니다."
+              % stats["못읽음"], file=sys.stderr)
         return 2
     return 0
 
