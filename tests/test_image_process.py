@@ -530,3 +530,52 @@ def test_BOUNDARY_a_row_with_no_url_is_still_not_a_target():
     # 그림이 없는 평범한 행까지 잡으면 안 된다.
     check_equal(stage.image_urls(_row(tech="Java, Spring")), [], "주소가 없으면 대상이 아니다")
     check_equal(stage.image_urls(_row(tech="")), [], "빈 칸도 아니다")
+
+
+def test_BOUNDARY_a_warning_survives_the_progress_bar():
+    """**경고가 진행 막대에 묻히면 안 된다.**
+
+    경고는 stderr 로 나가는데 막대도 stderr 를 쓴다. 그대로 두면 막대가 덮어써서 실행
+    로그에 `warnings.warn(` 마지막 줄만 남는다 — 실제 전체 실행에서 그렇게 한 건을 잃었고,
+    어느 그림 때문인지 끝내 못 찾았다.
+
+    Pillow 는 픽셀이 8,900만을 넘으면 **경고만 내고 그림은 읽는다**(오류는 1억 7,900만부터).
+    그 구간의 그림은 조용히 지나가므로, 경고가 사라지면 알 방법이 없다.
+    """
+    import warnings
+    said = []
+    original = stage.tqdm.write
+    stage.tqdm.write = lambda text, **kw: said.append(text)
+    try:
+        with stage.warnings_through_bar():
+            warnings.warn("픽셀이 너무 많습니다", UserWarning)
+    finally:
+        stage.tqdm.write = original
+    joined = "\n".join(said)
+    check("픽셀이 너무 많습니다" in joined, "경고 본문이 남아야 한다: %r" % said)
+    check("UserWarning" in joined, "종류도 남아야 한다: %r" % said)
+
+
+def test_BOUNDARY_a_warning_names_the_image_it_came_from():
+    # 경고만 남고 어느 그림인지 모르면 손볼 수가 없다.
+    import warnings
+    said = []
+    original = stage.tqdm.write
+    stage.tqdm.write = lambda text, **kw: said.append(text)
+    try:
+        with stage.warnings_through_bar():
+            stage.note_current_image("https://img/거대한그림.png")
+            warnings.warn("픽셀이 너무 많습니다", UserWarning)
+            stage.note_current_image(None)
+    finally:
+        stage.tqdm.write = original
+    check("거대한그림.png" in "\n".join(said), "어느 그림인지 짚어야 한다: %r" % said)
+
+
+def test_BOUNDARY_the_warning_hook_is_put_back():
+    # 남의 경고 처리까지 바꿔 놓고 나가면 안 된다.
+    import warnings
+    before = warnings.showwarning
+    with stage.warnings_through_bar():
+        pass
+    check(warnings.showwarning is before, "빠져나오면 원래대로 돌려놔야 한다")
