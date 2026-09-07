@@ -82,3 +82,25 @@ def test_BOUNDARY_empty_tech_leaves_the_column_blank_not_the_url():
 def test_BOUNDARY_blank_and_whitespace_items_are_dropped():
     got = fill.apply(_row(), {"기술스택": ["Java", "", "   "], "자격요건": [], "우대사항": []})
     check_equal(got["기술스택"], "Java", "빈 항목은 버린다")
+
+
+def test_EXCEPTION_seam_between_unrelated_bullets_is_not_a_match():
+    # 서로 다른 두 줄을 통째로 이어 붙여 견주면, 실제로는 없는 문구가 두 줄의
+    # 이음매를 걸치고 있다는 이유만으로 "이미 있다" 로 잘못 판정된다.
+    row = _row(지원자격="• 자바 스프링부트 우대\n• 3년차 프론트엔드 경험")
+    got = fill.apply(row, {"기술스택": [], "자격요건": ["우대 3년차"], "우대사항": []})
+    check("우대 3년차" in got["지원자격"],
+          "줄 경계를 걸친 것은 원문에 없던 말이다 — 더해야 한다: %r" % got["지원자격"])
+
+
+def test_BOUNDARY_punctuation_only_item_does_not_count_as_content():
+    check(not fill.has_anything({"기술스택": ["..."], "자격요건": [], "우대사항": []}),
+          "점만 있는 항목은 내용이 아니다")
+    check(not fill.has_anything({"기술스택": ["•"], "자격요건": [], "우대사항": []}),
+          "글머리표만 있는 항목도 내용이 아니다")
+
+
+def test_BOUNDARY_punctuation_only_item_is_not_written_to_empty_column():
+    got = fill.apply(_row(), {"기술스택": [], "자격요건": ["•"], "우대사항": []})
+    check_equal(got["지원자격"], "",
+                "점·글머리표만 있는 항목은 빈 칸에도 쓰면 안 된다: %r" % got["지원자격"])

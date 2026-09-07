@@ -25,33 +25,39 @@ def normalize(text: str) -> str:
     return _DROP.sub("", str(text).lstrip(BULLET).lower())
 
 
-def has_anything(read: dict) -> bool:
-    """셋 중 **하나라도** 얻었는가. 하나도 없으면 그 공고는 버린다."""
-    return any(any(str(item).strip() for item in (read.get(name) or []))
-               for name in FIELDS)
-
-
 def _clean(items: list[str]) -> list[str]:
+    """군더더기를 뺀다. 정규화해서 빈 것 — 점·글머리표뿐인 것 — 은 내용이 아니다."""
     out = []
     for item in items or []:
         text = " ".join(str(item).split())
-        if text and text not in out:
+        if text and normalize(text) and text not in out:
             out.append(text)
     return out
 
 
+def has_anything(read: dict) -> bool:
+    """셋 중 **하나라도** 얻었는가. 하나도 없으면 그 공고는 버린다."""
+    return any(_clean(read.get(name)) for name in FIELDS)
+
+
 def add_missing(existing: str, items: list[str]) -> str:
-    """기존 글에 **없는 것만** 뒤에 더한다."""
+    """기존 글에 **없는 것만** 뒤에 더한다.
+
+    통째로 이어 붙여 견주면 안 된다 — 서로 다른 두 줄을 이으면 이음매에 걸친
+    말이 실제로는 없던 문구인데도 "이미 있다" 로 잡힌다. 그래서 줄 단위로만
+    본다: 겹쳐 자른 조각이 만드는 반복(같은 줄이 통째로 또는 일부로 다시
+    나오는 것)은 걸러 내되, 줄과 줄 사이를 넘나드는 비교는 하지 않는다.
+    """
     items = _clean(items)
     if not items:
         return existing
     base = (existing or "").strip()
     if not base:
         return "\n".join("• %s" % one for one in items)
-    seen = {normalize(line) for line in base.split("\n") if line.strip()}
-    whole = normalize(base)
+    lines = [normalize(line) for line in base.split("\n") if line.strip()]
     added = [one for one in items
-             if normalize(one) not in seen and normalize(one) not in whole]
+             if not any(normalize(one) == line or normalize(one) in line
+                        for line in lines)]
     if not added:
         return base
     return base + "\n" + "\n".join("• %s" % one for one in added)
