@@ -16,6 +16,11 @@
 마감돼 내려간 공고도 30일까지 남긴다. `최초수집일` 로 오늘 새로 뜬 것을,
 `최종확인일` 로 지금도 열려 있는지를 가린다.
 
+여섯이 다 돌면 이어서 `csv/merged_read.csv` 가 하나 더 나온다. 사람인·잡코리아 일부는
+본문이 그림 한 장이라 `기술스택` 칸에 그림 주소만 남는데(수집은 순수 HTTP 만 하기
+때문이다), 그 그림을 읽어 채운 결과다. `merged.csv` 는 손대지 않는다 — 자세한 것은
+[image_process/README.md](image_process/README.md).
+
 ## 사이트
 
 | 폴더 | 사이트 | 걷는 방법 |
@@ -34,8 +39,13 @@
 # .env 는 추적되지 않고 예시 파일도 없다 — 없으면 안 도는 것이 맞다.
 $EDITOR .env
 
-python3 job_crawling_ochestrator.py     # 여섯을 병렬로 → csv/merged.csv
+python3 job_crawling_ochestrator.py   # 수집부터 이미지 판독까지 한 번에 → csv/merged.csv, csv/merged_read.csv
+python3 job_image_process.py          # 이미 있는 csv/merged.csv 의 그림만 다시 처리
 ```
+
+수집은 8~10분이지만 이미지 판독만 다시 돌려 보고 싶을 때가 있다 — 캐시를 지웠을 때,
+모델을 바꿔 볼 때. 그때는 두 번째 명령만 쓰면 된다. 자세한 것은
+[image_process/README.md](image_process/README.md).
 
 한 사이트만 돌리려면 그 폴더에서 부른다.
 
@@ -45,7 +55,11 @@ python3 wanted.py            # 수집 → csv/wanted_post.csv
 python3 tests/run.py         # 테스트
 ```
 
-`requests` `tqdm` `python-dotenv` 가 필요하다.
+`requests` `tqdm` `python-dotenv` 가 필요하다. 이미지 판독 단계는 **Pillow** 도 쓴다.
+
+```bash
+.venv/bin/pip install Pillow
+```
 
 ## 조건은 **한 벌**이다
 
@@ -68,24 +82,28 @@ Pathsdog 는 근무지를 서버가 못 거른다. 각 사이트 README 에 무�
 ## 테스트
 
 ```bash
-python3 tests/run.py                              # 오케스트레이터 34건
+python3 tests/run.py                              # 오케스트레이터 + 이미지 판독 108건
 cd job_sites/<사이트> && python3 tests/run.py       # 사이트별
 ```
 
-합쳐 823건. 네트워크를 타지 않는다 — 떠 놓은 실제 응답을 쓴다.
+합쳐 894건. 네트워크도 `claude` 도 타지 않는다 — 떠 놓은 실제 응답을 쓰고, 이미지는
+Pillow 로 그 자리에서 그려서 쓴다.
 
-| wanted | saramin | jobkorea | jobplanet | jumpit | pathsdog | 오케스트레이터 |
+| wanted | saramin | jobkorea | jobplanet | jumpit | pathsdog | 루트(오케스트레이터+이미지 판독) |
 |---|---|---|---|---|---|---|
-| 88 | 258 | 103 | 119 | 110 | 111 | 34 |
+| 88 | 255 | 103 | 119 | 110 | 111 | 108 |
 
 사람인이 많은 것은 **`_common` 의 테스트가 거기 있기** 때문이다 — 어느 한 사이트에 붙여
-두면 그 사이트를 지웠을 때 시험도 같이 사라진다.
+두면 그 사이트를 지웠을 때 시험도 같이 사라진다. 루트의 108건은 오케스트레이터 34건과
+이미지 판독 74건을 합친 것이다 — 이미지 판독은 `job_sites/` 아래에 있지 않으므로 여기서
+돈다.
 
 ## 문서
 
 | | |
 |---|---|
 | [ORCHESTRATOR.md](ORCHESTRATOR.md) | 여섯을 병렬로 돌리고 합치는 일 · **종료 코드 계약** |
+| [image_process/README.md](image_process/README.md) | 그림 본문을 읽어 채우는 단계 |
 | [docs/convention/](docs/convention/) | **수집 규약.** 새 사이트를 붙일 때 여기부터 읽는다 |
 | [docs/convention/03-adding-a-site.md](docs/convention/03-adding-a-site.md) | 새 사이트 체크리스트 |
 | [docs/convention/06-decisions.md](docs/convention/06-decisions.md) | 결정과 실측 근거 |
