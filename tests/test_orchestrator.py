@@ -161,3 +161,24 @@ def test_BOUNDARY_failed_site_without_a_csv_is_not_stale():
 def test_BOUNDARY_successful_site_is_never_stale():
     check(not _result("wanted", code=0, rows=100).stale, "정상은 지난 것이 아니다")
     check(not _result("jobplanet", code=4, rows=5).stale, "건너뛴 것도 실패가 아니다")
+
+
+def test_NORMAL_image_stage_runs_after_merging():
+    # 합본이 있어야 읽을 것이 있다. **순서가 뒤집히면 빈 파일을 읽는다.**
+    import inspect
+    source = inspect.getsource(orch.main)
+    check(source.index("merge_csvs") < source.index("_run_image_stage"),
+          "합치기가 먼저여야 한다")
+
+
+def test_BOUNDARY_image_stage_is_a_child_process_not_an_import():
+    # 불러들이면 오케스트레이터가 피하려던 sys.path 오염을 새로 만든다.
+    import inspect
+    source = inspect.getsource(orch._run_image_stage)
+    check("subprocess" in source, "자식 프로세스로 불러야 한다")
+
+
+def test_BOUNDARY_image_stage_failure_does_not_lose_the_merged_file():
+    # 이 단계가 실패해도 merged.csv 는 이미 나와 있다. 걷은 것을 잃으면 안 된다.
+    result = _result("이미지", code=1)
+    check(not result.ok, "1 은 실패")

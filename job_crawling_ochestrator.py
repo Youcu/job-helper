@@ -61,6 +61,9 @@ EXIT_MEANING = {
 UNKNOWN = ("알 수 없는 종료 코드", False)
 
 
+IMAGE_STAGE = ROOT_DIR / "job_image_process.py"
+
+
 @dataclass
 class Result:
     site: str
@@ -106,11 +109,16 @@ def main() -> int:
     merged = merge_csvs([r.output for r in results if r.output], OUTPUT)
     _print_report(results, merged, elapsed)
 
+    image = _run_image_stage()
+    print("\n%s" % "\n".join(_last_lines(image.log, 12)))
+    if not image.ok:
+        print("이미지 판독 단계가 실패했습니다 (%s). csv/merged.csv 는 그대로 있습니다."
+              % image.meaning, file=sys.stderr)
+
     failed = [r for r in results if not r.ok]
     if failed:
         _print_failures(failed)
-        return 1
-    return 0
+    return 1 if (failed or not image.ok) else 0
 
 
 def _print_failures(failed: list[Result]) -> None:
@@ -198,6 +206,33 @@ def count_rows(path: Path) -> int:
             return max(0, sum(1 for _ in csv.reader(handle)) - 1)
     except OSError:
         return 0
+
+
+def _run_image_stage() -> Result:
+    """이미지 판독 단계를 **자식 프로세스로** 돌린다.
+
+    불러들이지(import) 않는다 — 위의 "왜 프로세스를 나누나" 와 같은 이유다. 그리고
+    이 단계는 혼자서도 도는 엔트리포인트라, 여기서만 쓰는 다른 길을 만들 이유가 없다.
+    """
+    result = Result(site="이미지판독")
+    started = time.monotonic()
+    try:
+        done = subprocess.run(
+            [sys.executable, IMAGE_STAGE.name],
+            cwd=ROOT_DIR, capture_output=True, text=True, timeout=TIMEOUT_SECONDS,
+        )
+        result.code = done.returncode
+        result.log = (done.stdout or "") + (done.stderr or "")
+    except subprocess.TimeoutExpired:
+        result.error = "%d분을 넘겨 끊었습니다" % (TIMEOUT_SECONDS // 60)
+    except Exception as error:
+        result.error = "%s: %s" % (type(error).__name__, error)
+    result.seconds = time.monotonic() - started
+    read_output = ROOT_DIR / "csv" / "merged_read.csv"
+    if read_output.exists():
+        result.output = read_output
+        result.rows = count_rows(read_output)
+    return result
 
 
 def merge_csvs(paths: list[Path], output: Path) -> int:
