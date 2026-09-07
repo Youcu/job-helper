@@ -53,7 +53,7 @@ def _collect(postings, details, config=None):
 
 
 def test_NORMAL_builds_rows():
-    rows, _ai, stats = _collect([_posting(1), _posting(2)],
+    rows, stats = _collect([_posting(1), _posting(2)],
                                 {1: _detail(), 2: _detail(skills=["python"])})
     check_equal(len(rows), 2, "두 행")
     check(not stats["차단"], "차단 없음")
@@ -61,20 +61,20 @@ def test_NORMAL_builds_rows():
 
 
 def test_NORMAL_real_detail_becomes_a_row():
-    rows, _ai, _stats = _collect([_posting(1404269)], {1404269: own_detail()})
+    rows, _stats = _collect([_posting(1404269)], {1404269: own_detail()})
     check_equal(len(rows), 1, "실제 응답으로도 행이 나와야 한다")
     check(rows[0]["지원자격"].strip(), "본문이 차야 한다")
 
 
 def test_EXCEPTION_one_broken_detail_does_not_kill_the_run():
-    rows, _ai, _stats = _collect(
+    rows, _stats = _collect(
         [_posting(1), _posting(2), _posting(3)],
         {1: _detail(), 2: RuntimeError("끊김"), 3: _detail()})
     check_equal(len(rows), 2, "터진 하나만 빠지고 나머지는 남는다")
 
 
 def test_EXCEPTION_blocked_stops_but_keeps_earlier_rows():
-    rows, _ai, stats = _collect(
+    rows, stats = _collect(
         [_posting(1), _posting(2), _posting(3)],
         {1: _detail(), 2: BlockedError("403"), 3: _detail()})
     check_equal(len(rows), 1, "차단 전까지 모은 것은 살린다")
@@ -82,14 +82,14 @@ def test_EXCEPTION_blocked_stops_but_keeps_earlier_rows():
 
 
 def test_EXCEPTION_posting_without_id_is_counted_not_crashed():
-    rows, _ai, stats = _collect([_posting(1), _posting(""), _posting(3)],
+    rows, stats = _collect([_posting(1), _posting(""), _posting(3)],
                                 {1: _detail(), 3: _detail()})
     check_equal(len(rows), 2, "번호 없는 것만 빠진다")
     check_equal(stats["번호없음"], 1, "몇 건 빠졌는지 세어야 한다")
 
 
 def test_BOUNDARY_posting_without_skills_is_dropped():
-    rows, _ai, stats = _collect([_posting(1)],
+    rows, stats = _collect([_posting(1)],
                                 {1: _detail(skills=[], required_qualification="열정 있는 분")})
     check_equal(rows, [], "판단할 재료가 없으면 행을 만들지 않는다")
     check_equal(stats["기술없음"], 1, "몇 건 빠졌는지 세어야 한다")
@@ -98,7 +98,7 @@ def test_BOUNDARY_posting_without_skills_is_dropped():
 def test_BOUNDARY_location_filter_runs_after_fetch():
     # 지역 코드가 시도까지라 서버에서 못 거른 것을 여기서 거른다.
     config = Config(job_ids=[11904], home_locations=["성남시"])
-    rows, _ai, stats = _collect(
+    rows, stats = _collect(
         [_posting(1), _posting(2)],
         {1: _detail(location="경기 성남시 분당구 판교로"),
          2: _detail(location="경기 수원시 영통구")}, config)
@@ -108,7 +108,7 @@ def test_BOUNDARY_location_filter_runs_after_fetch():
 
 def test_BOUNDARY_no_location_condition_keeps_everything():
     config = Config(job_ids=[11904], home_locations=[])
-    rows, _ai, stats = _collect([_posting(1), _posting(2)],
+    rows, stats = _collect([_posting(1), _posting(2)],
                                 {1: _detail(location="부산 해운대구"),
                                  2: _detail(location="제주 제주시")}, config)
     check_equal(len(rows), 2, "조건이 없으면 전부 남는다")
@@ -117,7 +117,7 @@ def test_BOUNDARY_no_location_condition_keeps_everything():
 
 def test_BOUNDARY_body_missing_is_noted_but_kept():
     # 자체 공고인데 본문이 빈 경우. 기술이 있으면 행은 만들되 세어는 둔다.
-    rows, _ai, stats = _collect([_posting(1)],
+    rows, stats = _collect([_posting(1)],
                                 {1: _detail(required_qualification=None,
                                             preferred_skill=None)})
     check_equal(len(rows), 1, "기술이 있으면 남긴다")
@@ -125,7 +125,7 @@ def test_BOUNDARY_body_missing_is_noted_but_kept():
 
 
 def test_BOUNDARY_empty_posting_list():
-    rows, _ai, stats = _collect([], {})
+    rows, stats = _collect([], {})
     check_equal(rows, [], "빈 목록")
     check(not stats["차단"], "차단 아님")
 

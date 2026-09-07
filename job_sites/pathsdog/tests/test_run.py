@@ -53,7 +53,7 @@ def _run(env_text=NARROW_ENV, listings=None, blocked_at=None, fail_ids=()):
             raise RuntimeError("상세 조회 중 오류가 발생했습니다")
         return _detail()
 
-    def fake_save(rows, output, ai_rows=None):
+    def fake_save(rows, output):
         saved["rows"] = rows
 
         class Result:
@@ -169,10 +169,10 @@ def test_BOUNDARY_summary_prints_every_counter():
              "고용형태밖": 10, "차단": False}
     pathsdog.print = printed
     try:
-        pathsdog._print_summary(Config(), Result(), [{"URL": "u"}], stats)
+        pathsdog._print_summary(Config(), Result(), stats)
     finally:
         del pathsdog.print
-    for word in ("근무지가 조건 밖", "고용형태가 조건 밖", "AI 가 관여한",
+    for word in ("근무지가 조건 밖", "고용형태가 조건 밖",
                  "기술스택이 하나도 없어", "상세를 못 받아", "공고번호가 없어",
                  "적용하지 않은 조건"):
         check(word in printed.text, "'%s' 를 못 찍었다:\n%s" % (word, printed.text))

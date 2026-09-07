@@ -53,7 +53,7 @@ def _run(env_text=NARROW_ENV, listings=None, details=None, blocked_at=None):
                                  "required_qualification": "Java 3년",
                                  "location": "서울 강남구"})
 
-    def fake_save(rows, output, ai_rows=None):
+    def fake_save(rows, output):
         saved["rows"] = rows
         saved["output"] = output
 
@@ -217,7 +217,7 @@ def test_BOUNDARY_summary_prints_every_counter():
     """요약의 **모든 줄**을 한 번씩 찍어 본다.
 
     출력은 수집이 다 끝난 뒤에 돈다. 여기서 서식이 틀리면 걷어 온 것을 눈앞에서
-    잃는다 — 실제로 `ai_csv_path(...).relative_to(...)` 처럼 터질 수 있는 호출이 있다.
+    잃는다 — 실제로 `relative_to(...)` 처럼 터질 수 있는 호출이 있다.
     """
     printed = Recorder()
 
@@ -234,7 +234,7 @@ def test_BOUNDARY_summary_prints_every_counter():
     original = jobplanet.print if hasattr(jobplanet, "print") else None
     jobplanet.print = printed
     try:
-        jobplanet._print_summary(Config(), Result(), [{"URL": "u"}], stats, listings)
+        jobplanet._print_summary(Config(), Result(), stats, listings)
     finally:
         if original is None:
             del jobplanet.print
@@ -242,7 +242,7 @@ def test_BOUNDARY_summary_prints_every_counter():
             jobplanet.print = original
 
     for word in ("이번에 안 보인 공고", "넘게 안 보여 뺀 공고", "최종확인일을 알 수 없어",
-                 "근무지가 조건 밖", "본문이 빈 것", "AI 가 관여한",
+                 "근무지가 조건 밖", "본문이 빈 것",
                  "기술스택이 하나도 없어", "공고번호가 없어", "적용하지 않은 조건"):
         check(word in printed.text, "'%s' 를 못 찍었다:\n%s" % (word, printed.text))
 

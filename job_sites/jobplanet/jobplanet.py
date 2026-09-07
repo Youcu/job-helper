@@ -20,7 +20,7 @@ from tqdm import tqdm
 
 from _common.env import ConfigError
 from _common.runlock import guarded
-from _common.store import ai_csv_path, merge_lines, save
+from _common.store import merge_lines, save
 from lib import record
 from lib.client import BlockedError, JobPlanetClient
 from lib.collect import REQUEST_BUDGET, fetch_detail, fetch_listings
@@ -62,9 +62,9 @@ def _run() -> int:
         print("\n조건에 맞는 **자체 공고**가 없습니다. 조건을 넓혀 보세요.")
         return 0
 
-    rows, ai_rows, stats = _collect_details(client, listings.rows, config)
-    result = save(rows, OUTPUT, ai_rows)
-    _print_summary(config, result, ai_rows, stats, listings)
+    rows, stats = _collect_details(client, listings.rows, config)
+    result = save(rows, OUTPUT)
+    _print_summary(config, result, stats, listings)
     if stats["차단"]:
         print("\n차단돼서 %d건에서 멈췄습니다. 여기까지 모은 것은 저장했습니다."
               % len(rows), file=sys.stderr)
@@ -79,7 +79,6 @@ def _collect_details(client, postings: list[dict], config):
     더 던지지 않는다. 멈춘 사실은 `stats["차단"]` 으로 알린다.
     """
     rows: list[dict] = []
-    ai_rows: list[dict] = []
     stats = {"기술없음": 0, "번호없음": 0, "근무지밖": 0, "본문없음": 0, "차단": False}
 
     for posting in tqdm(postings, desc="상세", unit="건"):
@@ -109,7 +108,7 @@ def _collect_details(client, postings: list[dict], config):
             stats["기술없음"] += 1
             continue
         rows.append(row)
-    return rows, ai_rows, stats
+    return rows, stats
 
 
 def _print_skip_notice(listings) -> None:
@@ -176,7 +175,7 @@ def _print_listing_summary(listings) -> None:
           % (len(listings.rows), listings.relayed))
 
 
-def _print_summary(config, result, ai_rows, stats, listings) -> None:
+def _print_summary(config, result, stats, listings) -> None:
     print("\n%s — 모두 %d행" % (OUTPUT.relative_to(ROOT_DIR), len(result.rows)))
     for line in merge_lines(result):
         print(line)
@@ -185,9 +184,6 @@ def _print_summary(config, result, ai_rows, stats, listings) -> None:
         print("    잡플래닛 지역 코드는 시도까지라, 넓게 받아 근무지 글로 다시 걸렀습니다.")
     if stats["본문없음"]:
         print("  자체 공고인데 본문이 빈 것: %d건" % stats["본문없음"])
-    if ai_rows:
-        print("  %s — AI 가 관여한 %d행을 복사해 두었습니다"
-              % (ai_csv_path(OUTPUT).relative_to(ROOT_DIR), len(ai_rows)))
     if stats["기술없음"]:
         print("  기술스택이 하나도 없어 제외: %d건" % stats["기술없음"])
     if stats["번호없음"]:

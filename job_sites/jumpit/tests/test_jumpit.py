@@ -47,7 +47,7 @@ def _collect(positions, details):
 
 
 def test_NORMAL_builds_rows():
-    rows, _ai, stats = _collect([_pos(1), _pos(2)], {1: _det(), 2: _det()})
+    rows, stats = _collect([_pos(1), _pos(2)], {1: _det(), 2: _det()})
     check_equal(len(rows), 2, "두 행")
     check(not stats["차단"], "차단 없음")
     check("Java" in rows[0]["기술스택"], rows[0]["기술스택"])
@@ -55,34 +55,34 @@ def test_NORMAL_builds_rows():
 
 def test_NORMAL_real_response_becomes_a_row():
     pos = position()
-    rows, _ai, _stats = _collect([pos], {pos["id"]: detail()})
+    rows, _stats = _collect([pos], {pos["id"]: detail()})
     check_equal(len(rows), 1, "실제 응답으로도 행이 나와야 한다")
     check(rows[0]["지원자격"].strip(), "본문이 차야 한다")
 
 
 def test_EXCEPTION_one_broken_detail_does_not_kill_the_run():
-    rows, _ai, stats = _collect([_pos(1), _pos(2), _pos(3)],
+    rows, stats = _collect([_pos(1), _pos(2), _pos(3)],
                                 {1: _det(), 2: RuntimeError("끊김"), 3: _det()})
     check_equal(len(rows), 2, "터진 하나만 빠지고 나머지는 남는다")
     check_equal(stats["상세실패"], 1, "몇 건 실패했는지 세어야 한다")
 
 
 def test_EXCEPTION_blocked_stops_but_keeps_earlier_rows():
-    rows, _ai, stats = _collect([_pos(1), _pos(2), _pos(3)],
+    rows, stats = _collect([_pos(1), _pos(2), _pos(3)],
                                 {1: _det(), 2: BlockedError("403"), 3: _det()})
     check_equal(len(rows), 1, "차단 전까지 모은 것은 살린다")
     check(stats["차단"], "차단을 알려야 한다")
 
 
 def test_EXCEPTION_position_without_id_is_counted_not_crashed():
-    rows, _ai, stats = _collect([_pos(1), _pos(""), _pos(3)], {1: _det(), 3: _det()})
+    rows, stats = _collect([_pos(1), _pos(""), _pos(3)], {1: _det(), 3: _det()})
     check_equal(len(rows), 2, "번호 없는 것만 빠진다")
     check_equal(stats["번호없음"], 1, "몇 건 빠졌는지 세어야 한다")
 
 
 def test_BOUNDARY_posting_without_skills_is_dropped():
     # 기술도 없고 본문에서도 못 찾으면 판단할 재료가 없다.
-    rows, _ai, stats = _collect([_pos(1, techStacks=[])],
+    rows, stats = _collect([_pos(1, techStacks=[])],
                                 {1: _det(techStacks=[], qualifications="열정 있는 분",
                                          preferredRequirements="", responsibility="")})
     check_equal(rows, [], "빈 행을 만들지 않는다")
@@ -91,13 +91,13 @@ def test_BOUNDARY_posting_without_skills_is_dropped():
 
 def test_BOUNDARY_listing_stacks_alone_are_enough():
     # 상세가 비어도 목록의 techStacks 가 있으면 행이 된다.
-    rows, _ai, _stats = _collect([_pos(1, techStacks=["python"])], {1: {}})
+    rows, _stats = _collect([_pos(1, techStacks=["python"])], {1: {}})
     check_equal(len(rows), 1, "목록만으로도 행이 나온다")
     check("Python" in rows[0]["기술스택"], rows[0]["기술스택"])
 
 
 def test_BOUNDARY_empty_position_list():
-    rows, _ai, stats = _collect([], {})
+    rows, stats = _collect([], {})
     check_equal(rows, [], "빈 목록")
     check(not stats["차단"], "차단 아님")
 

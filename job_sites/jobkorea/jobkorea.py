@@ -21,7 +21,7 @@ from tqdm import tqdm
 
 from _common.env import ConfigError
 from _common.runlock import guarded
-from _common.store import ai_csv_path, merge_lines, save
+from _common.store import merge_lines, save
 from lib import body, record
 from lib.client import BlockedError, JobKoreaClient
 from lib.collect import fetch_body, fetch_detail, fetch_listings
@@ -64,9 +64,9 @@ def _run() -> int:
         print("\n조건에 맞는 공고가 없습니다. .env 조건을 넓혀 보세요.")
         return 0
 
-    rows, ai_rows, stats = _collect_details(client, listings.rows)
-    result = save(rows, OUTPUT, ai_rows)
-    _print_summary(config, result, ai_rows, stats)
+    rows, stats = _collect_details(client, listings.rows)
+    result = save(rows, OUTPUT)
+    _print_summary(config, result, stats)
     if stats["차단"]:
         print("\n차단돼서 %d건에서 멈췄습니다. 여기까지 모은 것은 저장했습니다."
               % len(rows), file=sys.stderr)
@@ -81,7 +81,6 @@ def _collect_details(client, listings: list[dict]):
     더 던지지 않는다. 멈춘 사실은 `stats["차단"]` 으로 알린다.
     """
     rows: list[dict] = []
-    ai_rows: list[dict] = []
     stats = {"그림본문": 0, "그림대기": 0, "기술없음": 0, "번호없음": 0,
              "구조화없음": 0, "차단": False}
 
@@ -122,7 +121,7 @@ def _collect_details(client, listings: list[dict]):
             stats["기술없음"] += 1
             continue
         rows.append(row)
-    return rows, ai_rows, stats
+    return rows, stats
 
 
 def _print_conditions(config, conditions: dict) -> None:
@@ -142,7 +141,7 @@ def _print_conditions(config, conditions: dict) -> None:
         print()
 
 
-def _print_summary(config, result, ai_rows, stats) -> None:
+def _print_summary(config, result, stats) -> None:
     print("\n%s — 모두 %d행" % (OUTPUT.relative_to(ROOT_DIR), len(result.rows)))
     for line in merge_lines(result):
         print(line)
@@ -152,9 +151,6 @@ def _print_summary(config, result, ai_rows, stats) -> None:
         print("    기술스택 칸에 http 로 시작하는 주소가 들어 있습니다 — 아직 안 읽었다는 뜻입니다.")
     if stats["구조화없음"]:
         print("  JSON-LD 가 없던 공고 : %d건 (목록 값으로 메웠습니다)" % stats["구조화없음"])
-    if ai_rows:
-        print("  %s — AI 가 관여한 %d행을 복사해 두었습니다"
-              % (ai_csv_path(OUTPUT).relative_to(ROOT_DIR), len(ai_rows)))
     if stats["기술없음"]:
         print("  기술도 그림도 없어 제외: %d건" % stats["기술없음"])
     if stats["번호없음"]:
