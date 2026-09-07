@@ -21,7 +21,11 @@ import subprocess
 from pathlib import Path
 
 FIELDS = ("기술스택", "자격요건", "우대사항")
-EXTRA_TURNS = 7          # 조각 수 + 이만큼. 조각마다 Read 한 번씩 쓰고 여유를 둔다
+# 실측: 조각 7장을 --max-turns 14 로 돌렸더니 num_turns 이 정확히 14 로 끝났다 —
+# 자연 종료(stop_reason: end_turn)이긴 했지만 여유가 0 이었다. 조각마다 Read 한 번
+# + 응답 한 번으로 대략 2턴을 쓴다고 보고, 마무리 답변까지 더해 여유 8 을 둔다.
+TURNS_PER_SLICE = 2
+EXTRA_TURNS = 8
 
 
 class ReadError(RuntimeError):
@@ -48,7 +52,7 @@ def build_command(paths: list[Path], model: str) -> list[str]:
         "--model", model,
         "--allowedTools", "Read",
         "--output-format", "json",
-        "--max-turns", str(len(paths) + EXTRA_TURNS),
+        "--max-turns", str(TURNS_PER_SLICE * len(paths) + EXTRA_TURNS),
     ]
 
 
@@ -62,14 +66,17 @@ def _run(command: list[str], timeout: int) -> str:
 
 
 def _first_object(text: str) -> dict:
+    # `rfind("}")` 로 끝을 짐작하면 안 된다 — 답 뒤에 딸린 말("{참고}" 같은)에 낱개
+    # 중괄호가 하나만 섞여도 진짜 끝을 넘어가 통째로 깨진다. `raw_decode` 는 첫 `{`
+    # 부터 값 하나만 실제로 파싱하고 그 값이 끝나는 자리에서 정확히 멈춘다.
     start = text.find("{")
-    end = text.rfind("}")
-    if start < 0 or end <= start:
+    if start < 0:
         raise ReadError("JSON 을 못 찾았습니다: %r" % text[:200])
     try:
-        return json.loads(text[start:end + 1])
+        obj, _end = json.JSONDecoder().raw_decode(text, start)
     except ValueError as error:
         raise ReadError("JSON 을 못 읽었습니다: %s" % error) from error
+    return obj
 
 
 def parse_output(text: str) -> dict:

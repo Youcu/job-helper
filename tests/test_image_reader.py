@@ -34,6 +34,15 @@ def test_NORMAL_command_carries_model_and_read_tool():
     check("Read" in " ".join(command), "Read 도구를 허용해야 그림을 연다")
 
 
+def test_NORMAL_max_turns_scales_with_slice_count_and_has_headroom():
+    # 실측: 조각 7장을 --max-turns 14 로 돌렸더니 num_turns 이 딱 14 로 끝났다.
+    # 여유가 없으면 살짝만 수다스러워도 답이 안 나온다. 조각당 2턴 + 여유 8.
+    paths = [Path("/tmp/a_%03d.png" % i) for i in range(7)]
+    command = reader.build_command(paths, "opus")
+    index = command.index("--max-turns")
+    check_equal(int(command[index + 1]), 2 * len(paths) + 8, "여유를 둔 턴 예산")
+
+
 def test_NORMAL_prompt_names_every_slice():
     paths = [Path("/tmp/a_000.png"), Path("/tmp/a_001.png"), Path("/tmp/a_002.png")]
     prompt = reader.build_prompt(paths)
@@ -52,6 +61,13 @@ def test_EXCEPTION_warning_line_before_json_is_skipped():
 def test_EXCEPTION_chatter_around_the_answer_is_tolerated():
     raw = _envelope("네, 읽었습니다.\n" + json.dumps(ANSWER, ensure_ascii=False) + "\n이상입니다.")
     check_equal(reader.parse_output(raw), ANSWER, "앞뒤에 말이 붙어도 꺼내야 한다")
+
+
+def test_EXCEPTION_stray_brace_in_trailing_chatter_is_tolerated():
+    # `rfind("}")` 로 끝을 짐작하면 이 뒤에 붙은 `}` 까지 통째로 잘라내 JSON 이
+    # 깨진다. `raw_decode` 로 실제 값의 끝에서 멈춰야 한다.
+    raw = _envelope(json.dumps(ANSWER, ensure_ascii=False) + "\n참고로 이건 여담입니다 {참고}")
+    check_equal(reader.parse_output(raw), ANSWER, "뒤에 붙은 낱개 중괄호에 속으면 안 된다")
 
 
 def test_EXCEPTION_unparseable_output_raises_not_returns_empty():
@@ -86,12 +102,14 @@ def test_BOUNDARY_non_string_items_are_dropped():
 
 def test_BOUNDARY_read_uses_the_injected_runner():
     seen = {}
+    paths = [Path("/tmp/a_000.png")]
 
     def fake(command, timeout):
         seen["command"] = command
         seen["timeout"] = timeout
         return _envelope(json.dumps(ANSWER, ensure_ascii=False))
 
-    got = reader.read([Path("/tmp/a_000.png")], model="sonnet", timeout=42, runner=fake)
+    got = reader.read(paths, model="sonnet", timeout=42, runner=fake)
     check_equal(got, ANSWER, "결과")
     check_equal(seen["timeout"], 42, "시간제한을 넘겨야 한다")
+    check_equal(seen["command"], reader.build_command(paths, "sonnet"), "명령도 검증해야 한다")
