@@ -367,9 +367,8 @@ def test_EXCEPTION_run_returns_two_when_nothing_at_all_succeeded():
     rows = [_at("https://ex/1", "https://img/1.png")]
     code, got, book = _run_stage(rows, download=boom)
     check_equal(code, 2, "하나도 못 해냈으면 2")
-    check_equal(len(got), 1, "**못 읽은 행은 버리지 않는다**")
-    check_equal(got[0]["기술스택"], "https://img/1.png", "원래 모습 그대로 남는다")
-    check_equal(book, {}, "우리 실패는 캐시에 안 넣는다 — 다음 실행에 다시 시도한다")
+    check_equal(len(got), 0, "**주소가 남은 행은 결과물에서 뺀다**")
+    check_equal(book, {}, "그래도 캐시에는 안 넣는다 — 그게 안전장치다. 다음 실행에 다시 시도한다")
 
 
 def test_EXCEPTION_run_does_not_touch_rows_it_never_looked_at():
@@ -385,7 +384,8 @@ def test_BOUNDARY_one_read_failure_among_cache_hits_is_not_a_total_failure():
 
     자리 잡힌 뒤에는 거의 모든 건이 캐시 적중이다. 캐시를 "해낸 것" 에서 빼고 세면
     캐시 28 + 새 공고 1건 시간 초과 → `2` → 오케스트레이터가 여덟 분짜리 수집 전체를
-    실패로 적는다. 못 읽은 한 건은 요약에 찍히고 다음 실행에 다시 시도한다.
+    실패로 적는다. 못 읽은 한 건은 결과물에서 빠지되 요약에 찍히고, 캐시에 안 들어가므로
+    다음 실행에 다시 시도한다.
     """
     book = {}
     cache.put(book, ["https://img/캐시.png"], FULL, "sonnet")
@@ -399,9 +399,8 @@ def test_BOUNDARY_one_read_failure_among_cache_hits_is_not_a_total_failure():
             _at("https://ex/2", "https://img/새것.png")]
     code, got, _ = _run_stage(rows, download=boom, book=book)
     check_equal(code, 0, "캐시로 건진 것이 있으면 전량 실패가 아니다")
-    check_equal(len(got), 2, "두 행 다 남는다")
-    check_equal(got[0]["기술스택"], "Java", "캐시에서 채운 행")
-    check_equal(got[1]["기술스택"], "https://img/새것.png", "못 읽은 행은 그대로")
+    check_equal(len(got), 1, "못 읽은 행은 결과물에서 빠진다")
+    check_equal(got[0]["기술스택"], "Java", "캐시에서 채운 행은 남는다")
 
 
 def test_BOUNDARY_a_run_that_only_dropped_rows_is_still_a_success():
@@ -579,3 +578,28 @@ def test_BOUNDARY_the_warning_hook_is_put_back():
     with stage.warnings_through_bar():
         pass
     check(warnings.showwarning is before, "빠져나오면 원래대로 돌려놔야 한다")
+
+
+def test_BOUNDARY_no_image_url_survives_into_the_output():
+    """**결과물에 그림 주소가 남으면 안 된다.**
+
+    못 읽은 공고는 `기술스택` 칸에 주소가 든 채로 나갔다. 그러면 다음 단계가 그 주소를
+    기술 이름으로 읽는다 — 없는 것보다 나쁘다.
+
+    여기까지 왔는데도 못 읽었으면 못 읽는 것이다. 내려받기 재시도도, 구식 TLS 물러서기도,
+    여백에서 자르기도 다 거친 뒤다. 그래서 마지막에 걸러 낸다.
+
+    **캐시에는 여전히 안 넣는다** — 그게 진짜 안전장치다. `merged_read.csv` 는 매 실행
+    처음부터 다시 만들어지므로, 여기서 빠져도 원본에 남아 다음 실행에 다시 시도된다.
+    """
+    def boom(url, dest, **kwargs):
+        raise fetch.FetchError("못 받음")
+
+    rows = [_row(tech="Java, Spring"),
+            dict(_row(tech="https://img/1.png"), URL="https://example.com/2")]
+    _code, out, book = _run_stage(rows, download=boom)
+    check_equal(len(out), 1, "못 읽은 행은 빠진다: %r" % [r["기업명"] for r in out])
+    check_equal(out[0]["기술스택"], "Java, Spring", "그림 아닌 행은 그대로")
+    for r in out:
+        check("http" not in r["기술스택"], "주소가 남았다: %r" % r["기술스택"])
+    check_equal(book, {}, "우리 실패는 캐시에 안 넣는다 — 다음 실행에 다시 시도해야 한다")

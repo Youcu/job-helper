@@ -12,7 +12,10 @@
 
 ## 버림과 실패를 가른다
 
-모델이 답했는데 셋 다 비면 **버린다.** 우리가 못 받거나 못 읽은 것은 **안 버린다** —
+모델이 답했는데 셋 다 비면 **버린다.** 우리가 못 받거나 못 읽은 것도 결과물에서는 뺀다 —
+주소가 든 채로 나가면 다음 단계가 그걸 기술 이름으로 읽어 없는 것보다 나쁘다. **다만
+캐시에는 안 넣는다** — 그게 안전장치다. 이 파일은 매 실행 다시 만들어지므로 원본에 남은
+공고가 다음 실행에 다시 걷히고 다시 시도된다. 옛 규칙은
 원래 모습대로 남기고 몇 건인지 찍는다. 이 구분이 뚫리면 우리 사고로 데이터가 사라진다.
 
 ## 캐시는 공고 하나에 열쇠 하나다
@@ -254,8 +257,18 @@ def _run() -> int:
         if index not in kept:
             out.append(row)              # 그림 행이 아니다. 그대로 통과
         elif kept[index] is not None:
-            out.append(kept[index])      # 채웠거나, 못 읽어 원래대로 남긴 것
+            out.append(kept[index])      # 채운 것
         # kept[index] 가 None 이면 버린 것이다
+
+    # **주소가 남은 행은 뺀다.** 못 읽은 공고가 여기까지 오면 `기술스택` 칸에 그림 주소가
+    # 든 채로 나가고, 다음 단계가 그것을 기술 이름으로 읽는다 — 없는 것보다 나쁘다.
+    # 내려받기 재시도도, 구식 TLS 물러서기도, 여백에서 자르기도 다 거친 뒤다.
+    # **여기까지 왔는데도 못 읽었으면 못 읽는 것이다.**
+    #
+    # 그래도 캐시에는 안 넣는다(`process_one` 이 안 넣는다) — 그게 진짜 안전장치다.
+    # 이 파일은 매 실행 처음부터 다시 만들어지므로, 여기서 빠져도 원본 `merged.csv` 에
+    # 남아 다음 실행에 다시 걷히고 다시 시도된다.
+    out = [row for row in out if not image_urls(row)]
     write_csv(OUTPUT, out)
     _report(stats, len(rows), len(out))
 
@@ -275,7 +288,7 @@ def _report(stats: dict, before: int, after: int) -> None:
     print("  껍데기라 안 부름     : %d건 → 버림" % stats["껍데기"])
     print("  읽어서 채움         : %d건" % stats["채움"])
     print("  읽었는데 쓸 게 없음  : %d건 → 버림" % stats["버림"])
-    print("  못 읽음 (그대로 둠)  : %d건" % stats["못읽음"])
+    print("  못 읽음 (빼고 다음에 다시): %d건" % stats["못읽음"])
     print("\n%s — %d행 (%s %d행에서 %d건 버림)"
           % (OUTPUT.relative_to(ROOT_DIR), after,
              INPUT.relative_to(ROOT_DIR), before, before - after))
