@@ -88,3 +88,75 @@ def test_BOUNDARY_exactly_min_side_is_kept():
 def test_BOUNDARY_wide_and_short_strip_is_kept():
     # 한 공고가 그림 여섯 장으로 쪼개져 있었고 그중 하나가 960×212 였다. 버리면 안 된다.
     check(not fetch.is_junk(_png(960, 212)), "짧은 띠도 글이 있을 수 있다")
+
+
+def test_NORMAL_default_tls_is_tried_first():
+    """**기본 보안 설정으로 먼저 붙는다.** 낮춘 설정은 물러설 때만 쓴다."""
+    seen = []
+    original = fetch._open
+    fetch._open = lambda url, timeout, context=None: seen.append(context) or b"IMG"
+    try:
+        fetch.download("https://a/1.png", temp_dir() / "x.png")
+    finally:
+        fetch._open = original
+    check_equal(seen, [None], "기본 설정(None)으로 한 번만 부른다: %r" % seen)
+
+
+def test_EXCEPTION_old_server_falls_back_to_a_weaker_cipher():
+    """오래된 서버는 **TLS 악수 단계에서** 연결을 끊는다.
+
+    실제로 겪었다 — `m.altwell.co.kr` 은 `AES128-SHA` 하나만 지원하는데 파이썬 기본
+    설정(보안 수준 2)이 그 암호를 목록에서 빼서 악수가 깨진다. `curl` 은 5/5 로 받는다.
+    **재시도로는 절대 안 풀린다** — 우리 설정이 안 맞는 것이라 백 번을 걸어도 백 번
+    실패한다. 실제로 전체 실행 네 번에서 네 번 다 같은 자리에서 잃었다.
+    """
+    seen = []
+
+    def picky(url, timeout, context=None):
+        seen.append(context)
+        if context is None:
+            raise OSError(54, "Connection reset by peer")
+        return b"IMG"
+
+    original = fetch._open
+    fetch._open = picky
+    try:
+        home = temp_dir() / "x.png"
+        fetch.download("https://a/1.png", home)
+    finally:
+        fetch._open = original
+    check_equal(len(seen), 2, "두 번 시도해야 한다: %r" % seen)
+    check(seen[0] is None, "먼저 기본 설정")
+    check(seen[1] is not None, "그다음 낮춘 설정")
+    check_equal(home.read_bytes(), b"IMG", "받은 것을 써야 한다")
+
+
+def test_EXCEPTION_a_real_http_error_is_not_retried_with_weaker_tls():
+    # 404 는 TLS 문제가 아니다. 낮춰 봐야 똑같이 404 이고, 헛되이 한 번 더 두드린다.
+    import urllib.error
+    seen = []
+
+    def missing(url, timeout, context=None):
+        seen.append(context)
+        raise urllib.error.HTTPError(url, 404, "Not Found", {}, None)
+
+    original = fetch._open
+    fetch._open = missing
+    try:
+        error = None
+        try:
+            fetch.download("https://a/없다.png", temp_dir() / "x.png")
+        except fetch.FetchError as caught:
+            error = caught
+    finally:
+        fetch._open = original
+    check(error is not None, "실패는 알려야 한다")
+    check_equal(len(seen), 1, "한 번만 시도한다 — 404 는 물러설 일이 아니다: %r" % seen)
+
+
+def test_BOUNDARY_the_relaxed_context_is_only_a_cipher_step_down():
+    # 인증서 검증까지 끄면 안 된다. 낮추는 것은 **암호 모음 하나**다.
+    ctx = fetch.relaxed_context()
+    check(ctx.check_hostname, "호스트 이름 검증은 그대로 켜 둔다")
+    import ssl
+    check_equal(ctx.verify_mode, ssl.CERT_REQUIRED, "인증서 검증도 그대로다")

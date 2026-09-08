@@ -52,23 +52,45 @@ def add_missing(existing: str, items: list[str]) -> str:
     if not items:
         return existing
     base = (existing or "").strip()
-    if not base:
-        return "\n".join("• %s" % one for one in items)
-    lines = [normalize(line) for line in base.split("\n") if line.strip()]
-    added = [one for one in items
-             if not any(normalize(one) == line or normalize(one) in line
-                        for line in lines)]
+
+    # **더한 것도 그다음 것과 견줄 목록에 넣는다.** 빈 칸에 채울 때가 구멍이었다 —
+    # 그 갈래는 항목끼리 안 견줘서 띄어쓰기만 다른 두 줄이 다 들어갔다(`㈜도루코`).
+    # 한 공고에 모집분야가 여럿이면 모델이 같은 조건을 여러 번 읽어 낸다. 흔한 일이다.
+    seen = [normalize(line) for line in base.split("\n") if line.strip()]
+    added = []
+    for one in items:
+        shape = normalize(one)
+        if any(shape == line or shape in line for line in seen):
+            continue
+        added.append(one)
+        seen.append(shape)
     if not added:
         return base
-    return base + "\n" + "\n".join("• %s" % one for one in added)
+    tail = "\n".join("• %s" % one for one in added)
+    return base + "\n" + tail if base else tail
 
 
 def apply(row: dict, read: dict) -> dict:
     """새 dict 를 돌려준다. `row` 는 고치지 않는다."""
     out = dict(row)
-    # 기술스택 칸에는 그림 주소만 들어 있다(실측: 주소와 기술이 섞인 행 0건).
-    # 못 얻었으면 빈 칸이 된다 — 주소는 기술이 아니라서 남겨 두면 안 된다.
-    out["기술스택"] = ", ".join(_clean(read.get("기술스택")))
+    # **기술스택도 덮지 않고 보강한다.** 처음에는 이 칸에 그림 주소만 들어 있다고 보고
+    # 통째로 갈아끼웠는데, 그 근거였던 "주소와 기술이 섞인 행 0건" 실측이 틀렸다.
+    # 사람인은 기술을 먼저 주고 주소를 뒤에 붙인다 — `C++, C, Java, https://…png`.
+    # 갈아끼우면 수집 단계가 이미 찾아 둔 기술이 사라진다.
+    #
+    # **주소만 걷어낸다.** 주소는 기술이 아니므로 결과에 남기지 않는다.
+    #
+    # **기술 이름은 `normalize` 로 견주면 안 된다.** 그 함수는 문장부호를 지우므로
+    # `C` · `C#` · `C++` 이 전부 `c` 가 된다 — 문장에는 안전한 규칙이 여기서는 서로 다른
+    # 언어를 하나로 뭉갠다. 대소문자만 맞춰 보고 그대로 견준다.
+    kept = [one for one in _clean(row.get("기술스택", "").split(","))
+            if not one.startswith("http")]
+    seen = {one.casefold() for one in kept}
+    for one in _clean(read.get("기술스택")):
+        if one.casefold() not in seen:
+            kept.append(one)
+            seen.add(one.casefold())
+    out["기술스택"] = ", ".join(kept)
     for name in ("자격요건", "우대사항"):
         column = COLUMN[name]
         out[column] = add_missing(out.get(column, ""), read.get(name))

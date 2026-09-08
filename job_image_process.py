@@ -12,7 +12,10 @@
 
 ## 버림과 실패를 가른다
 
-모델이 답했는데 셋 다 비면 **버린다.** 우리가 못 받거나 못 읽은 것은 **안 버린다** —
+모델이 답했는데 셋 다 비면 **버린다.** 우리가 못 받거나 못 읽은 것도 결과물에서는 뺀다 —
+주소가 든 채로 나가면 다음 단계가 그걸 기술 이름으로 읽어 없는 것보다 나쁘다. **다만
+캐시에는 안 넣는다** — 그게 안전장치다. 이 파일은 매 실행 다시 만들어지므로 원본에 남은
+공고가 다음 실행에 다시 걷히고 다시 시도된다. 옛 규칙은
 원래 모습대로 남기고 몇 건인지 찍는다. 이 구분이 뚫리면 우리 사고로 데이터가 사라진다.
 
 ## 캐시는 공고 하나에 열쇠 하나다
@@ -26,9 +29,12 @@ from __future__ import annotations
 
 import shutil
 import sys
+import threading
+import warnings
 import tempfile
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -56,16 +62,58 @@ class Outcome:
     note: str = ""
 
 
+_현재 = threading.local()
+
+
+def note_current_image(url: str | None) -> None:
+    """이 실이 지금 어느 그림을 다루는지 적어 둔다. 경고가 났을 때 짚어 주려고."""
+    _현재.url = url
+
+
+@contextmanager
+def warnings_through_bar():
+    """경고를 **진행 막대 위로** 올린다.
+
+    경고는 stderr 로 나가는데 tqdm 막대도 stderr 를 쓴다. 그대로 두면 막대가 덮어써서
+    실행 로그에 `warnings.warn(` 마지막 줄만 남는다 — 실제 전체 실행에서 그렇게 한 건을
+    잃었고 어느 그림 때문인지 끝내 못 찾았다.
+
+    **이게 그냥 미관 문제가 아니다.** Pillow 는 픽셀이 8,900만을 넘으면 경고만 내고 그림은
+    읽는다(오류는 그 두 배부터). 그 구간의 그림은 조용히 지나가므로, 경고가 묻히면 우리가
+    무엇을 아슬아슬하게 읽고 있는지 알 방법이 없다.
+
+    `warnings.catch_warnings` 를 쓰지 않는다 — 전역 상태를 건드려서 실 여럿이 함께 돌면
+    서로를 덮어쓴다. 여기는 동시 16개까지 돈다.
+    """
+    original = warnings.showwarning
+
+    def through(message, category, filename, lineno, file=None, line=None):
+        where = getattr(_현재, "url", None)
+        tqdm.write("  경고: %s: %s%s"
+                   % (category.__name__, message, " — %s" % where if where else ""))
+
+    warnings.showwarning = through
+    try:
+        yield
+    finally:
+        warnings.showwarning = original
+
+
 def image_urls(row: dict) -> list[str]:
     """이 행이 그림 본문인가. 맞으면 주소들, 아니면 빈 목록.
 
-    수집 단계가 본문이 그림이면 `기술스택` 칸에 주소를 남긴다(D-13). 실측으로 주소와
-    진짜 기술이 섞인 행은 0건이라, 첫 글자만 보면 갈린다.
+    수집 단계가 본문이 그림이면 `기술스택` 칸에 주소를 남긴다(D-13).
+
+    **칸 안 어디에 있든 찾는다.** 처음에는 칸이 `http` 로 시작하는지만 봤다. "주소와 진짜
+    기술이 섞인 행은 0건" 이라는 실측을 근거로 삼았는데 **그 실측이 틀렸다** — `http` 로
+    시작하는 행만 골라 놓고 그 안에서 섞인 것을 찾는 순환 논증이었다.
+
+    사람인은 기술을 먼저 주고 주소를 뒤에 붙인다 — `C++, C, Java, https://…/recruit.png`.
+    실제 데이터에서 주소가 든 175행 중 **73행(42%)** 이 이 모양이라 판독 단계를 통째로
+    지나갔고, 그 공고들의 내용은 그림 안에 있는데 아무도 안 읽었다.
     """
-    text = (row.get("기술스택") or "").strip()
-    if not text.startswith("http"):
-        return []
-    return [one.strip() for one in text.split(",") if one.strip().startswith("http")]
+    parts = [one.strip() for one in (row.get("기술스택") or "").split(",") if one.strip()]
+    return [one for one in parts if one.startswith("http")]
 
 
 def _download_once_more_if_needed(url: str, target: Path) -> None:
@@ -109,6 +157,7 @@ def process_one(row: dict, *, cfg, book: dict, work_dir: Path, reader_fn=None) -
     pieces: list[Path] = []
     for index, url in enumerate(urls):
         target = work / ("%02d%s" % (index, Path(url.split("?")[0]).suffix or ".img"))
+        note_current_image(url)
         try:
             _download_once_more_if_needed(url, target)
             # **못 받은 것과 못 연 것은 같은 종류의 실패다.** 둘 다 "그림에 내용이 없다"
@@ -122,6 +171,7 @@ def process_one(row: dict, *, cfg, book: dict, work_dir: Path, reader_fn=None) -
         if junk:
             continue
         pieces.extend(slicing.slice_image(target, work / ("조각%02d" % index)))
+    note_current_image(None)
 
     if not pieces:
         # 껍데기뿐이다. **모델을 부르지 않고** 버린다 — 부를 이유도 없고 돈만 든다.
@@ -177,7 +227,8 @@ def _run() -> int:
     kept: dict[int, dict | None] = {}
     work_root = Path(tempfile.mkdtemp(prefix="image_process_"))
     try:
-        with ThreadPoolExecutor(max_workers=cfg.workers) as pool:
+      # 경고를 막대 위로 올려 둔 채로 돈다 — 안 그러면 막대가 덮어써 사라진다.
+      with warnings_through_bar(), ThreadPoolExecutor(max_workers=cfg.workers) as pool:
             futures = {
                 pool.submit(process_one, rows[index], cfg=cfg, book=book,
                             work_dir=work_root / str(index)): index
@@ -206,8 +257,18 @@ def _run() -> int:
         if index not in kept:
             out.append(row)              # 그림 행이 아니다. 그대로 통과
         elif kept[index] is not None:
-            out.append(kept[index])      # 채웠거나, 못 읽어 원래대로 남긴 것
+            out.append(kept[index])      # 채운 것
         # kept[index] 가 None 이면 버린 것이다
+
+    # **주소가 남은 행은 뺀다.** 못 읽은 공고가 여기까지 오면 `기술스택` 칸에 그림 주소가
+    # 든 채로 나가고, 다음 단계가 그것을 기술 이름으로 읽는다 — 없는 것보다 나쁘다.
+    # 내려받기 재시도도, 구식 TLS 물러서기도, 여백에서 자르기도 다 거친 뒤다.
+    # **여기까지 왔는데도 못 읽었으면 못 읽는 것이다.**
+    #
+    # 그래도 캐시에는 안 넣는다(`process_one` 이 안 넣는다) — 그게 진짜 안전장치다.
+    # 이 파일은 매 실행 처음부터 다시 만들어지므로, 여기서 빠져도 원본 `merged.csv` 에
+    # 남아 다음 실행에 다시 걷히고 다시 시도된다.
+    out = [row for row in out if not image_urls(row)]
     write_csv(OUTPUT, out)
     _report(stats, len(rows), len(out))
 
@@ -227,7 +288,7 @@ def _report(stats: dict, before: int, after: int) -> None:
     print("  껍데기라 안 부름     : %d건 → 버림" % stats["껍데기"])
     print("  읽어서 채움         : %d건" % stats["채움"])
     print("  읽었는데 쓸 게 없음  : %d건 → 버림" % stats["버림"])
-    print("  못 읽음 (그대로 둠)  : %d건" % stats["못읽음"])
+    print("  못 읽음 (빼고 다음에 다시): %d건" % stats["못읽음"])
     print("\n%s — %d행 (%s %d행에서 %d건 버림)"
           % (OUTPUT.relative_to(ROOT_DIR), after,
              INPUT.relative_to(ROOT_DIR), before, before - after))

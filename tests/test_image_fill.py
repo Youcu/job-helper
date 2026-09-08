@@ -104,3 +104,37 @@ def test_BOUNDARY_punctuation_only_item_is_not_written_to_empty_column():
     got = fill.apply(_row(), {"기술스택": [], "자격요건": ["•"], "우대사항": []})
     check_equal(got["지원자격"], "",
                 "점·글머리표만 있는 항목은 빈 칸에도 쓰면 안 된다: %r" % got["지원자격"])
+
+
+def test_EXCEPTION_items_are_compared_against_each_other_too():
+    """읽어 낸 항목끼리도 견준다. **빈 칸에 채울 때가 구멍이었다.**
+
+    실제로 났다 — `㈜도루코` 는 자격요건이 비어 있어 첫 채우기 경로로 갔는데, 그 경로가
+    항목끼리 안 견줘서 띄어쓰기만 다른 두 줄이 다 들어갔다.
+
+        • 실제 운전 가능하신 분(2종 보통 면허 이상)
+        • 실제 운전 가능하신 분 (2종 보통 면허 이상)
+
+    한 공고에 모집분야가 여럿이면 모델이 같은 조건을 여러 번 읽어 낸다. 흔한 일이다.
+    """
+    got = fill.add_missing("", ["실제 운전 가능하신 분(2종 보통 면허 이상)",
+                                "실제 운전 가능하신 분 (2종 보통 면허 이상)"])
+    check_equal(got.count("실제 운전"), 1, "한 번만 들어가야 한다: %r" % got)
+
+
+def test_EXCEPTION_items_are_deduped_when_the_base_is_not_empty_either():
+    got = fill.add_missing("• 이미 있던 줄", ["새 조건입니다", "새 조건 입니다"])
+    check_equal(got.count("새 조건"), 1, "채워진 칸에서도 한 번만: %r" % got)
+    check("이미 있던 줄" in got, "기존은 남아야 한다")
+
+
+def test_BOUNDARY_tech_names_that_normalize_alike_are_all_kept():
+    """**기술 이름에는 이 대조를 쓰면 안 된다.**
+
+    `normalize` 는 문장부호를 지우므로 `C` · `C#` · `C++` 이 전부 `c` 가 된다. 문장에는
+    안전한 규칙이 기술 이름에서는 서로 다른 언어를 하나로 뭉갠다.
+    """
+    got = fill.apply(_row(), {"기술스택": ["C", "C#", "C++"], "자격요건": [], "우대사항": []})
+    for one in ("C#", "C++"):
+        check(one in got["기술스택"], "%s 가 사라졌다: %r" % (one, got["기술스택"]))
+    check_equal(len([p for p in got["기술스택"].split(",") if p.strip()]), 3, got["기술스택"])

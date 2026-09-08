@@ -367,9 +367,8 @@ def test_EXCEPTION_run_returns_two_when_nothing_at_all_succeeded():
     rows = [_at("https://ex/1", "https://img/1.png")]
     code, got, book = _run_stage(rows, download=boom)
     check_equal(code, 2, "하나도 못 해냈으면 2")
-    check_equal(len(got), 1, "**못 읽은 행은 버리지 않는다**")
-    check_equal(got[0]["기술스택"], "https://img/1.png", "원래 모습 그대로 남는다")
-    check_equal(book, {}, "우리 실패는 캐시에 안 넣는다 — 다음 실행에 다시 시도한다")
+    check_equal(len(got), 0, "**주소가 남은 행은 결과물에서 뺀다**")
+    check_equal(book, {}, "그래도 캐시에는 안 넣는다 — 그게 안전장치다. 다음 실행에 다시 시도한다")
 
 
 def test_EXCEPTION_run_does_not_touch_rows_it_never_looked_at():
@@ -385,7 +384,8 @@ def test_BOUNDARY_one_read_failure_among_cache_hits_is_not_a_total_failure():
 
     자리 잡힌 뒤에는 거의 모든 건이 캐시 적중이다. 캐시를 "해낸 것" 에서 빼고 세면
     캐시 28 + 새 공고 1건 시간 초과 → `2` → 오케스트레이터가 여덟 분짜리 수집 전체를
-    실패로 적는다. 못 읽은 한 건은 요약에 찍히고 다음 실행에 다시 시도한다.
+    실패로 적는다. 못 읽은 한 건은 결과물에서 빠지되 요약에 찍히고, 캐시에 안 들어가므로
+    다음 실행에 다시 시도한다.
     """
     book = {}
     cache.put(book, ["https://img/캐시.png"], FULL, "sonnet")
@@ -399,9 +399,8 @@ def test_BOUNDARY_one_read_failure_among_cache_hits_is_not_a_total_failure():
             _at("https://ex/2", "https://img/새것.png")]
     code, got, _ = _run_stage(rows, download=boom, book=book)
     check_equal(code, 0, "캐시로 건진 것이 있으면 전량 실패가 아니다")
-    check_equal(len(got), 2, "두 행 다 남는다")
-    check_equal(got[0]["기술스택"], "Java", "캐시에서 채운 행")
-    check_equal(got[1]["기술스택"], "https://img/새것.png", "못 읽은 행은 그대로")
+    check_equal(len(got), 1, "못 읽은 행은 결과물에서 빠진다")
+    check_equal(got[0]["기술스택"], "Java", "캐시에서 채운 행은 남는다")
 
 
 def test_BOUNDARY_a_run_that_only_dropped_rows_is_still_a_success():
@@ -491,3 +490,116 @@ def test_BOUNDARY_undecodable_image_is_not_retried():
         stage.RETRY_PAUSE = original_pause
     check_equal(len(opens), 1, "열기는 한 번만 — 같은 바이트를 다시 열 이유가 없다")
     check_equal(got.kind, "못읽음", "그래도 버리지는 않는다")
+
+
+def test_BOUNDARY_tech_and_url_in_one_cell_is_still_a_target():
+    """**기술이 먼저 오고 주소가 뒤에 오는 행도 그림 본문이다.**
+
+    사람인이 이렇게 준다 — `C++, C, Java, https://…/recruit.png`. 처음에는 칸이 `http` 로
+    시작하는지만 봤고, "주소와 기술이 섞인 행은 0건" 이라는 실측을 근거로 삼았다.
+    **그 실측이 틀렸다** — `http` 로 시작하는 행만 골라 놓고 그 안에서 섞인 것을 찾는
+    순환 논증이었다. 실제 데이터에서 주소가 든 175행 중 **73행(42%)** 이 이 모양이라
+    판독 단계를 통째로 지나갔고, 그 공고들의 내용은 그림 안에 있는데 아무도 안 읽었다.
+    """
+    row = _row(tech="C++, C, Java, https://img/1.png")
+    check_equal(stage.image_urls(row), ["https://img/1.png"], "주소를 찾아야 한다")
+
+
+def test_BOUNDARY_tech_already_in_the_cell_is_not_thrown_away():
+    # 수집 단계가 이미 찾아 둔 기술이다. 그림에서 읽은 것으로 **갈아끼우면 그게 사라진다.**
+    row = _row(tech="C++, C, Java, https://img/1.png")
+    got = _run_one(row, answer={"기술스택": ["Python"], "자격요건": [], "우대사항": []})
+    check_equal(got.kind, "채움", "채워야 한다")
+    for kept in ("C++", "C", "Java"):
+        check(kept in got.row["기술스택"], "%s 가 사라졌다: %r" % (kept, got.row["기술스택"]))
+    check("Python" in got.row["기술스택"], "그림에서 읽은 것도 들어가야 한다")
+    check("http" not in got.row["기술스택"], "주소는 걷어내야 한다: %r" % got.row["기술스택"])
+
+
+def test_BOUNDARY_url_is_removed_even_when_the_image_gives_nothing():
+    # 그림에서 기술을 못 얻어도 주소는 남기지 않는다 — 주소는 기술이 아니다.
+    # 기존 기술이 있으니 이 공고는 살아남는다.
+    row = _row(tech="Java, https://img/1.png")
+    got = _run_one(row, answer={"기술스택": [], "자격요건": ["3년 이상"], "우대사항": []})
+    check_equal(got.kind, "채움", "자격요건을 얻었으니 산다")
+    check_equal(got.row["기술스택"], "Java", "기존 기술만 남는다")
+
+
+def test_BOUNDARY_a_row_with_no_url_is_still_not_a_target():
+    # 그림이 없는 평범한 행까지 잡으면 안 된다.
+    check_equal(stage.image_urls(_row(tech="Java, Spring")), [], "주소가 없으면 대상이 아니다")
+    check_equal(stage.image_urls(_row(tech="")), [], "빈 칸도 아니다")
+
+
+def test_BOUNDARY_a_warning_survives_the_progress_bar():
+    """**경고가 진행 막대에 묻히면 안 된다.**
+
+    경고는 stderr 로 나가는데 막대도 stderr 를 쓴다. 그대로 두면 막대가 덮어써서 실행
+    로그에 `warnings.warn(` 마지막 줄만 남는다 — 실제 전체 실행에서 그렇게 한 건을 잃었고,
+    어느 그림 때문인지 끝내 못 찾았다.
+
+    Pillow 는 픽셀이 8,900만을 넘으면 **경고만 내고 그림은 읽는다**(오류는 1억 7,900만부터).
+    그 구간의 그림은 조용히 지나가므로, 경고가 사라지면 알 방법이 없다.
+    """
+    import warnings
+    said = []
+    original = stage.tqdm.write
+    stage.tqdm.write = lambda text, **kw: said.append(text)
+    try:
+        with stage.warnings_through_bar():
+            warnings.warn("픽셀이 너무 많습니다", UserWarning)
+    finally:
+        stage.tqdm.write = original
+    joined = "\n".join(said)
+    check("픽셀이 너무 많습니다" in joined, "경고 본문이 남아야 한다: %r" % said)
+    check("UserWarning" in joined, "종류도 남아야 한다: %r" % said)
+
+
+def test_BOUNDARY_a_warning_names_the_image_it_came_from():
+    # 경고만 남고 어느 그림인지 모르면 손볼 수가 없다.
+    import warnings
+    said = []
+    original = stage.tqdm.write
+    stage.tqdm.write = lambda text, **kw: said.append(text)
+    try:
+        with stage.warnings_through_bar():
+            stage.note_current_image("https://img/거대한그림.png")
+            warnings.warn("픽셀이 너무 많습니다", UserWarning)
+            stage.note_current_image(None)
+    finally:
+        stage.tqdm.write = original
+    check("거대한그림.png" in "\n".join(said), "어느 그림인지 짚어야 한다: %r" % said)
+
+
+def test_BOUNDARY_the_warning_hook_is_put_back():
+    # 남의 경고 처리까지 바꿔 놓고 나가면 안 된다.
+    import warnings
+    before = warnings.showwarning
+    with stage.warnings_through_bar():
+        pass
+    check(warnings.showwarning is before, "빠져나오면 원래대로 돌려놔야 한다")
+
+
+def test_BOUNDARY_no_image_url_survives_into_the_output():
+    """**결과물에 그림 주소가 남으면 안 된다.**
+
+    못 읽은 공고는 `기술스택` 칸에 주소가 든 채로 나갔다. 그러면 다음 단계가 그 주소를
+    기술 이름으로 읽는다 — 없는 것보다 나쁘다.
+
+    여기까지 왔는데도 못 읽었으면 못 읽는 것이다. 내려받기 재시도도, 구식 TLS 물러서기도,
+    여백에서 자르기도 다 거친 뒤다. 그래서 마지막에 걸러 낸다.
+
+    **캐시에는 여전히 안 넣는다** — 그게 진짜 안전장치다. `merged_read.csv` 는 매 실행
+    처음부터 다시 만들어지므로, 여기서 빠져도 원본에 남아 다음 실행에 다시 시도된다.
+    """
+    def boom(url, dest, **kwargs):
+        raise fetch.FetchError("못 받음")
+
+    rows = [_row(tech="Java, Spring"),
+            dict(_row(tech="https://img/1.png"), URL="https://example.com/2")]
+    _code, out, book = _run_stage(rows, download=boom)
+    check_equal(len(out), 1, "못 읽은 행은 빠진다: %r" % [r["기업명"] for r in out])
+    check_equal(out[0]["기술스택"], "Java, Spring", "그림 아닌 행은 그대로")
+    for r in out:
+        check("http" not in r["기술스택"], "주소가 남았다: %r" % r["기술스택"])
+    check_equal(book, {}, "우리 실패는 캐시에 안 넣는다 — 다음 실행에 다시 시도해야 한다")

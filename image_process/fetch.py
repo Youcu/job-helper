@@ -19,6 +19,7 @@
 """
 from __future__ import annotations
 
+import ssl
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -35,10 +36,46 @@ class FetchError(RuntimeError):
     """그림을 못 받았다. **버림 판정에 쓰면 안 된다.**"""
 
 
-def _fetch(url: str, timeout: int) -> bytes:
+def relaxed_context() -> ssl.SSLContext:
+    """암호 모음만 한 칸 낮춘 TLS 설정. **인증서 검증은 그대로 켜 둔다.**
+
+    낮추는 것은 `SECLEVEL` 하나다 — 호스트 이름 확인도, 인증서 검증도 건드리지 않는다.
+    "안 되면 검증을 끈다" 는 유혹이 있는데, 그러면 아무 서버나 그 회사인 척할 수 있다.
+    """
+    context = ssl.create_default_context()
+    context.set_ciphers("DEFAULT@SECLEVEL=1")
+    return context
+
+
+def _open(url: str, timeout: int, context: ssl.SSLContext | None = None) -> bytes:
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(request, timeout=timeout) as response:
+    if context is None:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            return response.read()
+    opener = urllib.request.build_opener(urllib.request.HTTPSHandler(context=context))
+    with opener.open(request, timeout=timeout) as response:
         return response.read()
+
+
+def _fetch(url: str, timeout: int) -> bytes:
+    """**기본 보안 설정으로 먼저 붙고, 악수가 깨질 때만 한 칸 물러선다.**
+
+    오래된 서버는 TLS 악수 단계에서 연결을 끊는다. `m.altwell.co.kr` 은 `AES128-SHA`
+    하나만 지원하는데 파이썬 기본 설정(보안 수준 2)이 그 암호를 목록에서 빼서 악수가
+    깨진다 — `curl` 은 같은 주소를 5/5 로 받는다.
+
+    **재시도로는 안 풀린다.** 우리 설정이 그 서버와 안 맞는 것이라 백 번을 걸어도 백 번
+    실패한다. 실제로 전체 실행 네 번에서 네 번 다 같은 공고를 잃었고, 그 공고에는
+    Delphi·Visual Basic·MS-SQL 같은 구체적인 자격요건이 그림 안에 온전히 들어 있었다.
+
+    **HTTP 오류에는 물러서지 않는다.** 404 는 TLS 문제가 아니라서 낮춰 봐야 똑같이 404 다.
+    """
+    try:
+        return _open(url, timeout)
+    except urllib.error.HTTPError:
+        raise
+    except (urllib.error.URLError, OSError):
+        return _open(url, timeout, context=relaxed_context())
 
 
 def download(url: str, dest: Path, *, timeout: int = TIMEOUT, opener=None) -> Path:
