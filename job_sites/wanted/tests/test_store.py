@@ -9,7 +9,7 @@ from tests.helpers import assert_raises
 
 
 def test_BOUNDARY_extra_columns_are_dropped_on_write():
-    """사이트가 여분 필드를 넣어도 스키마는 12컬럼 그대로다."""
+    """사이트가 여분 필드를 넣어도 스키마는 13컬럼 그대로다."""
     import tempfile
     with tempfile.TemporaryDirectory() as d:
         path = Path(d) / "out.csv"

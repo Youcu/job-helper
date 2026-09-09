@@ -121,6 +121,9 @@ def to_row(job: dict) -> dict:
     detail = job.get("detail") or {}
     return {
         "기업명": (job.get("company") or {}).get("name") or "",
+        # 공고 제목은 상세의 `position` 이다. 목록 응답에는 없다 — 상세를 안 받은
+        # 공고는 빈칸이 되고, 그건 사실대로 빈 것이지 못 읽은 것이 아니다.
+        "공고명": (detail.get("position") or "").strip(),
         "마감일": format_deadline(job.get("due_time")),
         "지원자격": (detail.get("requirements") or "").strip(),
         "우대사항": (detail.get("preferred_points") or "").strip(),

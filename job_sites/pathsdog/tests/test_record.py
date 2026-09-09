@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from _common.store import COLUMNS
 from lib.record import (BLANKS, SITE_NAME, company_name, field, find_salary,
+                        posting_title,
                         format_deadline, full_description, matches_employment,
                         matches_locations, split_sections, to_row, workplace)
 
@@ -33,7 +34,7 @@ def test_NORMAL_row_has_every_column():
 
 def test_NORMAL_real_detail_fills_the_body():
     row = to_row(_listing(), detail_text(), candidates_file=temp_json())
-    for column in ("기업명", "마감일", "경력", "지원자격", "기술스택"):
+    for column in ("기업명", "공고명", "마감일", "경력", "지원자격", "기술스택"):
         check(row[column].strip(), "%s 가 비었다" % column)
 
 
@@ -42,6 +43,21 @@ def test_NORMAL_reads_labelled_fields():
     check_equal(field(text, "경력"), "신입", "라벨 값")
     check_equal(field(text, "근무지"), "서울 강남구", "라벨 값")
     check_equal(field(text, "없는라벨"), "", "없으면 빈칸")
+
+
+def test_NORMAL_title_from_the_head_line():
+    """머리줄은 `📋 회사 - 공고명` 이다. 회사 쪽과 **같은 규칙으로** 가른다.
+
+    가를 자리가 없으면 빈칸을 돌린다 — 머리줄 전체를 제목이라고 보면 회사 이름만
+    적힌 머리줄이 공고명 칸에 들어간다. 그때는 목록에서 뽑아 둔 제목을 쓴다.
+    """
+    check_equal(posting_title("📋 ㈜네비웍스 - AI 서비스 백엔드 개발자(신입)\n"),
+                "AI 서비스 백엔드 개발자(신입)", "제목")
+    check_equal(posting_title("📋 회사만있음\n"), "", "가를 수 없으면 빈칸")
+    check_equal(posting_title("머리줄 없음"), "", "머리줄이 없으면 빈칸")
+    check_equal(to_row(_listing(제목="목록제목"), "머리줄 없음",
+                       candidates_file=temp_json())["공고명"], "목록제목",
+                "머리줄을 못 읽으면 목록에서 뽑아 둔 제목으로 돌아간다")
 
 
 def test_NORMAL_company_from_the_head_line():

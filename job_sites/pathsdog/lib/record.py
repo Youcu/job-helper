@@ -81,6 +81,7 @@ def to_row(listing: dict, detail: str, *, candidates_file=None) -> dict:
                                          candidates_file=candidates_file)
     row = {
         "기업명": company_name(detail) or listing.get("기업명", ""),
+        "공고명": posting_title(detail) or listing.get("제목", ""),
         "마감일": format_deadline(detail, listing),
         "지원자격": _trim(qualification),
         "우대사항": _trim(preference),
@@ -112,6 +113,21 @@ def company_name(detail: str) -> str:
         return ""
     company, _, title = found.group(1).partition(" - ")
     return company.strip() if title else ""
+
+
+def posting_title(detail: str) -> str:
+    """머리줄의 공고 제목. `📋 ㈜네비웍스 - AI 서비스 백엔드 개발자(신입)` 의 뒤쪽.
+
+    회사와 제목은 ` - ` 로 갈리는데 **회사 이름에도 하이픈이 들어갈 수 있어** 처음
+    하나만 쓴다. 가르는 자리가 없으면 머리줄 전체가 제목이라고 보지 않는다 —
+    회사 이름만 적힌 머리줄을 제목 칸에 넣게 된다. 그럴 땐 빈칸을 돌리고
+    목록에서 뽑아 둔 제목을 쓴다.
+    """
+    found = HEAD.search(detail or "")
+    if not found:
+        return ""
+    _, _, title = found.group(1).partition(" - ")
+    return title.strip()
 
 
 def full_description(detail: str) -> str:

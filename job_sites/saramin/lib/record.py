@@ -53,6 +53,9 @@ def to_row(listing: dict, page: str = "", image_urls: list[str] | None = None) -
     qualification, preference = split_sections(page)
     row = {
         "기업명": listing.get("기업명", ""),
+        # 제목은 목록 카드에서 이미 뽑아 온다. 상세에는 같은 글이 여러 자리에
+        # 흩어져 있어 무엇이 제목인지 가리기 어렵다 — 카드가 더 확실하다.
+        "공고명": listing.get("제목", ""),
         "마감일": find_deadline(page, listing.get("마감일", "")),
         "지원자격": qualification,
         "우대사항": preference,

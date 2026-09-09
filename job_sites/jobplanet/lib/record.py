@@ -51,6 +51,7 @@ def to_row(posting: dict, detail: dict, *, candidates_file=None) -> dict:
                                          candidates_file=candidates_file)
     row = {
         "기업명": _text(detail.get("name")) or _company_name(posting),
+        "공고명": _text(detail.get("title")) or _text(posting.get("title")),
         "마감일": format_deadline(detail.get("end_at") or posting.get("end_at")),
         "지원자격": _trim(_text(detail.get("required_qualification"))),
         "우대사항": _trim(_text(detail.get("preferred_skill"))),

@@ -58,6 +58,7 @@ def test_EXCEPTION_empty_and_missing_fields_do_not_crash():
            "skill_tags": None, "annual_from": None, "annual_to": None, "due_time": None}
     row = to_row(job)
     assert row["기업명"] == "" and row["근무지"] == ""
+    assert row["공고명"] == ""      # 상세를 못 받으면 공고명도 없다. 빈칸이 사실이다
     assert row["경력"] == "경력무관" and row["마감일"] == "상시채용"
     assert row["기술스택"] == ""
     assert extract_skills({}) == []
@@ -92,11 +93,14 @@ def test_NORMAL_row_from_real_api_responses():
         row = to_row(payload["job"])
         assert set(row) == set(COLUMNS) - history, "컬럼 구성이 스키마와 다르다"
         assert row["기업명"] and row["마감일"] and row["근무지"]
+        # 공고명은 **상세에만** 있다 (`detail.position`). 목록 응답에는 없다.
+        assert row["공고명"] == (payload["job"]["detail"] or {})["position"].strip()
+        assert row["공고명"], "실제 응답이면 공고명이 차 있어야 한다"
         assert row["사이트명"] == "wanted"
         assert row["연봉"] == ""                      # Wanted 는 연봉을 주지 않는다
         assert row["URL"].startswith("https://www.wanted.co.kr/wd/")
 
-    # 병합을 거치면 12칸이 다 찬다 — CSV 로 나가는 모양이다
+    # 병합을 거치면 13칸이 다 찬다 — CSV 로 나가는 모양이다
     merged = merge([], [to_row(p["job"]) for p in FIXTURES.values()], today="2026-09-03")
     assert all(set(r) == set(COLUMNS) for r in merged.rows)
 
