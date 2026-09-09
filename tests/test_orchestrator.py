@@ -22,9 +22,9 @@ import job_crawling_ochestrator as orch
 from .helpers import check, check_equal, read_csv, temp_dir, write_csv
 
 
-def _result(site, code=0, rows=0, log="", error="", seconds=1.0, output=None):
+def _result(site, code=0, rows=0, log="", error="", seconds=1.0, output=None, err=""):
     return orch.Result(site=site, code=code, rows=rows, log=log, error=error,
-                       seconds=seconds, output=output)
+                       seconds=seconds, output=output, err=err)
 
 
 def _image(code=0, log=""):
@@ -198,6 +198,47 @@ def test_BOUNDARY_last_lines_takes_the_end_not_the_start():
     # 오류는 대개 끝에 있다. 앞을 보여 주면 정상 진행만 보인다.
     log = "\n".join("줄 %d" % n for n in range(1, 21))
     check_equal(orch._last_lines(log, 3), ["줄 18", "줄 19", "줄 20"], "끝에서 셋")
+
+
+def test_BOUNDARY_block_reason_survives_a_noisy_stdout():
+    """**결함이었다.** 스크래퍼가 `403 으로 막았습니다` 를 stdout 에 찍었는데, stdout 끝
+    8줄은 뒤따라 나온 안내문이 차지해 정작 왜 막혔는지가 화면에서 사라졌다.
+
+    403(차단)과 429(속도 제한)는 대응이 정반대다. 그 한 줄이 다음 실행을 가른다.
+    이제 스크래퍼는 멈춘 이유를 stderr 로 말하고, 여기서는 그것을 **먼저 통째로** 보여 준다.
+    """
+    reason = "차단됨: 잡플래닛이 403 로 막았습니다 (https://…/postings/1)."
+    noise = "\n".join("안내 %d줄" % n for n in range(1, 21))
+    result = _result("jobplanet", code=2, err=reason + "\n차단돼서 0건에서 멈췄습니다.",
+                     log=noise + "\n" + reason + "\n" + noise)
+
+    shown = _captured_failure_report([result])
+    check("403" in shown, "왜 막혔는지가 남아야 한다:\n%s" % shown)
+    check("차단됨" in shown, "스크래퍼가 한 말이 남아야 한다")
+
+
+def test_BOUNDARY_failure_report_falls_back_when_there_is_no_stderr():
+    # 아무 말 없이 죽는 스크래퍼도 있다. 그때는 진행 기록 끝부분만 보여 준다.
+    result = _result("jumpit", code=1, err="", log="설정 오류: YOE 가 비어 있습니다")
+    shown = _captured_failure_report([result])
+    check("YOE" in shown, "stderr 가 없어도 stdout 끝은 보여야 한다:\n%s" % shown)
+    check("스크래퍼가 말한 것" not in shown, "빈 stderr 에 머리말을 달지 않는다")
+
+
+def _captured_failure_report(results) -> str:
+    import contextlib, io
+    buffer = io.StringIO()
+    with contextlib.redirect_stderr(buffer):
+        orch._print_failures(results)
+    return buffer.getvalue()
+
+
+def test_BOUNDARY_first_lines_takes_the_start_not_the_end():
+    # stderr 는 앞쪽이 이유다 — 처음 막힌 곳이 원인이고 뒤는 그 여파다.
+    text = "\n".join("줄 %d" % n for n in range(1, 21))
+    check_equal(orch._first_lines(text, 3), ["줄 1", "줄 2", "줄 3"], "앞에서 셋")
+    check_equal(orch._first_lines("", 5), [], "빈 글")
+    check_equal(orch._first_lines(None, 5), [], "글이 없어도 터지지 않는다")
 
 
 def test_BOUNDARY_site_list_matches_the_folders():

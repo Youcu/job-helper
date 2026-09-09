@@ -49,6 +49,13 @@ TIMEOUT_SECONDS = 60 * 30
 # 실패한 사이트의 마지막 몇 줄을 보여 준다. 설정 오류 메시지가 여러 줄이라 넉넉히 잡았다.
 MAX_ERROR_LINES = 8
 
+# 자식이 stderr 로 한 말은 **끝에서 자르지 않고** 이만큼까지 그대로 보여 준다.
+#
+# 잡플래닛이 막혔을 때 스크래퍼는 `403 으로 막았습니다` 라고 실제로 찍었는데, 그 줄이
+# stdout 에 있었고 stdout 끝 8줄은 corpus 안내문이 차지해 **정작 왜 막혔는지가 안 보였다.**
+# 403(차단)과 429(속도 제한)는 대응이 정반대라 그 한 줄이 다음 실행을 가른다.
+MAX_STDERR_LINES = 25
+
 # 스크래퍼가 약속한 종료 코드. **`4` 는 실패가 아니다** — 잡플래닛이 "조건이 넓어
 # 이번엔 건너뛴다" 고 말하는 신호다. 실패로 세면 파이프라인 전체가 멎는다.
 EXIT_MEANING = {
@@ -83,6 +90,9 @@ class Result:
     rows: int = 0
     output: Path | None = None
     log: str = ""
+    # 자식이 **stderr 로 한 말**. `log` 와 따로 든다 — stdout 은 진행 기록이고
+    # stderr 는 "왜 멈췄나" 다. 섞어 두면 끝 몇 줄을 볼 때 진행 기록에 밀려 사라진다.
+    err: str = ""
     error: str = ""
     # 어느 종료 코드 표로 읽을 것인가. 기본은 스크래퍼의 표다.
     meanings: dict = field(default_factory=lambda: EXIT_MEANING)
@@ -139,23 +149,46 @@ def _print_failures(failed: list[Result]) -> None:
 
     "설정 오류" 라고만 하면 사람이 폴더를 하나씩 뒤져야 한다. 스크래퍼는 어느 `.env` 항목을
     채워야 하는지까지 말해 주므로, 그 말을 여기로 끌어올린다.
+
+    **stderr 를 먼저 통째로 보여 준다.** 스크래퍼가 "왜 멈췄나" 를 말하는 자리가 거기다.
+    stdout 은 진행 기록이라 양이 많고, 끝 몇 줄만 보면 정작 이유가 밀려 사라진다 —
+    실제로 잡플래닛의 `403 으로 막았습니다` 를 그렇게 잃었다.
     """
     print("\n%s" % ("=" * 62), file=sys.stderr)
     print("실패한 사이트 %d곳" % len(failed), file=sys.stderr)
     for result in failed:
         print("\n── %s (%s)" % (result.site, result.meaning), file=sys.stderr)
+        said = _first_lines(result.err, MAX_STDERR_LINES)
+        if said:
+            print("   [스크래퍼가 말한 것]", file=sys.stderr)
+            for line in said:
+                print("   %s" % line, file=sys.stderr)
+            print("   [진행 기록 끝부분]", file=sys.stderr)
         for line in _last_lines(result.log, MAX_ERROR_LINES):
             print("   %s" % line, file=sys.stderr)
 
 
+def _first_lines(text: str, count: int) -> list[str]:
+    """진행 막대와 빈 줄을 빼고 **앞에서** 몇 줄.
+
+    stderr 는 앞쪽이 중요하다 — 처음 막힌 곳이 이유이고, 뒤따르는 것은 그 여파다.
+    """
+    return _clean_lines(text)[:count]
+
+
 def _last_lines(text: str, count: int) -> list[str]:
     """진행 막대와 빈 줄을 빼고 **끝에서** 몇 줄. 오류는 대개 끝에 있다."""
+    return _clean_lines(text)[-count:]
+
+
+def _clean_lines(text: str) -> list[str]:
+    """진행 막대와 빈 줄을 뺀 줄들."""
     lines = []
     for raw in (text or "").replace("\r", "\n").split("\n"):
         line = raw.rstrip()
         if line.strip() and "|" not in line[:20]:      # tqdm 막대는 건너뛴다
             lines.append(line)
-    return lines[-count:]
+    return lines
 
 
 def _find_scrapers() -> dict[str, Path]:
@@ -196,6 +229,7 @@ def _run_one(site: str, script: Path) -> Result:
         )
         result.code = done.returncode
         result.log = (done.stdout or "") + (done.stderr or "")
+        result.err = done.stderr or ""
     except subprocess.TimeoutExpired:
         result.error = "%d분을 넘겨 끊었습니다" % (TIMEOUT_SECONDS // 60)
     except Exception as error:                     # 여기서 죽으면 나머지 사이트도 잃는다
@@ -236,6 +270,7 @@ def _run_image_stage() -> Result:
         )
         result.code = done.returncode
         result.log = (done.stdout or "") + (done.stderr or "")
+        result.err = done.stderr or ""
     except subprocess.TimeoutExpired:
         result.error = "%d분을 넘겨 끊었습니다" % (TIMEOUT_SECONDS // 60)
     except Exception as error:

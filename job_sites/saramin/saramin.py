@@ -96,7 +96,7 @@ def _collect_details(client, listings: list[dict]):
         try:
             page = fetch_detail(client, rec_idx)
         except BlockedError as error:
-            tqdm.write("차단됨: %s" % error)
+            tqdm.write("차단됨: %s" % error, file=sys.stderr)
             stats["차단"] = True
             break
         except Exception as error:
