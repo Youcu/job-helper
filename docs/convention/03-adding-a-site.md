@@ -99,7 +99,7 @@ def find_skills_in_text(text: str) -> list[str]:
 ### CSV
 - [ ] `_common/store.py` 의 `COLUMNS` 를 그대로 쓴다. 사이트에 없는 값도 **빈칸으로 남긴다**
 - [ ] `사이트명` 을 그 사이트 이름으로 고정
-- [ ] `record.to_row()` 는 앞 10칸만. 이력 두 칸은 `merge()` 가 채운다
+- [ ] `record.to_row()` 는 앞 11칸만. 이력 두 칸은 `merge()` 가 채운다
 - [ ] URL 이 없는 응답은 행을 만들지 않는다
 - [ ] 기술스택이 하나도 없으면 행을 뺀다. 뺀 개수를 알린다
 

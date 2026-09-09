@@ -12,7 +12,7 @@
 |---|---|
 | 전체 그림이 궁금하다 | [01-architecture.md](01-architecture.md) — 무엇이 공통이고 무엇이 사이트 것인가 |
 | **새 사이트를 붙인다** | [03-adding-a-site.md](03-adding-a-site.md) — 순서대로 따라가는 체크리스트 |
-| CSV 컬럼을 채워야 한다 | [02-data-contract.md](02-data-contract.md) — 12컬럼의 정의와 채우는 규칙 |
+| CSV 컬럼을 채워야 한다 | [02-data-contract.md](02-data-contract.md) — 13컬럼의 정의와 채우는 규칙 |
 | 코드를 쓴다 | [04-code-conventions.md](04-code-conventions.md) — 이름·경계·주석·실패 처리 |
 | 테스트를 쓴다 | [05-testing.md](05-testing.md) — 통과용 테스트를 막는 규칙 |
 | **왜 이렇게 했는지** 알고 싶다 | [06-decisions.md](06-decisions.md) — 결정과 그 근거 |
