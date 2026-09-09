@@ -48,6 +48,23 @@ def test_BOUNDARY_workplace_falls_back_and_prefixes():
     assert format_workplace({}) == ""
 
 
+def test_BOUNDARY_workplace_gets_the_missing_sido():
+    """결함: 구는 적고 시도를 빼먹은 주소가 8행 있었다 — `서초구 강남대로 465`.
+
+    계약은 `시도 구 상세주소` 인데 그런 행은 시도로 묶이지 않는다. 등록된 시도가
+    응답에 있으므로 앞에 붙인다. **이미 시도로 시작하면 건드리지 않는다.**
+    """
+    assert format_workplace(
+        {"location": "서울", "district": "서초구", "full_location": "서초구 강남대로 465"}
+    ) == "서울 서초구 강남대로 465"
+    assert format_workplace(
+        {"location": "서울", "district": "강남구", "full_location": "서울시 강남구 선릉로 525"}
+    ) == "서울시 강남구 선릉로 525", "이미 시도가 있으면 그대로 (짧은 표기는 저장할 때 맞춘다)"
+    assert format_workplace(
+        {"district": "서초구", "full_location": "서초구 강남대로 465"}
+    ) == "서초구 강남대로 465", "등록된 시도가 없으면 지어내지 않는다"
+
+
 # ----------------------------------------------------------------------
 # 재실행 — 파이프라인은 주기로 돈다
 # ----------------------------------------------------------------------

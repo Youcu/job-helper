@@ -31,6 +31,7 @@ MODULES = [
     "tests.test_store",
     "tests.test_roles",
     "tests.test_outcome",
+    "tests.test_contract",
     "tests.test_corpus_candidates",
     "tests.test_config",
     "tests.test_client",

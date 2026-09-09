@@ -343,7 +343,7 @@ def _print_report(results: list[Result], merged: int, elapsed: float) -> None:
 
     print("\n%s — %d행" % (OUTPUT.relative_to(ROOT_DIR), merged))
     print("  사이트별 CSV 는 그대로 두었습니다. 어느 사이트에서 왔는지는 `사이트명` 칸에 있습니다.")
-    print("  **손대지 않고 그대로 이어 붙였습니다** — 중복 제거·정규화는 다음 단계의 일입니다.")
+    print("  **행을 손대지 않고 그대로 이어 붙였습니다** — 중복 제거는 다음 단계의 일입니다.")
 
     stale = [r for r in results if r.stale]
     if stale:

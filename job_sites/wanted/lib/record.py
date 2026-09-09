@@ -5,6 +5,7 @@
 """
 from __future__ import annotations
 
+from _common.place import SIDO
 from _common.store import COLUMNS  # noqa: F401  (사이트 공통 스키마. 다시 내보낸다)
 
 from .skills import find_skills_in_text, normalize_tag
@@ -55,17 +56,34 @@ def format_workplace(address: dict | None) -> str:
     `full_location` 은 회사 자유 입력이라 구 이름이 빠지거나('테헤란로 201')
     다른 구가 적히기도 한다('서초구 …' 인데 등록 구는 강남구). 그대로 쓰면
     근무지로 거른 결과를 CSV 에서 다시 확인할 수 없어서, 구조화된 값을 앞세운다.
+
+    **구를 적고 시도를 빼먹은 주소도 많다** — `서초구 강남대로 465`. 계약은
+    `시도 구 상세주소` 를 요구하는데 그런 행은 시도로 묶을 수가 없다(실측 8행).
+    구가 이미 있어 상세를 그대로 쓰는 경우에도, 시도가 없으면 앞에 붙인다.
     """
     address = address or {}
     full = (address.get("full_location") or "").strip()
     district = (address.get("district") or "").strip()
-    structured = " ".join(p for p in [address.get("location"), district] if p).strip()
+    location = (address.get("location") or "").strip()
+    structured = " ".join(p for p in [location, district] if p).strip()
 
     if not full:
         return structured
-    if not structured or (district and district in full):
+    if not structured:
         return full
+    if district and district in full:
+        return _with_sido(full, location)
     return f"{structured} · {full}"
+
+
+def _with_sido(full: str, location: str) -> str:
+    """상세 주소가 시도로 시작하지 않으면 등록된 시도를 앞에 붙인다."""
+    if not location:
+        return full
+    head = full.split(" ", 1)[0]
+    if head in SIDO or any(head == long for longs in SIDO.values() for long in longs):
+        return full
+    return "%s %s" % (location, full)
 
 
 def skill_body_text(job: dict) -> str:
