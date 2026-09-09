@@ -23,6 +23,7 @@ def _listing(**fields):
 def test_NORMAL_row_has_every_column():
     row = to_row(_listing(), detail("49911986"), body_html("49911986"))
     check_equal(list(row), list(COLUMNS), "칸 이름과 순서가 스키마와 같아야 한다")
+    check(row["공고명"].strip(), "실제 응답이면 공고명이 차 있어야 한다")
     check_equal(row["사이트명"], SITE_NAME, "사이트명")
     check_equal(row["URL"], "https://www.jobkorea.co.kr/Recruit/GI_Read/49911986", "URL")
 
@@ -36,6 +37,21 @@ def test_NORMAL_structured_data_wins_over_listing():
     check_equal(row["기업명"], "상세기업", "상세가 목록보다 정확하다")
     check_equal(row["마감일"], "2026-09-30", "절대 날짜")
     check_equal(row["근무지"], "서울시 강남구 테헤란로", "주소")
+
+
+def test_NORMAL_title_prefers_structured_data():
+    """공고명도 구조화 데이터를 먼저 쓴다 — 목록 카드 제목은 잘려 오는 일이 있다.
+
+    JSON-LD 의 제목에는 줄바꿈과 겹공백이 그대로 들어 있다(실측: `가능한  AI`).
+    CSV 한 칸에 들어가야 하므로 한 칸으로 눌러 한 줄로 만든다.
+    """
+    html = posting(title="  디자인 및 개발 가능한  AI\n 서비스 기획 ")
+    check_equal(to_row(_listing(), html, "")["공고명"],
+                "디자인 및 개발 가능한 AI 서비스 기획", "겹공백과 줄바꿈은 한 칸으로")
+    check_equal(to_row(_listing(), "", "")["공고명"], "백엔드 개발자",
+                "구조화 데이터가 없으면 목록 카드의 제목")
+    check_equal(to_row(_listing(제목=""), "", "")["공고명"], "",
+                "둘 다 없으면 빈칸")
 
 
 def test_NORMAL_image_urls_go_into_skill_column():

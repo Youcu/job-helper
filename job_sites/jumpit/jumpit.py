@@ -92,7 +92,7 @@ def _collect_details(client, positions: list[dict]):
         try:
             detail = fetch_detail(client, position["id"])
         except BlockedError as error:
-            tqdm.write("차단됨: %s" % error)
+            tqdm.write("차단됨: %s" % error, file=sys.stderr)
             stats["차단"] = True
             break
         except Exception as error:

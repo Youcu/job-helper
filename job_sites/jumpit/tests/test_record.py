@@ -16,6 +16,17 @@ from lib.record import (ALWAYS_OPEN, SITE_NAME, career_text, format_deadline,
 from .helpers import check, check_equal, check_raises, detail, position, temp_json
 
 
+def test_NORMAL_title_prefers_the_detail():
+    """공고명은 상세를 먼저 쓰고, 없으면 목록 항목의 것을 쓴다. 둘 다 `title` 이다."""
+    check_equal(to_row({"id": 1, "title": "목록제목", "techStacks": ["java"]},
+                       {"title": "상세제목"},
+                       candidates_file=temp_json())["공고명"], "상세제목", "상세가 이긴다")
+    check_equal(to_row({"id": 1, "title": "목록제목", "techStacks": ["java"]}, {},
+                       candidates_file=temp_json())["공고명"], "목록제목", "상세가 비면 목록")
+    check_equal(to_row({"id": 1, "techStacks": ["java"]}, {},
+                       candidates_file=temp_json())["공고명"], "", "둘 다 없으면 빈칸")
+
+
 def test_NORMAL_row_has_every_column():
     row = to_row(position(), detail(), candidates_file=temp_json())
     check_equal(list(row), list(COLUMNS), "칸 이름과 순서가 스키마와 같아야 한다")
@@ -25,7 +36,7 @@ def test_NORMAL_row_has_every_column():
 
 def test_NORMAL_real_posting_fills_everything_but_salary():
     row = to_row(position(), detail(), candidates_file=temp_json())
-    for column in ("기업명", "마감일", "지원자격", "우대사항", "경력", "근무지", "기술스택"):
+    for column in ("기업명", "공고명", "마감일", "지원자격", "우대사항", "경력", "근무지", "기술스택"):
         check(row[column].strip(), "%s 가 비었다" % column)
     check_equal(row["연봉"], "", "이 사이트는 급여를 안 준다")
 

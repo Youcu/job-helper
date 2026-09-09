@@ -3,8 +3,8 @@
 여러 채용 사이트에서 **같은 모양의 결과물**을 뽑기 위한 규약이다.
 사이트가 늘어도 CSV 한 벌로 합쳐 볼 수 있어야 하고, 코드가 늘어도 읽는 방식이 같아야 한다.
 
-여섯이 다 구현돼 있다 — `wanted` `saramin` `jobkorea` `jobplanet` `jumpit` `pathsdog`.
-**이 문서들은 일곱 번째를 붙일 때 기준이 되고, 여섯이 서로 어긋나지 않게 붙잡는다.**
+다섯이 구현돼 있다 — `wanted` `saramin` `jobkorea` `jobplanet` `jumpit`.
+**이 문서들은 여섯 번째를 붙일 때 기준이 되고, 다섯이 서로 어긋나지 않게 붙잡는다.**
 
 ## 어디부터 읽나
 
@@ -12,7 +12,7 @@
 |---|---|
 | 전체 그림이 궁금하다 | [01-architecture.md](01-architecture.md) — 무엇이 공통이고 무엇이 사이트 것인가 |
 | **새 사이트를 붙인다** | [03-adding-a-site.md](03-adding-a-site.md) — 순서대로 따라가는 체크리스트 |
-| CSV 컬럼을 채워야 한다 | [02-data-contract.md](02-data-contract.md) — 12컬럼의 정의와 채우는 규칙 |
+| CSV 컬럼을 채워야 한다 | [02-data-contract.md](02-data-contract.md) — 13컬럼의 정의와 채우는 규칙 |
 | 코드를 쓴다 | [04-code-conventions.md](04-code-conventions.md) — 이름·경계·주석·실패 처리 |
 | 테스트를 쓴다 | [05-testing.md](05-testing.md) — 통과용 테스트를 막는 규칙 |
 | **왜 이렇게 했는지** 알고 싶다 | [06-decisions.md](06-decisions.md) — 결정과 그 근거 |

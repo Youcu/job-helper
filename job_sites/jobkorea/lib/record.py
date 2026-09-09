@@ -57,6 +57,9 @@ def to_row(listing: dict, detail_html: str = "", body_html: str = "",
     found = skills.extract_skills(body_html) + list(image_urls or [])
     row = {
         "기업명": _organization(posting) or listing.get("기업명", ""),
+        # 상세의 구조화 데이터(JobPosting.title)를 먼저 쓴다. 목록 카드 제목은
+        # 말줄임이 붙어 오는 경우가 있어 뒤로 미룬다.
+        "공고명": _title(posting) or listing.get("제목", ""),
         "마감일": format_deadline(posting.get("validThrough"), listing.get("마감일", "")),
         "지원자격": qualification,
         "우대사항": preference,
@@ -81,6 +84,11 @@ def job_posting(detail_html: str) -> dict:
         # 구조화 데이터가 깨졌다고 수집이 멈추면 안 된다. 목록 값으로 채운다.
         return {}
     return data if data.get("@type") == "JobPosting" else {}
+
+
+def _title(posting: dict) -> str:
+    """구조화 데이터의 공고 제목. 줄바꿈·겹공백은 한 칸으로 눌러 한 줄로 만든다."""
+    return re.sub(r"\s+", " ", str(posting.get("title") or "")).strip()
 
 
 def _organization(posting: dict) -> str:

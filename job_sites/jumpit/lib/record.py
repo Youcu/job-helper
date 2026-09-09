@@ -40,6 +40,7 @@ def to_row(position: dict, detail: dict, *, candidates_file=None) -> dict:
                                          candidates_file=candidates_file)
     row = {
         "기업명": _text(detail.get("companyName")) or _text(position.get("companyName")),
+        "공고명": _text(detail.get("title")) or _text(position.get("title")),
         "마감일": format_deadline(detail, position),
         "지원자격": _trim(_text(detail.get("qualifications"))),
         "우대사항": _trim(_text(detail.get("preferredRequirements"))),

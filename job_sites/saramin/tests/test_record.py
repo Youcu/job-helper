@@ -36,6 +36,19 @@ def test_NORMAL_row_has_every_column_in_order():
     check_equal(row["URL"], record.DETAIL_URL % "123", "URL 은 키다")
 
 
+def test_NORMAL_title_comes_from_the_listing_card():
+    """공고명은 목록 카드에서 온다.
+
+    상세 페이지에는 같은 글이 제목·탭·og:title 로 여러 자리에 흩어져 있어 무엇이
+    공고 제목인지 가리기 어렵다. 카드는 `div.job_tit > span` 한 자리라 확실하다.
+    """
+    page = body("<p>본문</p>")
+    check_equal(record.to_row(dict(LISTING, 제목="백엔드 개발자 (신입)"), page)["공고명"],
+                "백엔드 개발자 (신입)", "카드 제목이 그대로 온다")
+    check_equal(record.to_row(LISTING, page)["공고명"], "",
+                "카드에서 제목을 못 뽑았으면 빈칸이다 — 다른 자리에서 지어내지 않는다")
+
+
 def test_NORMAL_sections_are_split():
     page = body("<p>자격요건</p><p>대졸 이상</p><p>우대사항</p><p>석사 우대</p>")
     qualification, preference = record.split_sections(page)

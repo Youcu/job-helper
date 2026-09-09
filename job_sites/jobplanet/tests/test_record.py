@@ -31,8 +31,22 @@ def test_NORMAL_row_has_every_column():
 
 def test_NORMAL_real_own_posting_fills_the_body():
     row = to_row(_posting(), own_detail(), candidates_file=temp_json())
-    for column in ("기업명", "지원자격", "경력", "근무지", "기술스택"):
+    for column in ("기업명", "공고명", "지원자격", "경력", "근무지", "기술스택"):
         check(row[column].strip(), "%s 가 비었다" % column)
+
+
+def test_NORMAL_title_prefers_the_detail():
+    """공고명은 상세를 먼저 쓰고, 상세를 못 받았으면 목록 항목의 것을 쓴다.
+
+    둘 다 `title` 로 온다. 중계 공고는 상세가 통째로 비는 일이 있어 **목록 쪽이
+    유일한 출처**가 된다 — 그때 빈칸을 내보내면 공고명 없는 행이 CSV 에 남는다.
+    """
+    check_equal(to_row(_posting(title="목록제목"), {"title": "상세제목"},
+                       candidates_file=temp_json())["공고명"], "상세제목", "상세가 이긴다")
+    check_equal(to_row(_posting(title="목록제목"), {},
+                       candidates_file=temp_json())["공고명"], "목록제목", "상세가 비면 목록")
+    check_equal(to_row(_posting(), {}, candidates_file=temp_json())["공고명"], "",
+                "둘 다 없으면 빈칸")
 
 
 def test_NORMAL_detail_wins_over_listing():

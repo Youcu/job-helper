@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""여섯 채용 사이트를 한꺼번에 돌리고 결과를 합친다.
+"""다섯 채용 사이트를 한꺼번에 돌리고 결과를 합친다.
 
     python3 job_crawling_ochestrator.py
 
-Wanted · 사람인 · 잡코리아 · 잡플래닛 · 점핏 · Pathsdog 를 **병렬로** 돌리고,
+Wanted · 사람인 · 잡코리아 · 잡플래닛 · 점핏 을 **병렬로** 돌리고,
 끝나면 각 사이트 CSV 를 그대로 이어 붙여 `csv/merged.csv` 를 만든다.
 
 **사이트별 CSV 는 그대로 둔다.** 합친 파일은 사본이지 대체물이 아니다 — 어느 사이트에서
@@ -15,7 +15,7 @@ Wanted · 사람인 · 잡코리아 · 잡플래닛 · 점핏 · Pathsdog 를 **
 
 ## 왜 프로세스를 나누나
 
-각 스크래퍼는 자기 `lib/` 를 `sys.path` 맨 앞에 넣는다. 한 프로세스에서 여섯을 부르면
+각 스크래퍼는 자기 `lib/` 를 `sys.path` 맨 앞에 넣는다. 한 프로세스에서 여럿을 부르면
 먼저 불린 사이트의 `lib.config` 가 캐시에 남아 뒤엣것이 그것을 쓴다 — 조용히 남의 조건으로
 긁는다. 프로세스를 나누면 그럴 일이 없고, 하나가 죽어도 나머지가 산다.
 """
@@ -41,13 +41,20 @@ from _common.store import COLUMNS                            # noqa: E402
 
 # 돌릴 사이트. **순서가 곧 화면에 뜨는 순서**이고, 합칠 때도 이 차례를 지킨다 —
 # 실행마다 행 순서가 뒤바뀌면 `merged.csv` 를 눈으로 견주기 어렵다.
-SITES = ("wanted", "saramin", "jobkorea", "jobplanet", "jumpit", "pathsdog")
+SITES = ("wanted", "saramin", "jobkorea", "jobplanet", "jumpit")
 
 # 한 사이트가 이보다 오래 걸리면 끊는다. 사람인이 8분대라 넉넉히 잡았다.
 TIMEOUT_SECONDS = 60 * 30
 
 # 실패한 사이트의 마지막 몇 줄을 보여 준다. 설정 오류 메시지가 여러 줄이라 넉넉히 잡았다.
 MAX_ERROR_LINES = 8
+
+# 자식이 stderr 로 한 말은 **끝에서 자르지 않고** 이만큼까지 그대로 보여 준다.
+#
+# 잡플래닛이 막혔을 때 스크래퍼는 `403 으로 막았습니다` 라고 실제로 찍었는데, 그 줄이
+# stdout 에 있었고 stdout 끝 8줄은 corpus 안내문이 차지해 **정작 왜 막혔는지가 안 보였다.**
+# 403(차단)과 429(속도 제한)는 대응이 정반대라 그 한 줄이 다음 실행을 가른다.
+MAX_STDERR_LINES = 25
 
 # 스크래퍼가 약속한 종료 코드. **`4` 는 실패가 아니다** — 잡플래닛이 "조건이 넓어
 # 이번엔 건너뛴다" 고 말하는 신호다. 실패로 세면 파이프라인 전체가 멎는다.
@@ -83,6 +90,9 @@ class Result:
     rows: int = 0
     output: Path | None = None
     log: str = ""
+    # 자식이 **stderr 로 한 말**. `log` 와 따로 든다 — stdout 은 진행 기록이고
+    # stderr 는 "왜 멈췄나" 다. 섞어 두면 끝 몇 줄을 볼 때 진행 기록에 밀려 사라진다.
+    err: str = ""
     error: str = ""
     # 어느 종료 코드 표로 읽을 것인가. 기본은 스크래퍼의 표다.
     meanings: dict = field(default_factory=lambda: EXIT_MEANING)
@@ -114,7 +124,7 @@ def main() -> int:
         print("  job_sites/<사이트>/<사이트>.py 가 있어야 합니다.", file=sys.stderr)
         return 1
 
-    print("여섯 사이트를 병렬로 돌립니다 — %s\n" % " · ".join(SITES))
+    print("%d개 사이트를 병렬로 돌립니다 — %s\n" % (len(SITES), " · ".join(SITES)))
     started = time.monotonic()
     results = _run_all(scrapers)
     elapsed = time.monotonic() - started
@@ -137,25 +147,48 @@ def main() -> int:
 def _print_failures(failed: list[Result]) -> None:
     """왜 실패했는지 **스크래퍼가 한 말을 그대로** 보여준다.
 
-    "설정 오류" 라고만 하면 사람이 여섯 폴더를 뒤져야 한다. 스크래퍼는 어느 `.env` 항목을
+    "설정 오류" 라고만 하면 사람이 폴더를 하나씩 뒤져야 한다. 스크래퍼는 어느 `.env` 항목을
     채워야 하는지까지 말해 주므로, 그 말을 여기로 끌어올린다.
+
+    **stderr 를 먼저 통째로 보여 준다.** 스크래퍼가 "왜 멈췄나" 를 말하는 자리가 거기다.
+    stdout 은 진행 기록이라 양이 많고, 끝 몇 줄만 보면 정작 이유가 밀려 사라진다 —
+    실제로 잡플래닛의 `403 으로 막았습니다` 를 그렇게 잃었다.
     """
     print("\n%s" % ("=" * 62), file=sys.stderr)
     print("실패한 사이트 %d곳" % len(failed), file=sys.stderr)
     for result in failed:
         print("\n── %s (%s)" % (result.site, result.meaning), file=sys.stderr)
+        said = _first_lines(result.err, MAX_STDERR_LINES)
+        if said:
+            print("   [스크래퍼가 말한 것]", file=sys.stderr)
+            for line in said:
+                print("   %s" % line, file=sys.stderr)
+            print("   [진행 기록 끝부분]", file=sys.stderr)
         for line in _last_lines(result.log, MAX_ERROR_LINES):
             print("   %s" % line, file=sys.stderr)
 
 
+def _first_lines(text: str, count: int) -> list[str]:
+    """진행 막대와 빈 줄을 빼고 **앞에서** 몇 줄.
+
+    stderr 는 앞쪽이 중요하다 — 처음 막힌 곳이 이유이고, 뒤따르는 것은 그 여파다.
+    """
+    return _clean_lines(text)[:count]
+
+
 def _last_lines(text: str, count: int) -> list[str]:
     """진행 막대와 빈 줄을 빼고 **끝에서** 몇 줄. 오류는 대개 끝에 있다."""
+    return _clean_lines(text)[-count:]
+
+
+def _clean_lines(text: str) -> list[str]:
+    """진행 막대와 빈 줄을 뺀 줄들."""
     lines = []
     for raw in (text or "").replace("\r", "\n").split("\n"):
         line = raw.rstrip()
         if line.strip() and "|" not in line[:20]:      # tqdm 막대는 건너뛴다
             lines.append(line)
-    return lines[-count:]
+    return lines
 
 
 def _find_scrapers() -> dict[str, Path]:
@@ -164,9 +197,9 @@ def _find_scrapers() -> dict[str, Path]:
 
 
 def _run_all(scrapers: dict[str, Path]) -> list[Result]:
-    """여섯을 동시에 돌린다. **각자 다른 프로세스**라 서로를 못 건드린다.
+    """전부를 동시에 돌린다. **각자 다른 프로세스**라 서로를 못 건드린다.
 
-    자식의 출력은 붙잡아 둔다 — 여섯이 동시에 tqdm 을 그리면 화면이 엉킨다. 대신 여기서
+    자식의 출력은 붙잡아 둔다 — 여럿이 동시에 tqdm 을 그리면 화면이 엉킨다. 대신 여기서
     막대 하나로 진행을 보이고, 끝난 사이트부터 한 줄씩 알린다.
     """
     results: dict[str, Result] = {}
@@ -196,6 +229,7 @@ def _run_one(site: str, script: Path) -> Result:
         )
         result.code = done.returncode
         result.log = (done.stdout or "") + (done.stderr or "")
+        result.err = done.stderr or ""
     except subprocess.TimeoutExpired:
         result.error = "%d분을 넘겨 끊었습니다" % (TIMEOUT_SECONDS // 60)
     except Exception as error:                     # 여기서 죽으면 나머지 사이트도 잃는다
@@ -236,6 +270,7 @@ def _run_image_stage() -> Result:
         )
         result.code = done.returncode
         result.log = (done.stdout or "") + (done.stderr or "")
+        result.err = done.stderr or ""
     except subprocess.TimeoutExpired:
         result.error = "%d분을 넘겨 끊었습니다" % (TIMEOUT_SECONDS // 60)
     except Exception as error:
@@ -254,7 +289,7 @@ def merge_csvs(paths: list[Path], output: Path) -> int:
     **손대지 않는다** — 중복 제거도, 정규화도, 거르기도 안 한다. 그건 다음 단계의 일이고,
     여기서 손대면 원본이 무엇이었는지 되짚을 수 없게 된다.
 
-    칸은 `_common/store.py` 의 `COLUMNS` 로 맞춘다. 여섯 사이트가 같은 스키마를 쓰지만,
+    칸은 `_common/store.py` 의 `COLUMNS` 로 맞춘다. 사이트가 다 같은 스키마를 쓰지만,
     한 곳이 칸을 더하거나 빼도 합친 파일이 어긋나지 않게 여기서 한 번 더 맞춘다.
     """
     output.parent.mkdir(parents=True, exist_ok=True)
