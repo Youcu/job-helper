@@ -1,8 +1,8 @@
 """직무를 **사이트 중립 이름**으로 적게 한다.
 
-여섯 사이트가 직무를 저마다 다른 코드로 받는다 — Wanted `872`, 사람인 `84`,
-잡코리아 `1000229`, 잡플래닛 `11904`, 점핏 `1`, Pathsdog `Backend`. 사람이 원하는 것은
-"백엔드 공고" 하나인데 여섯 벌을 따로 적어야 했다.
+사이트가 직무를 저마다 다른 코드로 받는다 — Wanted `872`, 사람인 `84`,
+잡코리아 `1000229`, 잡플래닛 `11904`, 점핏 `1`. 사람이 원하는 것은
+"백엔드 공고" 하나인데 사이트 수만큼 따로 적어야 했다.
 
     .env  JOB_ROLES=백엔드,웹          ← 한 번만 적는다
             ↓
@@ -144,7 +144,7 @@ def resolve(env: dict, role_map_path: Path) -> tuple[list[str], list[str]]:
     if not names:
         raise RoleError(
             "JOB_ROLES 가 비어 있습니다. 원하는 직무를 comma 로 적어 주세요.\n"
-            "  **여섯 사이트가 함께 씁니다** — 사이트마다 따로 적지 않습니다.\n"
+            "  **모든 사이트가 함께 씁니다** — 사이트마다 따로 적지 않습니다.\n"
             "  쓸 수 있는 이름: %s\n"
             "  예: JOB_ROLES=백엔드,웹" % ", ".join(known_roles()))
     return site_codes(load_role_map(role_map_path), names)

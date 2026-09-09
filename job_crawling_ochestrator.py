@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""여섯 채용 사이트를 한꺼번에 돌리고 결과를 합친다.
+"""다섯 채용 사이트를 한꺼번에 돌리고 결과를 합친다.
 
     python3 job_crawling_ochestrator.py
 
-Wanted · 사람인 · 잡코리아 · 잡플래닛 · 점핏 · Pathsdog 를 **병렬로** 돌리고,
+Wanted · 사람인 · 잡코리아 · 잡플래닛 · 점핏 을 **병렬로** 돌리고,
 끝나면 각 사이트 CSV 를 그대로 이어 붙여 `csv/merged.csv` 를 만든다.
 
 **사이트별 CSV 는 그대로 둔다.** 합친 파일은 사본이지 대체물이 아니다 — 어느 사이트에서
@@ -15,7 +15,7 @@ Wanted · 사람인 · 잡코리아 · 잡플래닛 · 점핏 · Pathsdog 를 **
 
 ## 왜 프로세스를 나누나
 
-각 스크래퍼는 자기 `lib/` 를 `sys.path` 맨 앞에 넣는다. 한 프로세스에서 여섯을 부르면
+각 스크래퍼는 자기 `lib/` 를 `sys.path` 맨 앞에 넣는다. 한 프로세스에서 여럿을 부르면
 먼저 불린 사이트의 `lib.config` 가 캐시에 남아 뒤엣것이 그것을 쓴다 — 조용히 남의 조건으로
 긁는다. 프로세스를 나누면 그럴 일이 없고, 하나가 죽어도 나머지가 산다.
 """
@@ -41,7 +41,7 @@ from _common.store import COLUMNS                            # noqa: E402
 
 # 돌릴 사이트. **순서가 곧 화면에 뜨는 순서**이고, 합칠 때도 이 차례를 지킨다 —
 # 실행마다 행 순서가 뒤바뀌면 `merged.csv` 를 눈으로 견주기 어렵다.
-SITES = ("wanted", "saramin", "jobkorea", "jobplanet", "jumpit", "pathsdog")
+SITES = ("wanted", "saramin", "jobkorea", "jobplanet", "jumpit")
 
 # 한 사이트가 이보다 오래 걸리면 끊는다. 사람인이 8분대라 넉넉히 잡았다.
 TIMEOUT_SECONDS = 60 * 30
@@ -114,7 +114,7 @@ def main() -> int:
         print("  job_sites/<사이트>/<사이트>.py 가 있어야 합니다.", file=sys.stderr)
         return 1
 
-    print("여섯 사이트를 병렬로 돌립니다 — %s\n" % " · ".join(SITES))
+    print("%d개 사이트를 병렬로 돌립니다 — %s\n" % (len(SITES), " · ".join(SITES)))
     started = time.monotonic()
     results = _run_all(scrapers)
     elapsed = time.monotonic() - started
@@ -137,7 +137,7 @@ def main() -> int:
 def _print_failures(failed: list[Result]) -> None:
     """왜 실패했는지 **스크래퍼가 한 말을 그대로** 보여준다.
 
-    "설정 오류" 라고만 하면 사람이 여섯 폴더를 뒤져야 한다. 스크래퍼는 어느 `.env` 항목을
+    "설정 오류" 라고만 하면 사람이 폴더를 하나씩 뒤져야 한다. 스크래퍼는 어느 `.env` 항목을
     채워야 하는지까지 말해 주므로, 그 말을 여기로 끌어올린다.
     """
     print("\n%s" % ("=" * 62), file=sys.stderr)
@@ -164,9 +164,9 @@ def _find_scrapers() -> dict[str, Path]:
 
 
 def _run_all(scrapers: dict[str, Path]) -> list[Result]:
-    """여섯을 동시에 돌린다. **각자 다른 프로세스**라 서로를 못 건드린다.
+    """전부를 동시에 돌린다. **각자 다른 프로세스**라 서로를 못 건드린다.
 
-    자식의 출력은 붙잡아 둔다 — 여섯이 동시에 tqdm 을 그리면 화면이 엉킨다. 대신 여기서
+    자식의 출력은 붙잡아 둔다 — 여럿이 동시에 tqdm 을 그리면 화면이 엉킨다. 대신 여기서
     막대 하나로 진행을 보이고, 끝난 사이트부터 한 줄씩 알린다.
     """
     results: dict[str, Result] = {}
@@ -254,7 +254,7 @@ def merge_csvs(paths: list[Path], output: Path) -> int:
     **손대지 않는다** — 중복 제거도, 정규화도, 거르기도 안 한다. 그건 다음 단계의 일이고,
     여기서 손대면 원본이 무엇이었는지 되짚을 수 없게 된다.
 
-    칸은 `_common/store.py` 의 `COLUMNS` 로 맞춘다. 여섯 사이트가 같은 스키마를 쓰지만,
+    칸은 `_common/store.py` 의 `COLUMNS` 로 맞춘다. 사이트가 다 같은 스키마를 쓰지만,
     한 곳이 칸을 더하거나 빼도 합친 파일이 어긋나지 않게 여기서 한 번 더 맞춘다.
     """
     output.parent.mkdir(parents=True, exist_ok=True)

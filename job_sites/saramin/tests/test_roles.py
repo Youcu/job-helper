@@ -1,9 +1,9 @@
 """직무를 사이트 중립 이름으로 적는 규약.
 
-**`_common` 의 것을 여기서 시험한다** — 여섯 사이트가 함께 쓰는 코드라 어느 한 사이트에
+**`_common` 의 것을 여기서 시험한다** — 모든 사이트가 함께 쓰는 코드라 어느 한 사이트에
 붙여 두면 그 사이트를 지웠을 때 시험도 같이 사라진다.
 
-이 규약이 하는 일은 하나다. `.env` 에 `JOB_ROLES=백엔드` 라고 **한 번만** 적으면 여섯
+이 규약이 하는 일은 하나다. `.env` 에 `JOB_ROLES=백엔드` 라고 **한 번만** 적으면 모든
 사이트가 각자 자기 코드를 찾는다. 사이트마다 `WANTED_JOB_IDS=872`, `SARAMIN_JOB_IDS=84`
 를 따로 적던 것을 없앴다.
 """
@@ -46,7 +46,7 @@ def test_NORMAL_aliases_are_understood():
 
 
 def test_NORMAL_every_site_has_a_role_map():
-    for site in ("wanted", "saramin", "jobkorea", "jobplanet", "jumpit", "pathsdog"):
+    for site in ("wanted", "saramin", "jobkorea", "jobplanet", "jumpit"):
         check(_role_map(site).exists(), "%s 에 대응표가 없다" % site)
 
 
@@ -75,7 +75,7 @@ def test_EXCEPTION_empty_job_roles_stops_the_run():
     except roles.RoleError as caught:
         error = caught
     check(error is not None, "비어 있으면 멈춰야 한다 — 직무 없이 돌면 전체를 긁는다")
-    check("여섯 사이트가 함께" in str(error), "왜 하나만 적는지 알려야 한다")
+    check("모든 사이트가 함께" in str(error), "왜 하나만 적는지 알려야 한다")
 
 
 def test_BOUNDARY_one_name_expands_to_many_codes():
@@ -127,8 +127,6 @@ def test_BOUNDARY_every_mapped_code_exists_in_the_site_table():
                                  lambda d: [str(s["code"]) for g in d["groups"] for s in g["sub"]]),
         "jumpit": _codes_from(SITES_DIR / "jumpit/tags/jumpit_job_category.json",
                               lambda d: [str(i["code"]) for i in d["categories"]]),
-        "pathsdog": _codes_from(SITES_DIR / "pathsdog/tags/pathsdog_role.json",
-                                lambda d: [r["name"] for r in d["roles"]]),
     }
     for site, known in tables.items():
         book = roles.load_role_map(_role_map(site))
@@ -145,6 +143,6 @@ def _codes_from(path: Path, pick) -> set[str]:
 def test_BOUNDARY_role_map_covers_only_known_names():
     # 대응표에 표준 목록에 없는 이름이 있으면 영영 안 쓰인다 — 오타이거나 지워야 할 것이다.
     known = set(roles.known_roles())
-    for site in ("wanted", "saramin", "jobkorea", "jobplanet", "jumpit", "pathsdog"):
+    for site in ("wanted", "saramin", "jobkorea", "jobplanet", "jumpit"):
         for name in roles.load_role_map(_role_map(site)):
             check(name in known, "%s 대응표의 %r 가 표준 이름에 없다" % (site, name))
