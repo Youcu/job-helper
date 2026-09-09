@@ -24,6 +24,8 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
+from . import career, deadline, place
+
 # 모든 채용 사이트가 이 순서로 쓴다. 사이트에 없는 값도 칸은 남기고 비운다.
 COLUMNS = [
     "기업명",
@@ -40,6 +42,35 @@ COLUMNS = [
     "최초수집일",
     "최종확인일",
 ]
+
+# 계약이 말을 정해 둔 칸들. **여기서 한 번에 맞춘다.**
+#
+# 사이트마다 같은 뜻을 다르게 말한다 — 사람인 `신입 · 경력`, 잡코리아 `신입·경력`,
+# 사람인 `채용시` 와 다른 곳의 `상시채용`, `서울` 과 `서울특별시` 와 `서울시`.
+# 실측(2026-09-09) 735행에서 경력 311건과 근무지 44건이 그렇게 쪼개져 있었다.
+# 합쳐 놓고 거르거나 묶을 수가 없다.
+#
+# **사이트마다 고치지 않고 여기서 고친다.** 스키마의 단일 출처가 이 파일이고,
+# 다섯 곳에 흩어 두면 새 사이트가 붙을 때 한 곳만 빠뜨려도 조용히 어긋난다.
+# 사이트의 `to_row()` 는 **그 사이트가 한 말을 그대로** 두고, CSV 로 나갈 때 맞춘다.
+STANDARDIZERS = {
+    "경력": career.standard,
+    "마감일": deadline.standard,
+    "근무지": place.standard,
+}
+
+
+def to_contract(row: dict) -> dict:
+    """행 하나를 계약이 정한 말로. 이미 맞는 값은 그대로 돌아온다.
+
+    **칸이 없으면 계약이 정한 기본값을 넣는다** — 경력은 `경력무관`, 마감일은 `상시채용`.
+    빈칸으로 두면 "값이 없다" 와 "따지지 않는다" 가 같은 모양이 된다.
+    """
+    fixed = dict(row)
+    for column, standard in STANDARDIZERS.items():
+        fixed[column] = standard(row.get(column, ""))
+    return fixed
+
 
 # 공고를 가리는 키 컬럼. 사이트가 달라도 URL 은 겹치지 않는다.
 KEY_COLUMN = "URL"
@@ -166,6 +197,7 @@ def write_csv(path: Path, rows: list[dict]) -> None:
             writer = csv.DictWriter(f, fieldnames=COLUMNS, extrasaction="ignore")
             writer.writeheader()
             for row in rows:
+                row = to_contract(row)
                 writer.writerow({column: row.get(column, "") for column in COLUMNS})
             f.flush()
             os.fsync(f.fileno())
