@@ -16,10 +16,24 @@
 마감돼 내려간 공고도 30일까지 남긴다. `최초수집일` 로 오늘 새로 뜬 것을,
 `최종확인일` 로 지금도 열려 있는지를 가린다.
 
-다섯이 다 돌면 이어서 `csv/merged_read.csv` 가 하나 더 나온다. 사람인·잡코리아 일부는
-본문이 그림 한 장이라 `기술스택` 칸에 그림 주소만 남는데(수집은 순수 HTTP 만 하기
-때문이다), 그 그림을 읽어 채운 결과다. `merged.csv` 는 손대지 않는다 — 자세한 것은
+다섯이 다 돌면 수집 뒤 단계 둘이 이어서 돈다.
+
+```
+csv/merged.csv  ─그림 판독─▶  csv/merged_read.csv  ─거르기─▶  csv/merged_filtered.csv
+                                                              +  csv/filter_report.csv
+```
+
+**그림 판독** — 사람인·잡코리아 일부는 본문이 그림 한 장이라 `기술스택` 칸에 그림 주소만
+남는다(수집은 순수 HTTP 만 하기 때문이다). 그 그림을 읽어 채운 결과가 `merged_read.csv` 다.
 [image_process/README.md](image_process/README.md).
+
+**거르기** — 같은 공고를 한 행으로 묶고, 정해진 낱말(SI · SM · 병역특례 · 고객사 · 파견 …)이
+든 공고를 뺀다. **뺀 것은 전량 `csv/filter_report.csv` 에 이유와 함께 남는다** — 낱말
+규칙은 반드시 오탐을 내므로 무엇을 잃었는지 되짚을 수 있어야 한다.
+[FILTER.md](FILTER.md).
+
+**앞 단계의 파일은 손대지 않는다.** 두 단계 다 행을 없애므로, 제자리에서 고치면 없어진
+행의 원본이 사라진다.
 
 ## 사이트
 
@@ -38,13 +52,14 @@
 # .env 는 추적되지 않고 예시 파일도 없다 — 없으면 안 도는 것이 맞다.
 $EDITOR .env
 
-python3 job_crawling_ochestrator.py   # 수집부터 이미지 판독까지 한 번에 → csv/merged.csv, csv/merged_read.csv
+python3 job_crawling_ochestrator.py   # 수집부터 거르기까지 한 번에
 python3 job_image_process.py          # 이미 있는 csv/merged.csv 의 그림만 다시 처리
+python3 filter.py                     # 이미 있는 csv/merged_read.csv 만 다시 거른다
 ```
 
-수집은 8~10분이지만 이미지 판독만 다시 돌려 보고 싶을 때가 있다 — 캐시를 지웠을 때,
-모델을 바꿔 볼 때. 그때는 두 번째 명령만 쓰면 된다. 자세한 것은
-[image_process/README.md](image_process/README.md).
+수집은 8~10분이지만 뒤 단계만 다시 돌려 보고 싶을 때가 있다 — 캐시를 지웠을 때, 모델을
+바꿔 볼 때, **낱말표를 고쳐 몇 건이 빠지는지 보고 싶을 때**. 그때는 아래 두 명령만 쓰면
+된다. 거르기는 실측 710행에 0.02초라 얼마든지 다시 돌려도 된다.
 
 한 사이트만 돌리려면 그 폴더에서 부른다.
 

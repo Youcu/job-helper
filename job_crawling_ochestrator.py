@@ -82,6 +82,20 @@ IMAGE_EXIT_MEANING = {
 }
 
 
+FILTER_STAGE = ROOT_DIR / "filter.py"
+
+# 거르기 단계는 그물도 모델도 안 탄다 — 파일 하나를 읽고 정규식을 돌릴 뿐이다.
+# 실측 710행에 0.02초. 5분이면 데이터가 백 배로 늘어도 남는다.
+FILTER_TIMEOUT = 60 * 5
+
+# 거르기가 내는 코드. **`2` 는 이 단계에 없다** — 부분 실패라는 것이 없다.
+FILTER_EXIT_MEANING = {
+    0: ("정상", True),
+    1: ("단계를 못 돌림 — merged_read.csv 가 없음", False),
+    3: ("이미 돌고 있음", False),
+}
+
+
 @dataclass
 class Result:
     site: str
@@ -132,16 +146,28 @@ def main() -> int:
     merged = merge_csvs([r.output for r in results if r.output], OUTPUT)
     _print_report(results, merged, elapsed)
 
-    image = _run_image_stage()
+    image = _run_stage(IMAGE_STAGE, "이미지판독", IMAGE_EXIT_MEANING)
     print("\n%s" % "\n".join(_last_lines(image.log, 12)))
     if not image.ok:
         print("이미지 판독 단계가 실패했습니다 (%s). csv/merged.csv 는 그대로 있습니다."
               % image.meaning, file=sys.stderr)
 
+    # **앞이 죽으면 뒤를 안 부른다.** 거르기의 입력은 앞 단계가 낸 파일인데, 앞이 죽었으면
+    # 거기 있는 것은 **지난 실행이 남긴 것**이다. 그것을 걸러 내면 어제 결과가 오늘 것처럼
+    # 나온다 — 터지지 않고 조용히 틀리므로 알아채기가 가장 어렵다.
+    filtered = _run_stage(FILTER_STAGE, "거르기", FILTER_EXIT_MEANING,
+                          FILTER_TIMEOUT) if image.ok else None
+    if filtered is not None:
+        print("\n%s" % "\n".join(_last_lines(filtered.log, 12)))
+        if not filtered.ok:
+            print("거르기 단계가 실패했습니다 (%s). csv/merged_read.csv 는 그대로 있습니다."
+                  % filtered.meaning, file=sys.stderr)
+
     failed = [r for r in results if not r.ok]
     if failed:
         _print_failures(failed)
-    return 1 if (failed or not image.ok) else 0
+    stages = [image, filtered]
+    return 1 if (failed or any(st is not None and not st.ok for st in stages)) else 0
 
 
 def _print_failures(failed: list[Result]) -> None:
@@ -255,29 +281,33 @@ def count_rows(path: Path) -> int:
         return 0
 
 
-def _run_image_stage() -> Result:
-    """이미지 판독 단계를 **자식 프로세스로** 돌린다.
+def _run_stage(script: Path, name: str, meanings: dict,
+               timeout: int = TIMEOUT_SECONDS) -> Result:
+    """수집 뒤 단계 하나를 **자식 프로세스로** 돌린다.
 
     불러들이지(import) 않는다 — 위의 "왜 프로세스를 나누나" 와 같은 이유다. 그리고
-    이 단계는 혼자서도 도는 엔트리포인트라, 여기서만 쓰는 다른 길을 만들 이유가 없다.
+    이 단계들은 혼자서도 도는 엔트리포인트라, 여기서만 쓰는 다른 길을 만들 이유가 없다.
+
+    **종료 코드 표를 인자로 받는다.** 숫자는 같은 계약이지만 뜻하는 사건이 단계마다
+    다르다 — 이미지 판독의 `2` 를 거르기에 갖다 붙이면 있지도 않은 사건이 화면에 찍힌다.
     """
-    result = Result(site="이미지판독", meanings=IMAGE_EXIT_MEANING)
+    result = Result(site=name, meanings=meanings)
     started = time.monotonic()
     try:
         done = subprocess.run(
-            [sys.executable, IMAGE_STAGE.name],
-            cwd=ROOT_DIR, capture_output=True, text=True, timeout=TIMEOUT_SECONDS,
+            [sys.executable, script.name],
+            cwd=ROOT_DIR, capture_output=True, text=True, timeout=timeout,
         )
         result.code = done.returncode
         result.log = (done.stdout or "") + (done.stderr or "")
         result.err = done.stderr or ""
     except subprocess.TimeoutExpired:
-        result.error = "%d분을 넘겨 끊었습니다" % (TIMEOUT_SECONDS // 60)
+        result.error = "%d분을 넘겨 끊었습니다" % (timeout // 60)
     except Exception as error:
         result.error = "%s: %s" % (type(error).__name__, error)
     result.seconds = time.monotonic() - started
     # **`output`/`rows` 는 채우지 않는다.** 이 단계가 파일을 쓰기 전에 끝났으면 거기 있는
-    # `merged_read.csv` 는 **지난 실행이 남긴 것**이다. 그것을 이번 결과로 적어 두면,
+    # 산출물은 **지난 실행이 남긴 것**이다. 그것을 이번 결과로 적어 두면,
     # 나중에 누가 이 값을 화면에 끌어다 쓰는 순간 지난 데이터가 이번 것으로 보고된다.
     # 사이트 CSV 와 달리 여기서는 그 수를 밝힐 곳도 없다(`stale` 은 합치기 얘기다).
     return result
