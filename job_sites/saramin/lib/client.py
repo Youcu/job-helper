@@ -13,6 +13,8 @@ import time
 import urllib.error
 import urllib.request
 
+from _common.html_text import strip_comments
+
 BASE_URL = "https://www.saramin.co.kr"
 
 # **`HeadlessChrome` 이 들어가면 안 된다.** 그게 유일한 게이트다.
@@ -62,7 +64,15 @@ class SaraminClient:
             try:
                 request = urllib.request.Request(url, headers=headers)
                 with self.opener.open(request, timeout=TIMEOUT) as response:
-                    return response.read().decode("utf-8", "replace")
+                    # **주석을 받는 자리에서 없앤다.** 사람인은 태그 속성값 안에
+                    # 주석을 심어 스크래퍼를 깨뜨린다 — 실측 `rec_idx=54892806` 의
+                    # `class="desc<!--x-->ription"`. 이 저장소의 태그 정규식은 전부
+                    # `[^>]*` 라 주석을 닫는 첫 `>` 에서 멈춘다. 본문뿐 아니라 목록
+                    # 카드를 읽는 정규식도 같은 결함을 갖고 있고, 거기서 오는 값이
+                    # **기업명·공고명·근무지·마감일**이다. 여기서 한 번 지우면
+                    # 아래 전부가 깨끗한 글을 본다. 자세한 것은 `_common/html_text.py`.
+                    return strip_comments(
+                        response.read().decode("utf-8", "replace"))
             except urllib.error.HTTPError as error:
                 if error.code in (403, 429):
                     raise BlockedError(

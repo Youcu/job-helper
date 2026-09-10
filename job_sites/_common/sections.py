@@ -24,6 +24,23 @@ from __future__ import annotations
 
 import re
 
+# ## 머리말에는 두 갈래가 있다 — 라벨과 유도문
+#
+# **라벨형**은 이름표다. `자격요건: Java, Spring` 처럼 같은 줄 뒤에 내용이 이어질 수 있고,
+# 그 나머지는 살려야 한다.
+#
+# **유도문형**은 문장이다. `이런 분을 찾습니다`. 이름이 어디서 끝나는지 정규식으로 못 집기
+# 때문에, 매칭된 앞부분만 잘라 내면 **문장의 꼬리가 내용인 척 남는다.** 실제로 그랬다 —
+# `이런 분을 찾` 이 매칭되어 `습니다` 가 지원자격의 첫 줄이 됐고, 실측 24칸이 그 꼴이었다
+# (사람인 20 · 잡코리아 4, 2026-09-10). 관측된 잔여물:
+#
+#     '습니다' · '아요' · '고 있어요' · '이 있다면 더 좋아요' · '좋아요 (우대 사항)' · '입니다.)'
+#
+# 그래서 **유도문형은 줄 전체를 머리말로 보고 나머지를 버린다.** 살리면 쓰레기가 들어오고,
+# 버리면 그 줄의 꼬리만 잃는다 — 틀려야 한다면 누락 쪽이다.
+SENTENCE_HEADING = re.compile(
+    r"(이런\s*분을\s*찾|이런\s*분과|이런\s*분이면\s*더|이런\s*경험)")
+
 QUALIFICATION_HEADING = re.compile(
     r"(자격\s*요건|지원\s*자격|자격\s*조건|자격\s*사항|필수\s*요건|필수\s*사항"
     r"|이런\s*분을\s*찾|이런\s*분과)")
@@ -106,7 +123,7 @@ def section(text: str, heading: re.Pattern[str], headings=None) -> str:
     collected = []
     # 머리말 뒤에 붙은 구두점만 벗긴다. **글머리 기호(`ㆍ`)는 벗기지 않는다** —
     # 첫 줄에서만 떼면 `ㆍ 통계...` 처럼 기호가 남은 뒷줄들과 어긋나 목록이 깨진다.
-    tail = heading.split(lines[start], maxsplit=1)[-1].lstrip(" :·-|]）)")
+    tail = _tail_of(lines[start], heading)
     if tail.strip():
         collected.append(tail.strip())
     for line in lines[start + 1:]:
@@ -115,6 +132,17 @@ def section(text: str, heading: re.Pattern[str], headings=None) -> str:
         if line.strip():
             collected.append(line.strip())
     return "\n".join(collected).strip()
+
+
+def _tail_of(line: str, heading: re.Pattern[str]) -> str:
+    """머리말 줄에서 **내용으로 볼 나머지.** 유도문형이면 없다.
+
+    위 `SENTENCE_HEADING` 주석을 보라 — 유도문은 문장이라 어디서 끝나는지 못 집는다.
+    나머지를 살리면 `이런 분을 찾습니다` 에서 `습니다` 가 내용이 된다.
+    """
+    if SENTENCE_HEADING.search(line):
+        return ""
+    return heading.split(line, maxsplit=1)[-1].lstrip(" :·-|]）)")
 
 
 def until_first_heading(text: str, heading: re.Pattern[str], headings=None) -> str:

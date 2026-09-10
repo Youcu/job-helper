@@ -42,6 +42,20 @@ _OPEN_TAG = re.compile(r"<([a-zA-Z][\w-]*)\b([^>]*)>")
 _STYLE_ATTR = re.compile(r"(?:^|\s)style\s*=\s*(\"[^\"]*\"|'[^']*')", re.IGNORECASE)
 _SCRIPT_OR_STYLE = re.compile(r"<(script|style)\b.*?</\1>", re.DOTALL | re.IGNORECASE)
 _ANY_TAG = re.compile(r"<[^>]+>")
+# **속성값 안에 주석을 심어 스크래퍼를 깨뜨리는 수법이 있다.** 사람인 실측
+# (`rec_idx=54892806`, 본문 컨테이너 안에서만 9번):
+#
+#     <div class="desc<!--x-->ription" style='font-family: Pretendard, …'>
+#
+# 이 파일의 태그 정규식은 전부 `[^>]*` 라 **주석을 닫는 첫 `>` 에서 멈춘다.** 그래서
+# 태그의 나머지가 글로 새어 `ription" style='font-family: …'` 가 지원자격 첫 줄이 됐다
+# (실측 3칸, 2026-09-10). 더 나쁜 것은 `_OPEN_TAG` 가 속성을 거기서 자르는 바람에
+# 주석 **뒤**의 `style="display:none"` 을 못 봐서 **숨긴 글까지 본문으로 샌다**는 것이다.
+#
+# 그래서 다른 어떤 태그 정규식보다 먼저 주석을 없앤다. 주석에 기대는 코드는 저장소에
+# 하나도 없다 — 사람인의 `ADS_END` 는 주석이 아니라 화면에 보이는 글이다.
+_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
+
 # 응답이 중간에 끊기면 마지막 태그가 안 닫힌 채 남는다 — `<img src="python.png`.
 # 태그를 `<...>` 로만 걷어내면 그 조각이 **글로 새어** `src`·`class`·파일 이름이
 # 산문 매칭에 들어간다. `<` 뒤에 글자가 오는 것만 태그로 보므로 `경력 < 3년` 은 안 다친다.
@@ -71,6 +85,15 @@ _ZERO_BOX = (re.compile(r"(?<!max-)(?<!min-)width:0(?![.\d])"),
              re.compile(r"(?<!max-)(?<!min-)height:0(?![.\d])"))
 
 
+def strip_comments(fragment: str) -> str:
+    """HTML 주석을 없앤다. **태그를 건드리기 전에 부른다.**
+
+    사이트는 받아 온 페이지에 이것을 한 번 걸고 넘긴다 — 본문뿐 아니라 목록 카드를
+    읽는 정규식도 같은 결함을 갖고 있고, 거기서 오는 값이 기업명·공고명·근무지·마감일이다.
+    """
+    return _COMMENT.sub("", fragment or "")
+
+
 def is_hidden_style(style: str) -> bool:
     """인라인 스타일 문자열이 요소를 화면에서 감추는가."""
     if not style:
@@ -88,6 +111,7 @@ def split_visible(fragment: str) -> tuple[str, str]:
     """
     if not fragment:
         return "", ""
+    fragment = strip_comments(fragment)
     visible: list[str] = []
     hidden: list[str] = []
     cursor = 0
@@ -132,6 +156,7 @@ def to_text(fragment: str) -> str:
     """태그를 걷어내고 글만 남긴다. 숨김 여부는 보지 않는다."""
     if not fragment:
         return ""
+    fragment = strip_comments(fragment)
     without_code = _UNCLOSED_TAIL.sub(" ", _SCRIPT_OR_STYLE.sub(" ", fragment))
     # 태그 자리를 공백으로 바꾼다 — 안 그러면 `<td>Java</td><td>C</td>` 가 `JavaC` 가 된다
     unescaped = html_module.unescape(_ANY_TAG.sub(" ", without_code))

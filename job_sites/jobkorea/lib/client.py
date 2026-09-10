@@ -17,6 +17,8 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+from _common.html_text import strip_comments
+
 BASE_URL = "https://www.jobkorea.co.kr"
 
 USER_AGENT = (
@@ -77,7 +79,14 @@ class JobKoreaClient:
             try:
                 request = urllib.request.Request(url, data=body, headers=headers)
                 with self.opener.open(request, timeout=TIMEOUT) as response:
-                    return response.read().decode("utf-8", "replace")
+                    # **주석을 받는 자리에서 없앤다.** 사람인에서 실측한 수법이다 —
+                    # 태그 속성값 안에 `<!--x-->` 를 심으면 `[^>]*` 짜리 태그 정규식이
+                    # 주석을 닫는 첫 `>` 에서 멈춰 태그 나머지가 글로 샌다.
+                    # **잡코리아에서는 아직 못 봤다.** 그래도 같은 값을 같은 방식으로
+                    # 읽으므로 같이 막는다 — 주석을 지워서 잃는 것은 없다.
+                    # 자세한 것은 `_common/html_text.py`.
+                    return strip_comments(
+                        response.read().decode("utf-8", "replace"))
             except urllib.error.HTTPError as error:
                 if error.code in (403, 429):
                     raise BlockedError(
