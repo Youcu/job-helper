@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 
 # 낱말을 찾을 칸. **사용자가 지정한 셋뿐이다.**
 #
@@ -25,6 +26,26 @@ LEGAL_FORM = re.compile(r"주식회사|㈜|\(주\)|\(유\)|\(재\)|\(사\)|유�
 
 _SPACES = re.compile(r"\s+")
 
+# **바꿔 써도 같은 뜻인 기호.** 같은 공고가 사이트마다 다른 기호로 올라온다 —
+# 실측(2026-09-11, 707행)에서 세 쌍이 이것 하나로 갈렸다.
+#
+#     백엔드 개발자 (신입 **-** 3년)          사람인
+#     백엔드 개발자 (신입 **~** 3년)          잡코리아
+#     … (LLM 파이프라인 **·** 대규모 …)      원티드
+#     … (LLM파이프라인**/**대규모 …)          사람인
+#     **IT** 해내는 개발자 …                  사람인
+#     **[IT]** 해내는 개발자 …                잡코리아
+#
+# **괄호는 문자만 지우고 안쪽 글은 남긴다.** 통째로 떼면 `[인턴] Backend Engineer` 가
+# `Backend Engineer` 와 같아져 **다른 자리를 하나로 뭉갠다.** 안쪽 글을 남기면
+# `인턴backendengineer` vs `backendengineer` 라 여전히 다르고, 위의 `IT` 처럼
+# 안쪽이 같은 경우만 묶인다.
+#
+# 이 표를 넓힐 때는 **실제 데이터로 새로 묶이는 짝을 전부 눈으로 보라.** 기호 하나를
+# 더할 때마다 없는 중복을 만들 수 있고, 그렇게 지운 공고는 흔적이 안 남는다.
+INTERCHANGEABLE = re.compile(
+    r"[\[\]()（）{}<>〈〉《》「」『』~〜\-‐‑‒–—―/／·・,，:：|｜]")
+
 
 def company_key(name: str | None) -> str:
     """같은 회사인가를 가리는 키. 법인 표기와 공백을 지우고 대소문자를 눌러 맞춘다."""
@@ -34,11 +55,14 @@ def company_key(name: str | None) -> str:
 def title_key(name: str | None) -> str:
     """같은 자리인가를 가리는 키.
 
-    **대괄호는 떼지 않는다.** `[인턴] Backend Engineer` 와 `Backend Engineer` 는 다른
-    자리다. 떼면 없는 중복을 만들어 멀쩡한 공고를 지운다 — 지우는 판단에
-    "모르겠으면 지운다" 는 없다.
+    **대괄호 안의 글은 떼지 않는다.** `[인턴] Backend Engineer` 와 `Backend Engineer` 는
+    다른 자리다. 대괄호를 통째로 떼면 없는 중복을 만들어 멀쩡한 공고를 지운다 —
+    지우는 판단에 "모르겠으면 지운다" 는 없다.
+
+    다만 **기호 자체는 사이트마다 흔들린다.** 위 `INTERCHANGEABLE` 주석을 보라.
     """
-    return _SPACES.sub("", name or "").lower()
+    text = unicodedata.normalize("NFKC", name or "")
+    return _SPACES.sub("", INTERCHANGEABLE.sub("", text)).lower()
 
 
 def key(row: dict) -> tuple[str, str]:

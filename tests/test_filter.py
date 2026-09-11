@@ -210,3 +210,45 @@ def test_BOUNDARY_report_records_where_the_word_was_found():
     flt._run(home / "in.csv", home / "out.csv", home / "report.csv")
     why = read_csv(home / "report.csv")[0]["근거"]
     check("고객사" in why, "**근거에 그 자리의 글이 있어야** 오탐을 되짚을 수 있다: %r" % why)
+
+
+def test_BOUNDARY_interchangeable_symbols_are_the_same_posting():
+    """사이트마다 기호를 달리 쓴다. 실측 707행에서 세 쌍이 이것 하나로 갈렸다."""
+    same = [
+        ("백엔드 개발자 (신입 - 3년)", "백엔드 개발자 (신입 ~ 3년)"),
+        ("… (LLM 파이프라인 · 대규모 수집)", "… (LLM파이프라인/대규모 수집)"),
+        ("IT 해내는 개발자(마크업) 채용", "[IT] 해내는 개발자(마크업) 채용"),
+    ]
+    for left, right in same:
+        check_equal(filter_words.title_key(left), filter_words.title_key(right),
+                    "기호만 다른 같은 공고다: %r vs %r" % (left, right))
+
+
+def test_BOUNDARY_bracket_contents_still_separate_postings():
+    """**괄호는 문자만 지우고 안쪽 글은 남긴다.**
+
+    결함이 될 뻔한 곳: 대괄호를 통째로 떼면 `[인턴] Backend Engineer` 가
+    `Backend Engineer` 와 같아져 **다른 자리를 하나로 뭉갠다.** 인턴 자리가 조용히
+    사라지는데, 지워진 공고는 있었다는 사실조차 안 남는다.
+    """
+    for left, right in (("[인턴] Backend Engineer", "Backend Engineer"),
+                        ("[신입] Java 개발자", "Java 개발자"),
+                        ("[경력] 서버 개발", "[신입] 서버 개발")):
+        check(filter_words.title_key(left) != filter_words.title_key(right),
+              "**다른 자리다**: %r vs %r" % (left, right))
+
+
+def test_BOUNDARY_full_width_symbols_normalize_to_half_width():
+    # 사람인은 전각을 섞어 쓴다. NFKC 를 안 걸면 같은 공고가 갈린다.
+    check_equal(filter_words.title_key("백엔드（신입）"), filter_words.title_key("백엔드(신입)"),
+                "전각 괄호")
+    check_equal(filter_words.title_key("Ａ개발자"), filter_words.title_key("A개발자"),
+                "전각 영문")
+
+
+def test_BOUNDARY_symbol_rule_does_not_merge_different_levels():
+    # 기호를 지운 뒤에도 **글자가 다르면 다른 공고**여야 한다.
+    for left, right in (("개발자 3년", "개발자 5년"),
+                        ("백엔드 개발자", "프론트엔드 개발자")):
+        check(filter_words.title_key(left) != filter_words.title_key(right),
+              "%r 과 %r 은 달라야 한다" % (left, right))
