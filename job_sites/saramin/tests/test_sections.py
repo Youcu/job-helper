@@ -17,8 +17,11 @@ import re
 from _common.sections import (
     PREFERENCE_HEADING,
     QUALIFICATION_HEADING,
+    heading_names,
     is_column_header,
+    is_sectioned,
     section,
+    stacked_headers,
     split_body_text,
 )
 from tests.helpers import check, check_equal
@@ -146,3 +149,146 @@ def test_BOUNDARY_sentence_heading_vocabulary_matches_both_tables():
     for line in ("이런 분과 함께 일하고 싶어요", "이런 경험 있으신 분을 찾아요"):
         joined = "\n".join(split_body_text("%s\n- 내용" % line))
         check("- 내용" in joined, "«%s» 의 내용이 살아 있어야 한다" % line)
+
+
+# ── 여러 절로 나뉜 공고에 자격 절이 없을 때 ──────────────────────────────
+
+_TABLE = """회사 소개
+저희는 좋은 회사입니다
+모집부문
+백엔드 개발
+담당 업무
+서버 개발
+우대 사항
+ㆍKubernetes 경험
+근무조건
+주5일
+복리후생
+중식 제공
+전형절차
+서류 → 면접"""
+
+
+def test_NORMAL_sectioned_posting_without_qualifications_leaves_it_empty():
+    """**결함이었다.** 실측 `rec_idx=54856893` 은 절이 일곱인데 자격 절만 없어서,
+    회사 소개부터 우대 앞까지 **2,894자**가 통째로 지원자격이 됐다. 전량 29칸이 그 꼴이었다.
+
+    나뉜 문서에 자격 절이 없으면 **진짜로 없는 것**이다. 차 있지만 틀린 것보다 비어 있는
+    편이 낫다 — 틀린 값은 다음 단계가 그대로 믿는다 (2026-09-11 사용자 판단).
+    """
+    quality, preference = split_body_text(_TABLE)
+    check_equal(quality, "", "회사 소개와 담당업무가 지원자격에 들어가면 안 된다")
+    check_equal(preference, "ㆍKubernetes 경험", "우대는 제대로 나와야 한다")
+
+
+def test_BOUNDARY_a_posting_with_few_headings_still_falls_back():
+    """머리말이 거의 없는 공고는 **나누지 못한 것뿐이고 내용은 거기 있다.**
+
+    실측에서 이런 공고가 한 건 있었다 — 절 이름이 `이런 경험` 하나뿐이었고, 그 앞 글이
+    진짜 자격이었다. 그것까지 비우면 멀쩡한 재료를 버린다.
+    """
+    text = "Java 를 다루는 분\nSpring 경험자\n이런 경험이 있으면 좋아요\nGo"
+    check(not is_sectioned(text), "절 이름이 적으면 나뉜 문서가 아니다")
+    quality, preference = split_body_text(text)
+    check_equal(quality, "Java 를 다루는 분\nSpring 경험자", "우대 앞이 자격이다")
+    check_equal(preference, "Go", "우대")
+
+
+def test_BOUNDARY_no_heading_at_all_still_gives_the_whole_body():
+    text = "Java 를 잘 다루는 분\nSpring 경험자"
+    check_equal(split_body_text(text), (text, ""), "못 나눴을 뿐 내용은 거기 있다")
+
+
+def test_BOUNDARY_sectioned_is_counted_by_distinct_names():
+    # 같은 이름이 표에서 여러 번 반복돼도 한 가지로 센다 — 안 그러면 표 한 칸짜리
+    # 공고가 '나뉜 문서' 로 잘못 판정된다.
+    repeated = "자격요건\n가\n자격요건\n나\n자격요건\n다"
+    check_equal(heading_names(repeated), {"자격요건"}, "같은 이름은 하나로")
+    check(not is_sectioned(repeated), "한 가지 이름이 반복된 것은 나뉜 문서가 아니다")
+
+
+def test_BOUNDARY_qualification_heading_wins_over_the_rule():
+    # 나뉜 문서라도 **자격 절이 있으면** 그것을 쓴다. 규칙은 없을 때만 작동한다.
+    text = _TABLE.replace("담당 업무", "자격요건")
+    quality, _ = split_body_text(text)
+    check_equal(quality, "서버 개발", "자격 절이 있으면 그 내용이다")
+
+
+# ── `문의` 는 머리말로 쓰이는 모양만 받는다 ─────────────────────────────
+
+def test_EXCEPTION_inquiry_in_prose_does_not_end_a_section():
+    """**결함이었다.** `문의` 만 두면 산문에서 15번 잘못 잡혔다 (실측 52건).
+
+    `OTHER_HEADING` 에 있어서 **절을 일찍 끊는다** — 자격·우대가 문장 하나 때문에
+    중간에서 잘린다.
+    """
+    for prose in ("ㆍ고객문의 응대 및 니즈 파악", "고객 문의 대응 및 기술 지원",
+                  "전화문의 사절입니다", "문의 해주세요"):
+        text = "자격요건\n%s\nㆍJava 경험" % prose
+        quality, _ = split_body_text(text)
+        check("Java" in quality, "«%s» 에서 절이 끊겼다: %r" % (prose, quality))
+
+
+def test_BOUNDARY_inquiry_as_a_real_heading_still_ends_a_section():
+    for real in ("문의사항", "문의처", "채용문의", "문의 : hr@example.com"):
+        text = "자격요건\nㆍJava 경험\n%s\n02-000-0000" % real
+        quality, _ = split_body_text(text)
+        check("02-000-0000" not in quality,
+              "«%s» 는 머리말이라 절을 끊어야 한다: %r" % (real, quality))
+
+
+# ── 세로로 쌓인 열 머리글 ────────────────────────────────────────────────
+
+_STACKED = """모집부문
+채용부서
+포지션명
+담당업무
+자격요건
+보안
+연구소
+SSE팀
+- 네트워크 트래픽 실시간 분석·제어 엔진 개발
+- C/C++ 개발 가능자"""
+
+
+def test_NORMAL_stacked_column_headers_do_not_start_a_section():
+    """**결함이었다.** 표 양식은 열 이름을 한 줄에 하나씩 뽑아 놓는데,
+    `is_column_header` 는 "한 줄에 이름 둘 이상" 만 봐서 못 잡았다.
+
+    그래서 `자격요건` 이 절 시작으로 잡혀 **표 전체가 지원자격이 됐다** —
+    실측 `rec_idx=53930400` 이 3,180자, `rec_idx=54573076` 이 584자. 전량 18칸이었다.
+    """
+    check_equal(sorted(stacked_headers(_STACKED.split("\n"))), [3, 4],
+                "바로 옆 줄에도 머리말이면 열 이름이다")
+    quality, _ = split_body_text(_STACKED)
+    check("네트워크 트래픽" not in quality,
+          "표 내용이 지원자격에 들어가면 안 된다: %r" % quality[:60])
+
+
+def test_BOUNDARY_real_headings_with_content_between_are_not_stacked():
+    # **진짜 절 머리말은 사이에 내용이 있다.** 이걸 못 지키면 멀쩡한 공고가 전부 빈다.
+    text = "자격요건\nㆍJava 경험\n우대사항\nㆍGo 경험"
+    check_equal(stacked_headers(text.split("\n")), set(), "쌓인 것이 없다")
+    check_equal(split_body_text(text), ("ㆍJava 경험", "ㆍGo 경험"), "정상 공고는 그대로")
+
+
+def test_BOUNDARY_stacked_headers_do_not_end_a_section_either():
+    """열 머리글은 절을 **끝내지도** 않는다. 끝내면 표 한 칸에서 절이 잘린다.
+
+    **이 규칙의 한계가 여기 있다.** 머리말 둘이 붙어 있으면 표의 열 이름으로 보므로,
+    진짜 절 머리말 둘이 내용 없이 이어지는 공고에서는 앞 절이 뒤를 삼킨다.
+    실측 52건에서 그런 공고는 안 나왔지만 없다고 증명한 것은 아니다 —
+    나오면 `stacked_headers` 에 "몇 줄까지를 한 블록으로 볼지" 를 더해야 한다.
+    """
+    text = "자격요건\nㆍJava\n담당업무\n근무조건\nㆍ표 데이터"
+    quality, _ = split_body_text(text)
+    check("ㆍJava" in quality, "자격 내용은 들어 있어야 한다")
+    check("담당업무" in quality,
+          "지금은 붙어 있는 둘을 열 이름으로 보므로 절이 안 끊긴다 — 위 docstring 참조")
+
+
+def test_BOUNDARY_a_lone_heading_is_still_a_section():
+    text = "모집부문\n백엔드\n자격요건\nㆍJava 경험"
+    check_equal(stacked_headers(text.split("\n")), set(), "사이에 내용이 있으면 안 쌓인 것")
+    quality, _ = split_body_text(text)
+    check_equal(quality, "ㆍJava 경험", "단독 머리말은 절 시작이다")

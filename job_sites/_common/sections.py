@@ -24,6 +24,8 @@ from __future__ import annotations
 
 import re
 
+from _common.store import trim                                  # noqa: F401
+
 # ## 머리말에는 두 갈래가 있다 — 라벨과 유도문
 #
 # **라벨형**은 이름표다. `자격요건: Java, Spring` 처럼 같은 줄 뒤에 내용이 이어질 수 있고,
@@ -49,11 +51,13 @@ PREFERENCE_HEADING = re.compile(
 OTHER_HEADING = re.compile(
     r"(담당\s*업무|주요\s*업무|모집\s*부문|모집\s*분야|근무\s*조건|근무\s*환경"
     r"|전형\s*절차|채용\s*절차|제출\s*서류|접수\s*방법|접수\s*기간|복리\s*후생"
-    r"|기타\s*사항|유의\s*사항|문의)")
+    r"|기타\s*사항|유의\s*사항"
+    # `문의` 만 두면 산문에서 15번 잘못 잡혔다 (실측 52건) —
+    # `고객문의 응대 및 니즈 파악` · `전화문의 사절` · `문의 해주세요`.
+    # 이것이 절을 **일찍 끊어** 자격·우대가 중간에 잘린다. 머리말로 쓰이는 모양만 받는다.
+    r"|문의\s*(?:사항|처)|채용\s*문의|문의\s*:|^\s*문의\s*$)")
 
 
-# CSV 한 칸의 최대 길이. 넘으면 잘라서 표시한다 — 표 계산기가 긴 칸에서 느려진다.
-MAX_FIELD_LENGTH = 4000
 
 
 def split_body_text(text: str, *, extra_other: re.Pattern[str] | None = None
@@ -76,9 +80,47 @@ def split_body_text(text: str, *, extra_other: re.Pattern[str] | None = None
     qualification = section(text, QUALIFICATION_HEADING, headings)
     preference = section(text, PREFERENCE_HEADING, headings)
     if not qualification:
-        qualification = (until_first_heading(text, PREFERENCE_HEADING, headings)
-                         if preference else text)
+        qualification = "" if is_sectioned(text, headings) else (
+            until_first_heading(text, PREFERENCE_HEADING, headings)
+            if preference else text)
     return trim(qualification), trim(preference)
+
+
+# 절 이름이 이만큼 나오면 **여러 절로 나뉜 문서**로 본다.
+#
+# 실측(2026-09-11, 사람인·잡코리아 52건)에서 경계가 깨끗하게 갈렸다. 자격 절이 없어
+# 대체 규칙을 타는 공고는 절 이름이 **8~11가지**(사람인 표 양식)거나 **1가지**(대화체
+# 유도문 하나)였고, 그 사이가 없었다. 3은 그 틈 안이다.
+SECTIONED_AT = 3
+
+
+def heading_names(text: str, headings=None) -> set[str]:
+    """본문에 나오는 절 이름들. 같은 이름이 여러 번 나와도 하나로 센다."""
+    found = set()
+    for line in (text or "").split("\n"):
+        for pattern in (headings or _headings(None)):
+            match = pattern.search(line)
+            if match:
+                found.add(match.group().replace(" ", ""))
+    return found
+
+
+def is_sectioned(text: str, headings=None) -> bool:
+    """이 공고가 **여러 절로 나뉘어 있는가.**
+
+    나뉘어 있는데도 자격 절이 없으면 **그 공고에 자격 절이 진짜로 없는 것**이다.
+    그때 본문 전체를 자격으로 돌리면 회사 소개와 담당업무가 지원자격 칸에 들어간다 —
+    실측 29칸이 그 꼴이었다. 예를 들어 `rec_idx=54856893` 은 절이
+    `모집분야·모집부문·담당 업무·우대 사항·근무조건·복리후생·전형절차…` 인데 자격 절만
+    없어서, 회사 소개부터 우대 앞까지 **2,894자**가 통째로 지원자격이 됐다.
+
+    **차 있지만 틀린 것보다 비어 있는 편이 낫다** — 틀린 값은 다음 단계가 그대로 믿는다
+    (2026-09-11 사용자 판단).
+
+    반대로 머리말이 거의 없는 공고는 **나누지 못한 것뿐이고 내용은 거기 있다.**
+    그 경우는 지금처럼 본문 전체를 자격으로 돌린다.
+    """
+    return len(heading_names(text, headings)) >= SECTIONED_AT
 
 
 def _headings(extra_other: re.Pattern[str] | None) -> tuple[re.Pattern[str], ...]:
@@ -113,11 +155,41 @@ def is_heading(line: str, headings=None) -> bool:
     return heading_kinds(line, headings) > 0
 
 
+def stacked_headers(lines: list[str], headings=None) -> set[int]:
+    """**세로로 쌓인 열 머리글** 줄의 번호들.
+
+    사람인·잡코리아 표 양식은 열 이름을 한 줄에 하나씩 뽑아 놓는다. `is_column_header`
+    는 "한 줄에 이름이 둘 이상" 만 보므로 이 모양을 못 잡는다 — 실측:
+
+        [ 6] 담당업무          ← 열 이름
+        [ 7] 자격요건          ← 열 이름 (바로 다음 줄!)
+        [ 8] 보안              ← 여기부터 표의 데이터
+        [ 9] 연구소
+
+    그러면 `자격요건` 이 절 시작으로 잡혀 **표 전체가 지원자격이 된다** —
+    `rec_idx=53930400` 은 그렇게 3,180자가 들어갔다. 실측 18칸이 이 꼴이었다.
+
+    **진짜 절 머리말은 사이에 내용이 있다.** 머리말이 바로 옆 줄에도 있으면 그 둘은
+    절의 시작이 아니라 한 표의 열 이름이다.
+    """
+    marked = set()
+    for index, line in enumerate(lines):
+        if not is_heading(line, headings):
+            continue
+        for neighbour in (index - 1, index + 1):
+            if 0 <= neighbour < len(lines) and is_heading(lines[neighbour], headings):
+                marked.add(index)
+                break
+    return marked
+
+
 def section(text: str, heading: re.Pattern[str], headings=None) -> str:
     """머리말이 있는 줄 다음부터, **다음 머리말이 나오기 전까지**."""
     lines = text.split("\n")
+    stacked = stacked_headers(lines, headings)
     start = next((index for index, line in enumerate(lines)
-                  if heading.search(line) and not is_column_header(line, headings)), None)
+                  if heading.search(line) and index not in stacked
+                  and not is_column_header(line, headings)), None)
     if start is None:
         return ""
     collected = []
@@ -126,8 +198,10 @@ def section(text: str, heading: re.Pattern[str], headings=None) -> str:
     tail = _tail_of(lines[start], heading)
     if tail.strip():
         collected.append(tail.strip())
-    for line in lines[start + 1:]:
-        if is_heading(line, headings) and not is_column_header(line, headings):
+    for index in range(start + 1, len(lines)):
+        line = lines[index]
+        if (is_heading(line, headings) and index not in stacked
+                and not is_column_header(line, headings)):
             break
         if line.strip():
             collected.append(line.strip())
@@ -156,7 +230,3 @@ def until_first_heading(text: str, heading: re.Pattern[str], headings=None) -> s
     return "\n".join(kept).strip()
 
 
-def trim(text: str) -> str:
-    if len(text) <= MAX_FIELD_LENGTH:
-        return text
-    return text[:MAX_FIELD_LENGTH].rstrip() + " …"
