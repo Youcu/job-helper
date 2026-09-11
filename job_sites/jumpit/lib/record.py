@@ -10,14 +10,13 @@ from __future__ import annotations
 
 import re
 
-from _common.store import COLUMNS
+from _common.store import COLUMNS, trim
 
 from . import skills as skills_module
 
 SITE_NAME = "jumpit"
 DETAIL_URL = "https://jumpit.saramin.co.kr/position/%s"
 
-MAX_FIELD_LENGTH = 4000
 
 DATE = re.compile(r"(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})")
 
@@ -42,8 +41,8 @@ def to_row(position: dict, detail: dict, *, candidates_file=None) -> dict:
         "기업명": _text(detail.get("companyName")) or _text(position.get("companyName")),
         "공고명": _text(detail.get("title")) or _text(position.get("title")),
         "마감일": format_deadline(detail, position),
-        "지원자격": _trim(_text(detail.get("qualifications"))),
-        "우대사항": _trim(_text(detail.get("preferredRequirements"))),
+        "지원자격": trim(_text(detail.get("qualifications"))),
+        "우대사항": trim(_text(detail.get("preferredRequirements"))),
         "경력": career_text(detail, position),
         "URL": url,
         "연봉": "",          # 이 사이트는 급여를 안 준다 (상세 43칸에 없다)
@@ -60,11 +59,6 @@ def _text(value) -> str:
     # 본문이 `\r\n` 으로 온다. 줄바꿈은 살리고 잡공백만 줄인다 — 절이 눈에 보여야 한다.
     return re.sub(r"[ \t]+", " ", str(value).replace("\r\n", "\n").replace("\r", "\n")).strip()
 
-
-def _trim(text: str) -> str:
-    if len(text) <= MAX_FIELD_LENGTH:
-        return text
-    return text[:MAX_FIELD_LENGTH].rstrip() + " …"
 
 
 def format_deadline(detail: dict, position: dict) -> str:

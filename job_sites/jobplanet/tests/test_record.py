@@ -146,7 +146,7 @@ def test_BOUNDARY_row_values_are_all_strings():
 
 def test_BOUNDARY_long_field_is_trimmed_with_a_mark():
     # 표 계산기가 긴 칸에서 느려진다. 자르되 **잘랐다는 표시**를 남긴다.
-    from lib.record import MAX_FIELD_LENGTH
+    from _common.store import MAX_FIELD_LENGTH
     long_text = "가" * (MAX_FIELD_LENGTH + 500)
     row = to_row(_posting(), {"required_qualification": long_text},
                  candidates_file=temp_json())

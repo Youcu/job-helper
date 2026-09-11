@@ -22,8 +22,8 @@ from __future__ import annotations
 import re
 
 from _common.html_text import visible_lines
-from _common.sections import MAX_FIELD_LENGTH, split_body_text
-from _common.store import COLUMNS
+from _common.sections import split_body_text
+from _common.store import COLUMNS, MAX_FIELD_LENGTH
 
 from . import body, skills
 
