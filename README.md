@@ -20,7 +20,7 @@
 
 ```
 csv/merged.csv  ─그림 판독─▶  csv/merged_read.csv  ─거르기─▶  csv/merged_filtered.csv
-                                                              +  csv/filter_report.csv
+      ─평점─▶  csv/merged_rated.csv  ─핵심 기술─▶  csv/merged_core.csv
 ```
 
 **그림 판독** — 사람인·잡코리아 일부는 본문이 그림 한 장이라 `기술스택` 칸에 그림 주소만
@@ -32,8 +32,15 @@ csv/merged.csv  ─그림 판독─▶  csv/merged_read.csv  ─거르기─▶ 
 규칙은 반드시 오탐을 내므로 무엇을 잃었는지 되짚을 수 있어야 한다.
 [FILTER.md](FILTER.md).
 
-**앞 단계의 파일은 손대지 않는다.** 두 단계 다 행을 없애므로, 제자리에서 고치면 없어진
-행의 원본이 사라진다.
+**평점 거르기** — 잡플래닛에서 회사 평점을 걷어 **2.9 미만 · 평점 없음 · 검색 안 됨**을
+뺀다. [RATING.md](RATING.md).
+
+**핵심 기술** — `.env` 의 `CORE_TECH_STACKS` 가 `기술스택` · `지원자격` · `우대사항`
+**어느 한 곳에라도** 있는 공고만 남긴다. 세 칸을 다 보는 이유는, **채용 사이트의 검색
+조건에는 안 잡히는데 본문에는 적혀 있는 공고가 있기** 때문이다.
+
+**앞 단계의 파일은 손대지 않는다.** 네 단계 다 행을 없애므로, 제자리에서 고치면 없어진
+행의 원본이 사라진다. 뺀 것은 단계마다 `*_report.csv` 에 이유와 함께 남는다.
 
 ## 사이트
 
@@ -55,6 +62,8 @@ $EDITOR .env
 python3 job_crawling_ochestrator.py   # 수집부터 거르기까지 한 번에
 python3 job_image_process.py          # 이미 있는 csv/merged.csv 의 그림만 다시 처리
 python3 filter.py                     # 이미 있는 csv/merged_read.csv 만 다시 거른다
+python3 jobplanet_rating.py           # 평점만 다시 (캐시가 차 있으면 요청 0건)
+python3 core_stack.py                 # .env 를 고치고 핵심 기술만 다시 거른다
 ```
 
 수집은 8~10분이지만 뒤 단계만 다시 돌려 보고 싶을 때가 있다 — 캐시를 지웠을 때, 모델을
@@ -86,9 +95,21 @@ YOE=0                             # 신입=0, N년차=N, 전체=-1
 HOME_LOCATIONS=서울,성남시          # 비우면 전국
 EMPLOYMENT_TYPES=regular,intern
 EDUCATION=                        # 비워 둔다 — 걸면 공고가 3분의 1로 준다
-TECH_STACKS=                      # 아직 안 건다
+TECH_STACKS=                      # 수집기는 아직 안 건다
+CORE_TECH_STACKS=Spring, FastAPI  # **마지막에** 이것이 없는 공고를 뺀다 (아래)
 HOPE_ANNUAL_SALARY=               # 아직 안 건다
 ```
+
+**`TECH_STACKS` 와 `CORE_TECH_STACKS` 는 다른 것이다.** 앞은 수집기가 걷을 때 쓰라고 둔
+자리인데 아직 아무 사이트도 안 건다. 뒤는 **다 걷어 온 뒤 마지막에** 거르는 기준이다.
+
+거르는 자리를 뒤로 둔 이유가 있다. 수집기에 걸면 **채용 사이트의 검색 조건에 안 잡히는
+공고를 아예 안 걷게 되는데**, 그중에는 지원자격·우대사항에 그 기술이 적혀 있는 공고가
+있다. 걷어 두고 마지막에 거르면 `.env` 한 줄을 고치고 `python3 core_stack.py` 만 다시
+돌리면 된다 — 다시 걷을 필요가 없다.
+
+`Spring` 과 `Spring Boot` 는 **서로를 잡는다.** `Spring Boot` 로 검색하면 잘 안 나와서
+`Spring` 이라고 적어 두는데, 공고는 둘 중 아무 쪽으로나 쓰기 때문이다.
 
 같은 항목이 사이트마다 다르게 쓰인다 — 잡플래닛은 학력을 안 걸고, 점핏은 기술을 안 건다.
 각 사이트 README 에 무엇을 어떻게 쓰는지 있다.

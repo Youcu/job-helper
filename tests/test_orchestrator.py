@@ -45,7 +45,7 @@ def _fakes_with_csvs():
     return fakes
 
 
-def _main_with(fake_results, image, filtered=None, rated=None):
+def _main_with(fake_results, image, filtered=None, rated=None, cored=None):
     """`main()` 을 **통째로** 돌린다. 자식 프로세스는 하나도 안 띄운다.
 
     스크래퍼(`_run_one`)와 수집 뒤 단계(`_run_stage`)만 가짜로 바꾸고 **합치기는
@@ -61,7 +61,9 @@ def _main_with(fake_results, image, filtered=None, rated=None):
     real_merge = orch.merge_csvs
     stages = {orch.IMAGE_STAGE.name: ("이미지", image),
               orch.FILTER_STAGE.name: ("거르기", filtered or _stage("거르기", code=0)),
-              orch.RATING_STAGE.name: ("평점", rated or _stage("평점", code=0))}
+              orch.RATING_STAGE.name: ("평점", rated or _stage("평점", code=0)),
+              orch.CORE_STACK_STAGE.name: ("핵심기술",
+                                           cored or _stage("핵심기술", code=0))}
 
     def merge(paths, output):
         events.append("합치기")
@@ -292,8 +294,9 @@ def test_NORMAL_stages_run_in_order_after_merging():
     통과하거나 `ValueError` 로 터진다 — 실패가 아니라 오류로. 그래서 진짜로 돌린다.
     """
     code, events, merged, _ = _main_with(_fakes_with_csvs(), _image(code=0))
-    check_equal(events, ["합치기", "이미지", "거르기", "평점"], "차례가 이것이다: %r" % events)
-    check_equal(code, 0, "넷 다 멀쩡하면 0")
+    check_equal(events, ["합치기", "이미지", "거르기", "평점", "핵심기술"],
+                "차례가 이것이다: %r" % events)
+    check_equal(code, 0, "다섯 다 멀쩡하면 0")
     check_equal(len(read_csv(merged)), len(orch.SITES), "합본에 여섯 행이 들어 있다")
 
 
@@ -443,7 +446,7 @@ def test_EXCEPTION_partly_collected_rating_is_not_counted_as_success():
     # 것으로 읽으면 안 된다. 종료 코드는 1 이어야 한다.
     code, events, _merged, screen = _main_with(_fakes_with_csvs(), _image(code=0),
                                                None, _stage("평점", code=2))
-    check_equal(events, ["합치기", "이미지", "거르기", "평점"], "넷 다 부른다")
+    check("핵심기술" not in events, "평점이 덜 걷혔으면 핵심 기술도 안 부른다: %r" % events)
     check_equal(code, 1, "덜 걷었으면 성공이 아니다")
     check("csv/merged_filtered.csv 는 그대로 있습니다" in screen,
           "무엇이 안 지워졌는지 말해 준다")
@@ -464,3 +467,23 @@ def test_BOUNDARY_rating_timeout_is_much_longer_than_the_others():
     # 그물을 타는 단계다. 스크래퍼 하나에 맞춘 30분을 그대로 쓰면 중간에 끊긴다.
     check(orch.RATING_TIMEOUT > orch.FILTER_TIMEOUT * 10,
           "평점 제한 시간이 거르기와 같은 자릿수면 안 된다: %d초" % orch.RATING_TIMEOUT)
+
+
+def test_EXCEPTION_core_stack_is_not_called_when_rating_died():
+    code, events, _merged, _ = _main_with(_fakes_with_csvs(), _image(code=0), None,
+                                          _stage("평점", code=2))
+    check("핵심기술" not in events, "앞이 덜 걷었으면 안 부른다: %r" % events)
+    check_equal(code, 1, "1 로 끝난다")
+
+
+def test_BOUNDARY_core_stack_exit_table_names_the_env_setting():
+    """`1` 의 뜻에 **`.env` 항목 이름**이 들어가야 한다.
+
+    이 단계만 `CORE_TECH_STACKS` 를 읽는다. 다른 단계의 표를 빌려 쓰면 "단계를 못 돌림"
+    이라고만 찍혀서, 사람이 어느 파일의 어느 줄을 고쳐야 할지 못 짚는다.
+    """
+    check("CORE_TECH_STACKS" in orch.CORE_STACK_EXIT_MEANING[1][0],
+          orch.CORE_STACK_EXIT_MEANING[1][0])
+    check(2 not in orch.CORE_STACK_EXIT_MEANING, "부분 실패라는 것이 없다")
+    ok = {c for c, (_, good) in orch.CORE_STACK_EXIT_MEANING.items() if good}
+    check_equal(ok, {0}, "성공은 0 뿐: %r" % ok)

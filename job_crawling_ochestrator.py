@@ -115,6 +115,20 @@ RATING_EXIT_MEANING = {
 }
 
 
+CORE_STACK_STAGE = ROOT_DIR / "core_stack.py"
+
+# 파일 하나를 읽고 정규식을 돌릴 뿐이다. 거르기와 같은 값이면 충분하다.
+CORE_STACK_TIMEOUT = 60 * 5
+
+# 핵심 기술 거르기가 내는 코드. `1` 에 **`.env` 얘기가 들어간다** — 이 단계만 `.env` 의
+# `CORE_TECH_STACKS` 를 읽으므로, 다른 단계의 표를 빌려 쓰면 어디를 고쳐야 할지 못 짚는다.
+CORE_STACK_EXIT_MEANING = {
+    0: ("정상", True),
+    1: ("단계를 못 돌림 — merged_rated.csv 가 없거나 .env 의 CORE_TECH_STACKS 가 빔", False),
+    3: ("이미 돌고 있음", False),
+}
+
+
 @dataclass
 class Result:
     site: str
@@ -190,10 +204,18 @@ def main() -> int:
             print("평점 단계가 실패했습니다 (%s). csv/merged_filtered.csv 는 그대로 있습니다."
                   % rated.meaning, file=sys.stderr)
 
+    cored = _run_stage(CORE_STACK_STAGE, "핵심 기술 거르기", CORE_STACK_EXIT_MEANING,
+                       CORE_STACK_TIMEOUT) if (rated is not None and rated.ok) else None
+    if cored is not None:
+        print("\n%s" % "\n".join(_last_lines(cored.log, 12)))
+        if not cored.ok:
+            print("핵심 기술 단계가 실패했습니다 (%s). csv/merged_rated.csv 는 그대로 있습니다."
+                  % cored.meaning, file=sys.stderr)
+
     failed = [r for r in results if not r.ok]
     if failed:
         _print_failures(failed)
-    stages = [image, filtered, rated]
+    stages = [image, filtered, rated, cored]
     return 1 if (failed or any(st is not None and not st.ok for st in stages)) else 0
 
 
