@@ -16,13 +16,23 @@ from .reader import FIELDS
 
 # 그림에서 읽은 셋을 CSV 의 어느 칸에 넣는가
 COLUMN = {"기술스택": "기술스택", "자격요건": "지원자격", "우대사항": "우대사항"}
-BULLET = "•-·※*▪◦o"
 _DROP = re.compile(r"[\s\W_]+", re.UNICODE)
+
+# 줄 앞 글머리표. **`o` 는 뒤에 공백이 올 때만 글머리표다.**
+#
+# 예전에는 `lstrip("•-·※*▪◦o")` 로 벗겼다. `lstrip` 은 **문자 집합**을 벗기므로
+# `o` 로 시작하는 멀쩡한 낱말이 깎였다 — 실측으로 `oracle 경험` → `racle경험`,
+# `o365 운영` → `365운영`. 이 값은 "이미 있는 항목인가" 를 견주는 데 쓰이므로,
+# 깎인 쪽과 안 깎인 쪽이 달라져 **같은 항목이 두 번 들어간다.**
+#
+# 기호 글머리표(`•·※*▪◦-`)는 `_DROP` 이 어차피 지우므로 여기 없어도 된다. 그런데도
+# 함께 적어 두는 이유는, 이 정규식이 **글머리표를 다루는 한 자리**임을 드러내기 위해서다.
+_BULLET = re.compile(r"^\s*(?:[•·※*▪◦∙・\-]+|o(?=\s))\s*")
 
 
 def normalize(text: str) -> str:
     """견주기 위한 모양. 글머리표·공백·문장부호를 지우고 소문자로."""
-    return _DROP.sub("", str(text).lstrip(BULLET).lower())
+    return _DROP.sub("", _BULLET.sub("", str(text)).lower())
 
 
 def _clean(items: list[str]) -> list[str]:
