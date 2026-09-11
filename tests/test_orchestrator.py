@@ -45,14 +45,14 @@ def _fakes_with_csvs():
     return fakes
 
 
-def _main_with(fake_results, image, filtered=None):
+def _main_with(fake_results, image, filtered=None, rated=None):
     """`main()` 을 **통째로** 돌린다. 자식 프로세스는 하나도 안 띄운다.
 
     스크래퍼(`_run_one`)와 수집 뒤 단계(`_run_stage`)만 가짜로 바꾸고 **합치기는
     진짜를 돌린다** — 어디로 쓰는지만 임시 폴더로 옮긴다. 그래야 "합친 뒤에 부른다" 와
     "이미지 단계가 실패해도 합본은 남는다" 가 말이 아니라 사실로 확인된다.
 
-    `filtered` 를 안 주면 거르기는 정상으로 끝난 것으로 둔다.
+    `filtered`·`rated` 를 안 주면 그 단계는 정상으로 끝난 것으로 둔다.
 
     `(종료코드, 벌어진 일의 차례, 합본 경로, 화면에 찍힌 것)` 을 준다.
     """
@@ -60,7 +60,8 @@ def _main_with(fake_results, image, filtered=None):
     events = []
     real_merge = orch.merge_csvs
     stages = {orch.IMAGE_STAGE.name: ("이미지", image),
-              orch.FILTER_STAGE.name: ("거르기", filtered or _stage("거르기", code=0))}
+              orch.FILTER_STAGE.name: ("거르기", filtered or _stage("거르기", code=0)),
+              orch.RATING_STAGE.name: ("평점", rated or _stage("평점", code=0))}
 
     def merge(paths, output):
         events.append("합치기")
@@ -291,8 +292,8 @@ def test_NORMAL_stages_run_in_order_after_merging():
     통과하거나 `ValueError` 로 터진다 — 실패가 아니라 오류로. 그래서 진짜로 돌린다.
     """
     code, events, merged, _ = _main_with(_fakes_with_csvs(), _image(code=0))
-    check_equal(events, ["합치기", "이미지", "거르기"], "차례가 이것이다: %r" % events)
-    check_equal(code, 0, "셋 다 멀쩡하면 0")
+    check_equal(events, ["합치기", "이미지", "거르기", "평점"], "차례가 이것이다: %r" % events)
+    check_equal(code, 0, "넷 다 멀쩡하면 0")
     check_equal(len(read_csv(merged)), len(orch.SITES), "합본에 여섯 행이 들어 있다")
 
 
@@ -310,7 +311,8 @@ def test_EXCEPTION_filter_is_not_called_when_the_image_stage_died():
 def test_EXCEPTION_filter_failure_alone_gives_exit_one():
     code, events, merged, screen = _main_with(
         _fakes_with_csvs(), _image(code=0), _stage("거르기", code=1))
-    check_equal(events, ["합치기", "이미지", "거르기"], "부르기는 부른다")
+    check_equal(events, ["합치기", "이미지", "거르기"], "거기까지는 부른다")
+    check("평점" not in events, "**거르기가 죽으면 평점도 안 부른다**: %r" % events)
     check_equal(code, 1, "거르기만 실패해도 1 이어야 자동화가 성공으로 안 읽는다")
     check(merged.exists(), "**걷은 것은 남아 있어야 한다**")
     check("csv/merged_read.csv 는 그대로 있습니다" in screen,
@@ -422,3 +424,43 @@ def test_BOUNDARY_image_stage_does_not_report_a_leftover_output_file():
         orch.subprocess.run = saved
     check_equal(result.rows, 0, "지난 실행이 남긴 행 수를 이번 결과로 적지 않는다")
     check_equal(result.output, None, "가리킬 산출물이 없다")
+
+
+def test_EXCEPTION_rating_is_not_called_when_filtering_died():
+    """평점 걷기는 **거르기가 낸 파일**을 읽는다. 앞이 죽었으면 거기 있는 것은 지난 것이다.
+
+    이 단계는 그물을 타고 한 시간 넘게 돈다. 지난 파일로 그걸 돌리면 시간만 버리는 것이
+    아니라, **어제 공고 목록으로 오늘 평점을 걷어** 결과가 맞는 것처럼 보인다.
+    """
+    code, events, _merged, _ = _main_with(_fakes_with_csvs(), _image(code=0),
+                                          _stage("거르기", code=1))
+    check("평점" not in events, "부르면 안 된다: %r" % events)
+    check_equal(code, 1, "그래도 1 로 끝난다")
+
+
+def test_EXCEPTION_partly_collected_rating_is_not_counted_as_success():
+    # `2` 는 "걷은 것은 저장됐다" 는 뜻이지만, 덜 걷힌 평점으로 거른 결과를 온전한
+    # 것으로 읽으면 안 된다. 종료 코드는 1 이어야 한다.
+    code, events, _merged, screen = _main_with(_fakes_with_csvs(), _image(code=0),
+                                               None, _stage("평점", code=2))
+    check_equal(events, ["합치기", "이미지", "거르기", "평점"], "넷 다 부른다")
+    check_equal(code, 1, "덜 걷었으면 성공이 아니다")
+    check("csv/merged_filtered.csv 는 그대로 있습니다" in screen,
+          "무엇이 안 지워졌는지 말해 준다")
+
+
+def test_BOUNDARY_rating_stage_has_its_own_exit_table():
+    # `4`(건너뜀)는 잡플래닛 **수집기**의 신호다. 이 단계에는 건너뛸 조건이 없다.
+    check(4 not in orch.RATING_EXIT_MEANING, "건너뜀은 이 단계에 없다")
+    for code in (0, 1, 2, 3):
+        check(code in orch.RATING_EXIT_MEANING, "%d 의 뜻이 없다" % code)
+    ok = {c for c, (_, good) in orch.RATING_EXIT_MEANING.items() if good}
+    check_equal(ok, {0}, "성공으로 세는 코드는 0 뿐: %r" % ok)
+    check("이어감" in orch.RATING_EXIT_MEANING[2][0],
+          "2 는 다시 돌리면 된다고 말해야 한다: %s" % orch.RATING_EXIT_MEANING[2][0])
+
+
+def test_BOUNDARY_rating_timeout_is_much_longer_than_the_others():
+    # 그물을 타는 단계다. 스크래퍼 하나에 맞춘 30분을 그대로 쓰면 중간에 끊긴다.
+    check(orch.RATING_TIMEOUT > orch.FILTER_TIMEOUT * 10,
+          "평점 제한 시간이 거르기와 같은 자릿수면 안 된다: %d초" % orch.RATING_TIMEOUT)

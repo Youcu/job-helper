@@ -96,6 +96,25 @@ FILTER_EXIT_MEANING = {
 }
 
 
+RATING_STAGE = ROOT_DIR / "jobplanet_rating.py"
+
+# 평점 걷기는 **그물을 탄다.** 잡플래닛이 요청 간격을 보고 403 을 던지므로 5초씩 쉰다.
+# 실측(2026-09-11) 457곳에 요청 660건·70분. 변형 사다리로 회사당 1.5회쯤 묻고,
+# 403 이 11% 나서 건당 30초를 더 쓴다. 웹검색 되찾기까지 하면 더 는다.
+# 넉넉히 세 시간을 준다 — 모자라서 끊기면 걷은 것을 살리려고 다시 처음부터 봐야 한다.
+RATING_TIMEOUT = 60 * 180
+
+# 평점 걷기가 내는 코드. **`2` 가 여기서는 실패가 아닌 "덜 걷었다"** 는 뜻이다 —
+# 걷은 것은 저장됐고 다시 돌리면 이어받는다. 그래도 **성공으로 세지는 않는다.**
+# 덜 걷힌 평점으로 거른 결과를 온전한 것으로 읽으면 안 된다.
+RATING_EXIT_MEANING = {
+    0: ("정상", True),
+    1: ("단계를 못 돌림 — merged_filtered.csv 가 없음", False),
+    2: ("차단이 실측과 다르게 굴어 덜 걷음 (걷은 것은 저장됨 · 다시 돌리면 이어감)", False),
+    3: ("이미 돌고 있음", False),
+}
+
+
 @dataclass
 class Result:
     site: str
@@ -163,10 +182,18 @@ def main() -> int:
             print("거르기 단계가 실패했습니다 (%s). csv/merged_read.csv 는 그대로 있습니다."
                   % filtered.meaning, file=sys.stderr)
 
+    rated = _run_stage(RATING_STAGE, "평점 거르기", RATING_EXIT_MEANING,
+                       RATING_TIMEOUT) if (filtered is not None and filtered.ok) else None
+    if rated is not None:
+        print("\n%s" % "\n".join(_last_lines(rated.log, 14)))
+        if not rated.ok:
+            print("평점 단계가 실패했습니다 (%s). csv/merged_filtered.csv 는 그대로 있습니다."
+                  % rated.meaning, file=sys.stderr)
+
     failed = [r for r in results if not r.ok]
     if failed:
         _print_failures(failed)
-    stages = [image, filtered]
+    stages = [image, filtered, rated]
     return 1 if (failed or any(st is not None and not st.ok for st in stages)) else 0
 
 
