@@ -117,7 +117,7 @@ def image_urls(row: dict) -> list[str]:
     return [one for one in parts if one.startswith("http")]
 
 
-def _download_once_more_if_needed(url: str, target: Path) -> None:
+def _download_once_more_if_needed(url: str, target: Path, download_fn=None) -> None:
     """그림 하나를 받는다. **끊기면 한 번만 다시 받는다.**
 
     처음에는 비싼 모델 호출에만 재시도를 걸었는데, 실측해 보니 거꾸로였다. 두 번의 전체
@@ -129,7 +129,7 @@ def _download_once_more_if_needed(url: str, target: Path) -> None:
     last = None
     for attempt in range(2):
         try:
-            fetch.download(url, target)
+            (download_fn or fetch.download)(url, target)
             return
         except fetch.FetchError as error:
             last = error
@@ -138,7 +138,14 @@ def _download_once_more_if_needed(url: str, target: Path) -> None:
     raise last
 
 
-def process_one(row: dict, *, cfg, book: dict, work_dir: Path, reader_fn=None) -> Outcome:
+def process_one(row: dict, *, cfg, book: dict, work_dir: Path,
+                reader_fn=None, download_fn=None) -> Outcome:
+    """**그물을 타는 둘을 인자로 받는다.** 그림 내려받기와 모델 호출이다.
+
+    기본값은 진짜를 쓰므로 부르는 쪽이 아무것도 안 넘겨도 된다. 테스트는 이 둘만
+    넘기면 되고 **모듈 전역을 바꿔 끼울 필요가 없다** — 하나라도 빠뜨리면 진짜
+    그물을 타거나 진짜 `csv/` 를 읽는다.
+    """
     urls = image_urls(row)
     read_fn = reader_fn or (lambda paths, **kw: reader.read(paths, **kw))
     if not urls:
@@ -160,7 +167,7 @@ def process_one(row: dict, *, cfg, book: dict, work_dir: Path, reader_fn=None) -
         target = work / ("%02d%s" % (index, Path(url.split("?")[0]).suffix or ".img"))
         note_current_image(url)
         try:
-            _download_once_more_if_needed(url, target)
+            _download_once_more_if_needed(url, target, download_fn)
             # **못 받은 것과 못 연 것은 같은 종류의 실패다.** 둘 다 "그림에 내용이 없다"
             # 가 아니라 "우리가 못 봤다" 라서, 버리지도 캐시에 넣지도 않는다.
             #
@@ -205,30 +212,50 @@ def main(argv: list[str] | None = None) -> int:
     return guarded(LOCK, lambda: _run(assume_yes=assume_yes))
 
 
-def _run(assume_yes: bool = False) -> int:
-    try:
-        cfg = config.load_config()
-    except ConfigError as error:
-        print("설정 오류: %s" % error, file=sys.stderr)
-        return 1
-    if not INPUT.exists():
-        print("%s 가 없습니다. 먼저 수집을 돌리세요." % INPUT, file=sys.stderr)
+def _run(source: Path | None = None, output: Path | None = None,
+         cache_path: Path | None = None, *, cfg=None, download=None, read=None,
+         have_claude: bool | None = None, assume_yes: bool = False) -> int:
+    """**바깥과 닿는 것을 전부 인자로 받는다.** 안 넘기면 진짜를 쓴다.
+
+    | 인자 | 기본값 | 무엇과 닿나 |
+    |---|---|---|
+    | `source` · `output` | `INPUT` · `OUTPUT` | 진짜 `csv/` |
+    | `cache_path` | `cache.CACHE_PATH` | 진짜 캐시 |
+    | `cfg` | `config.load_config()` | 진짜 `.env` |
+    | `download` · `read` | `fetch.download` · `reader.read` | 그물과 모델 |
+    | `have_claude` | `shutil.which("claude")` | 이 컴퓨터의 PATH |
+
+    다른 단계들(`filter` · `core_stack` · `history`)은 진작 이 모양인데 여기만
+    아니었다. 그래서 테스트가 **모듈 전역 여덟 개**를 바꿔 끼웠고, 하나라도
+    빠뜨리면 진짜 `csv/` 를 읽거나 진짜 모델을 불렀다 — 그것도 조용히.
+    """
+    source = source if source is not None else INPUT
+    output = output if output is not None else OUTPUT
+    cache_path = cache_path if cache_path is not None else cache.CACHE_PATH
+    if cfg is None:
+        try:
+            cfg = config.load_config()
+        except ConfigError as error:
+            print("설정 오류: %s" % error, file=sys.stderr)
+            return 1
+    if not source.exists():
+        print("%s 가 없습니다. 먼저 수집을 돌리세요." % source, file=sys.stderr)
         print("  python3 job_crawling_ochestrator.py", file=sys.stderr)
         return 1
-    if not confirm(INPUT, assume_yes=assume_yes):
+    if not confirm(source, assume_yes=assume_yes):
         print("멈췄습니다 — 아무것도 안 바꿨습니다.", file=sys.stderr)
         return 1
-    if not shutil.which("claude"):
+    if not (shutil.which("claude") if have_claude is None else have_claude):
         print("claude 명령을 못 찾았습니다. 이 단계는 그것으로 그림을 읽습니다.",
               file=sys.stderr)
         return 1
 
-    rows = read_csv(INPUT)
+    rows = read_csv(source)
     targets = [index for index, row in enumerate(rows) if image_urls(row)]
     print("이미지 본문 %d건을 읽습니다 (동시 %d개 · %s)"
           % (len(targets), cfg.workers, cfg.model))
 
-    book = cache.load(cache.CACHE_PATH)
+    book = cache.load(cache_path)
     stats = {"채움": 0, "캐시": 0, "버림": 0, "껍데기": 0, "못읽음": 0}
     kept: dict[int, dict | None] = {}
     work_root = Path(tempfile.mkdtemp(prefix="image_process_"))
@@ -237,7 +264,8 @@ def _run(assume_yes: bool = False) -> int:
       with warnings_through_bar(), ThreadPoolExecutor(max_workers=cfg.workers) as pool:
             futures = {
                 pool.submit(process_one, rows[index], cfg=cfg, book=book,
-                            work_dir=work_root / str(index)): index
+                            work_dir=work_root / str(index),
+                            reader_fn=read, download_fn=download): index
                 for index in targets
             }
             # **`as_completed` 여야 실제로 기다린다.** dict 를 그냥 돌면 제출만 하고 지나간다.
@@ -256,7 +284,7 @@ def _run(assume_yes: bool = False) -> int:
                     tqdm.write("  %s 못 읽음: %s" % (rows[index].get("URL"), outcome.note))
     finally:
         shutil.rmtree(work_root, ignore_errors=True)
-        cache.save(cache.CACHE_PATH, book)
+        cache.save(cache_path, book)
 
     out = []
     for index, row in enumerate(rows):
@@ -275,8 +303,8 @@ def _run(assume_yes: bool = False) -> int:
     # 이 파일은 매 실행 처음부터 다시 만들어지므로, 여기서 빠져도 원본 `merged.csv` 에
     # 남아 다음 실행에 다시 걷히고 다시 시도된다.
     out = [row for row in out if not image_urls(row)]
-    write_csv(OUTPUT, out)
-    _report(stats, len(rows), len(out))
+    write_csv(output, out)
+    _report(stats, len(rows), len(out), source, output)
 
     # **`2` 는 "아무것도 못 해냈다" 는 뜻이다.** 캐시 적중도 해낸 것이다 — 안 그러면
     # 정상 상태(거의 전부 캐시)에서 새 공고 하나가 시간 초과만 나도 실행 전체가 실패로
@@ -289,15 +317,28 @@ def _run(assume_yes: bool = False) -> int:
     return 0
 
 
-def _report(stats: dict, before: int, after: int) -> None:
+def _report(stats: dict, before: int, after: int,
+            source: Path, output: Path) -> None:
     print("  캐시에서 바로       : %d건" % stats["캐시"])
     print("  껍데기라 안 부름     : %d건 → 버림" % stats["껍데기"])
     print("  읽어서 채움         : %d건" % stats["채움"])
     print("  읽었는데 쓸 게 없음  : %d건 → 버림" % stats["버림"])
     print("  못 읽음 (빼고 다음에 다시): %d건" % stats["못읽음"])
     print("\n%s — %d행 (%s %d행에서 %d건 버림)"
-          % (OUTPUT.relative_to(ROOT_DIR), after,
-             INPUT.relative_to(ROOT_DIR), before, before - after))
+          % (_shown(output), after, _shown(source), before, before - after))
+
+
+def _shown(path: Path) -> str:
+    """저장소 안이면 짧게, 밖이면 있는 그대로.
+
+    전에는 `relative_to(ROOT_DIR)` 만 했다. 경로를 인자로 받게 되면서 저장소 밖도
+    올 수 있는데, 그때 `relative_to` 는 **`ValueError` 를 낸다** — 다 끝내 놓고
+    요약을 찍다가 터진다.
+    """
+    try:
+        return str(path.relative_to(ROOT_DIR))
+    except ValueError:
+        return str(path)
 
 
 if __name__ == "__main__":

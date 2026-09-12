@@ -411,9 +411,34 @@ csv/merged_read.csv — 703행 (csv/merged.csv 736행에서 33건 버림)
 
 ## 테스트
 
-네트워크도 `claude` 도 타지 않는다. 호출 함수를 가짜로 바꿔 넣고, 이미지는 **Pillow 로 그
-자리에서 그린다** — 5MB 짜리 실물을 저장소에 넣을 수 없고, 넣어도 OCR 결과는 시험할 수
-없다. 시험할 수 있는 것만 시험한다.
+네트워크도 `claude` 도 타지 않는다. 바깥과 닿는 것을 **인자로 넘겨** 가짜로 바꾸고,
+이미지는 **Pillow 로 그 자리에서 그린다** — 5MB 짜리 실물을 저장소에 넣을 수 없고,
+넣어도 OCR 결과는 시험할 수 없다. 시험할 수 있는 것만 시험한다.
+
+### 바깥과 닿는 것은 전부 인자다
+
+```python
+_run(source, output, cache_path, *, cfg, download, read, have_claude, assume_yes)
+process_one(row, *, cfg, book, work_dir, reader_fn, download_fn)
+```
+
+| 인자 | 안 넘기면 | 무엇과 닿나 |
+|---|---|---|
+| `source` · `output` | `INPUT` · `OUTPUT` | 진짜 `csv/` |
+| `cache_path` | `cache.CACHE_PATH` | 진짜 캐시 |
+| `cfg` | `config.load_config()` | 진짜 `.env` |
+| `download` · `read` | `fetch.download` · `reader.read` | 그물과 모델 |
+| `have_claude` | `shutil.which("claude")` | 이 컴퓨터의 PATH |
+
+**전에는 이 자리가 없어서 테스트가 모듈 전역 여덟 개를 바꿔 끼웠다** —
+`ROOT_DIR` · `INPUT` · `OUTPUT` · `shutil` · `fetch.download` · `reader.read` ·
+`config.load_config` · `cache.CACHE_PATH`. 하나라도 빠뜨리면 **진짜 `csv/` 를 읽거나
+진짜 모델을 불렀고, 테스트는 그냥 통과했다.** 다른 단계(`filter` · `core_stack` ·
+`history`)는 진작 이 모양인데 여기만 아니었다.
+
+`test_BOUNDARY_run_needs_no_module_global_to_work` 가 그 자리를 굳힌다 — 전역들을
+**없는 경로**로 돌려놓고 인자만으로 돌려 본다. 어느 한 줄이라도 인자 대신 전역을 보면
+그 자리에서 드러난다.
 
 ```bash
 .venv/bin/python3 tests/run.py       # 루트에서. 오케스트레이터 테스트와 같은 자리에 있다
