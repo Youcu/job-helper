@@ -148,6 +148,36 @@ HISTORY_EXIT_MEANING = {
 }
 
 
+# **수집 뒤 단계들. 차례대로 돈다.**
+#
+# 예전에는 단계마다 호출·출력·실패 메시지를 손으로 적고, 마지막에 `stages` 목록에도
+# 또 적었다. 단계 하나를 늘리면 이 파일 안에서 **다섯 군데**를 고쳐야 했고, 그중
+# `stages` 목록을 빠뜨리면 **그 단계가 실패해도 종료 코드가 0** 이 됐다 — 화면에는
+# "실패했습니다" 가 찍히는데 자동화는 성공으로 읽는다. 터지지도 멈추지도 않는다.
+#
+# 표로 모으면 **목록이 곧 반복 대상**이라 빠뜨릴 자리가 없어진다. 단계를 늘리는 일이
+# 한 줄 더하기가 된다.
+#
+# `앞파일` 은 실패했을 때 "무엇이 안 바뀌었나" 를 말해 주는 데 쓴다. 사람이 다음에
+# 무엇을 할지 정하는 재료다.
+STAGES = (
+    # (스크립트, 이름, 종료 코드 표, 제한 시간, 앞 단계가 남긴 파일)
+    (IMAGE_STAGE, "이미지판독", IMAGE_EXIT_MEANING, TIMEOUT_SECONDS,
+     "csv/merged.csv"),
+    (FILTER_STAGE, "거르기", FILTER_EXIT_MEANING, FILTER_TIMEOUT,
+     "csv/merged_read.csv"),
+    (RATING_STAGE, "평점 거르기", RATING_EXIT_MEANING, RATING_TIMEOUT,
+     "csv/merged_filtered.csv"),
+    (CORE_STACK_STAGE, "핵심 기술 거르기", CORE_STACK_EXIT_MEANING, CORE_STACK_TIMEOUT,
+     "csv/merged_rated.csv"),
+    (HISTORY_STAGE, "이력 쌓기", HISTORY_EXIT_MEANING, HISTORY_TIMEOUT,
+     "csv/ 와 사이트 CSV"),
+)
+
+# 단계가 한 말 중 끝에서 이만큼을 보여 준다. 요약이 그 안에 들어간다.
+STAGE_LOG_LINES = 14
+
+
 @dataclass
 class Result:
     site: str
@@ -211,54 +241,12 @@ def _main() -> int:
     merged = merge_csvs([r.output for r in results if r.output], OUTPUT)
     _print_report(results, merged, elapsed)
 
-    image = _run_stage(IMAGE_STAGE, "이미지판독", IMAGE_EXIT_MEANING)
-    print("\n%s" % "\n".join(_last_lines(image.log, 12)))
-    if not image.ok:
-        print("이미지 판독 단계가 실패했습니다 (%s). csv/merged.csv 는 그대로 있습니다."
-              % image.meaning, file=sys.stderr)
-
-    # **앞이 죽으면 뒤를 안 부른다.** 거르기의 입력은 앞 단계가 낸 파일인데, 앞이 죽었으면
-    # 거기 있는 것은 **지난 실행이 남긴 것**이다. 그것을 걸러 내면 어제 결과가 오늘 것처럼
-    # 나온다 — 터지지 않고 조용히 틀리므로 알아채기가 가장 어렵다.
-    filtered = _run_stage(FILTER_STAGE, "거르기", FILTER_EXIT_MEANING,
-                          FILTER_TIMEOUT) if image.ok else None
-    if filtered is not None:
-        print("\n%s" % "\n".join(_last_lines(filtered.log, 12)))
-        if not filtered.ok:
-            print("거르기 단계가 실패했습니다 (%s). csv/merged_read.csv 는 그대로 있습니다."
-                  % filtered.meaning, file=sys.stderr)
-
-    rated = _run_stage(RATING_STAGE, "평점 거르기", RATING_EXIT_MEANING,
-                       RATING_TIMEOUT) if (filtered is not None and filtered.ok) else None
-    if rated is not None:
-        print("\n%s" % "\n".join(_last_lines(rated.log, 14)))
-        if not rated.ok:
-            print("평점 단계가 실패했습니다 (%s). csv/merged_filtered.csv 는 그대로 있습니다."
-                  % rated.meaning, file=sys.stderr)
-
-    cored = _run_stage(CORE_STACK_STAGE, "핵심 기술 거르기", CORE_STACK_EXIT_MEANING,
-                       CORE_STACK_TIMEOUT) if (rated is not None and rated.ok) else None
-    if cored is not None:
-        print("\n%s" % "\n".join(_last_lines(cored.log, 12)))
-        if not cored.ok:
-            print("핵심 기술 단계가 실패했습니다 (%s). csv/merged_rated.csv 는 그대로 있습니다."
-                  % cored.meaning, file=sys.stderr)
-
-    # **최종본까지 다 나왔을 때만 이력을 쌓는다.** 중간에 멈춘 실행의 반쪽 결과를
-    # 이력에 섞으면, 나중에 "그때 이 공고가 없었다" 를 거짓으로 읽는다.
-    history = _run_stage(HISTORY_STAGE, "이력 쌓기", HISTORY_EXIT_MEANING,
-                         HISTORY_TIMEOUT) if (cored is not None and cored.ok) else None
-    if history is not None:
-        print("\n%s" % "\n".join(_last_lines(history.log, 12)))
-        if not history.ok:
-            print("이력 단계가 실패했습니다 (%s). csv/ 와 사이트 CSV 는 그대로 있습니다."
-                  % history.meaning, file=sys.stderr)
+    stages = _run_chain()
 
     failed = [r for r in results if not r.ok]
     if failed:
         _print_failures(failed)
-    stages = [image, filtered, rated, cored, history]
-    return 1 if (failed or any(st is not None and not st.ok for st in stages)) else 0
+    return 1 if (failed or any(not st.ok for st in stages)) else 0
 
 
 def _print_failures(failed: list[Result]) -> None:
@@ -370,6 +358,29 @@ def count_rows(path: Path) -> int:
             return max(0, sum(1 for _ in csv.reader(handle)) - 1)
     except OSError:
         return 0
+
+
+def _run_chain() -> list[Result]:
+    """수집 뒤 단계들을 차례로 돌린다. **앞이 죽으면 뒤를 안 부른다.**
+
+    뒤 단계의 입력은 앞이 낸 파일인데, 앞이 죽었으면 거기 있는 것은 **지난 실행이 남긴
+    것**이다. 그것을 다듬으면 어제 결과가 오늘 것처럼 나온다 — 터지지 않고 조용히
+    틀리므로 알아채기가 가장 어렵다.
+
+    돌아가는 것은 **실제로 부른 단계들**이다. 안 부른 단계는 성공도 실패도 아니므로
+    목록에 넣지 않는다.
+    """
+    done: list[Result] = []
+    for script, name, meanings, timeout, kept in STAGES:
+        if done and not done[-1].ok:
+            break
+        result = _run_stage(script, name, meanings, timeout)
+        done.append(result)
+        print("\n%s" % "\n".join(_last_lines(result.log, STAGE_LOG_LINES)))
+        if not result.ok:
+            print("%s 단계가 실패했습니다 (%s). %s 는 그대로 있습니다."
+                  % (name, result.meaning, kept), file=sys.stderr)
+    return done
 
 
 def _run_stage(script: Path, name: str, meanings: dict,

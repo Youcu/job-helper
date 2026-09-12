@@ -510,3 +510,55 @@ def test_BOUNDARY_history_exit_table_says_the_pipeline_did_not_finish():
     check(2 not in orch.HISTORY_EXIT_MEANING, "부분 실패라는 것이 없다")
     ok = {c for c, (_, good) in orch.HISTORY_EXIT_MEANING.items() if good}
     check_equal(ok, {0}, "성공은 0 뿐: %r" % ok)
+
+
+def test_BOUNDARY_every_stage_in_the_table_fails_the_run():
+    """**표에 있는 단계는 전부 종료 코드에 반영된다** — 새로 더한 단계도 자동으로.
+
+    전에는 단계마다 배선을 손으로 적고 **마지막에 `stages` 목록에도 또 적었다.**
+    목록에 적는 것을 빠뜨리면 그 단계가 실패해도 종료 코드가 `0` 이 된다 — 화면에는
+    "실패했습니다" 가 찍히는데 자동화는 성공으로 읽는다. 터지지도 멈추지도 않는다.
+
+    이 테스트는 `STAGES` 를 **돌면서** 확인하므로, 표에 한 줄을 더하면 검사도 같이
+    늘어난다. 새 단계를 배선에서 빠뜨릴 자리가 없다.
+    """
+    for index, (script, name, _meanings, _timeout, _kept) in enumerate(orch.STAGES):
+        home = temp_dir()
+        events = []
+        broken = orch.Result(site=name, code=1, log="",
+                             meanings=orch.FILTER_EXIT_MEANING)
+        fine = orch.Result(site=name, code=0, log="",
+                           meanings=orch.FILTER_EXIT_MEANING)
+
+        def run_stage(target, label, meanings, timeout=orch.TIMEOUT_SECONDS,
+                      _script=script):
+            events.append(target.name)
+            return broken if target.name == _script.name else fine
+
+        saved = (orch._run_one, orch._run_stage, orch.ROOT_DIR, orch.OUTPUT)
+        orch._run_one = lambda site, path: _fakes_with_csvs()[site]
+        orch._run_stage = run_stage
+        orch.ROOT_DIR, orch.OUTPUT = home, home / "csv" / "merged.csv"
+        noise = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(noise), contextlib.redirect_stderr(noise):
+                code = orch.main()
+        finally:
+            (orch._run_one, orch._run_stage, orch.ROOT_DIR, orch.OUTPUT) = saved
+
+        check_equal(code, 1, "%s 가 실패하면 종료 코드 1: %d" % (name, code))
+        check_equal(len(events), index + 1,
+                    "%s 에서 멈춰야 한다 — 뒤를 부르면 지난 실행 파일을 다듬는다: %r"
+                    % (name, events))
+        check("%s 단계가 실패했습니다" % name in noise.getvalue(),
+              "**어느 단계가 죽었는지 이름으로 말해야 한다**: %s" % name)
+
+
+def test_BOUNDARY_each_stage_names_the_file_that_did_not_change():
+    """실패 메시지는 **무엇이 안 바뀌었나**를 말한다 — 사람이 다음에 뭘 할지 정하는 재료다.
+
+    앞 단계가 남긴 파일 이름을 대야 "그럼 그것부터 다시" 를 판단할 수 있다. 표의
+    다섯째 칸이 그 자리이고, 비어 있으면 메시지가 반쪽이 된다.
+    """
+    for _script, name, _meanings, _timeout, kept in orch.STAGES:
+        check(kept.strip(), "%s 에 앞 단계 산출물이 적혀 있어야 한다" % name)
