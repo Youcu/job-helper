@@ -20,6 +20,7 @@ sys.path.insert(0, str(ROOT_DIR))
 from tqdm import tqdm
 
 from _common.env import ConfigError
+from _common.outcome import INCOMPLETE, incomplete
 from _common.runlock import guarded
 from _common.store import merge_lines, save
 from lib import body, record
@@ -73,6 +74,14 @@ def _run() -> int:
         print("\n차단돼서 %d건에서 멈췄습니다. 여기까지 모은 것은 저장했습니다."
               % len(rows), file=sys.stderr)
         return 2
+    if incomplete(stats, rows):
+        # 걷은 것이 없는데 상세를 못 받은 것이 있다. 여기서 0 을 내면 화면에
+        # `정상 · 0행` 이라고 찍혀, 사이트에 공고가 있는데도 없는 것처럼 보인다.
+        print("\n걷은 것이 없습니다 — 상세를 %d건 물어봐서 %d건을 못 받았습니다.\n"
+              "  목록은 %d건 받았으니 사이트가 아니라 상세 쪽 문제일 수 있습니다."
+              % (stats["상세시도"], stats["상세실패"], len(listings.rows)),
+              file=sys.stderr)
+        return INCOMPLETE
     return 0
 
 
@@ -84,7 +93,8 @@ def _collect_details(client, listings: list[dict]):
     막혀서 적게 모은 것은 다르다.
     """
     rows: list[dict] = []
-    stats = {"이미지본문": 0, "그림대기": 0, "기술없음": 0, "번호없음": 0, "차단": False}
+    stats = {"이미지본문": 0, "그림대기": 0, "기술없음": 0, "번호없음": 0,
+             "상세시도": 0, "상세실패": 0, "차단": False}
 
     for listing in tqdm(listings, desc="상세", unit="건"):
         # `to_row` 에도 같은 방어선이 있지만 여기서 먼저 쓴다 — 상세를 받으러 가는
@@ -93,6 +103,7 @@ def _collect_details(client, listings: list[dict]):
         if not rec_idx:
             stats["번호없음"] += 1
             continue
+        stats["상세시도"] += 1
         try:
             page = fetch_detail(client, rec_idx)
         except BlockedError as error:
@@ -101,6 +112,7 @@ def _collect_details(client, listings: list[dict]):
             break
         except Exception as error:
             tqdm.write("  %s 상세 실패: %s" % (rec_idx, error))
+            stats["상세실패"] += 1
             continue
 
         # **수집을 돌 때는 그림을 읽지 않는다.** 장당 40초라 몇 시간이 된다.
@@ -161,6 +173,8 @@ def _print_summary(config, result, stats) -> None:
         print("    기술스택 칸에 http 로 시작하는 주소가 들어 있습니다 — 아직 안 읽었다는 뜻입니다.")
     if stats["기술없음"]:
         print("  기술스택이 하나도 없어 제외: %d건" % stats["기술없음"])
+    if stats["상세실패"]:
+        print("  상세를 못 받아 제외: %d건" % stats["상세실패"])
     if stats["번호없음"]:
         print("  공고번호가 없어 제외: %d건" % stats["번호없음"])
 

@@ -94,6 +94,8 @@ def test_EXCEPTION_one_failed_detail_does_not_stop_the_rest():
         client, [listing("1"), listing("2"), listing("3")])
     check_equal(len(rows), 2, "한 건 실패로 나머지를 버리면 안 된다")
     check(not stats["차단"], "일시적 실패는 차단이 아니다")
+    check_equal(stats["상세실패"], 1, "**몇 건을 잃었는지 세야 한다** — 안 세면 전멸도 못 본다")
+    check_equal(stats["상세시도"], 3, "물어본 건수")
 
 
 def test_EXCEPTION_missing_rec_idx_is_counted_not_crashed():
@@ -183,7 +185,8 @@ def _config(**kwargs):
 
 
 def _stats(**kwargs):
-    base = {"이미지본문": 0, "그림대기": 0, "기술없음": 0, "번호없음": 0, "차단": False}
+    base = {"이미지본문": 0, "그림대기": 0, "기술없음": 0, "번호없음": 0,
+            "상세시도": 0, "상세실패": 0, "차단": False}
     base.update(kwargs)
     return base
 
@@ -212,7 +215,8 @@ def test_EXCEPTION_summary_handles_every_stat_being_set():
     saramin._print_summary(
         _config(tech_stacks=["Python"], hope_annual_salary="3300"),
         _merge_result([_row("https://x.test/1")]),
-        _stats(이미지본문=5, 그림대기=5, 기술없음=3, 번호없음=1, 차단=True))
+        _stats(이미지본문=5, 그림대기=5, 기술없음=3, 번호없음=1,
+               상세시도=9, 상세실패=2, 차단=True))
 
 
 def test_EXCEPTION_second_run_is_refused_while_one_is_running():
@@ -418,3 +422,43 @@ def test_BOUNDARY_neither_skill_nor_image_is_still_dropped():
     rows, stats = saramin._collect_details(client, [listing("1")])
     check_equal(rows, [], "재료가 없으면 뺀다")
     check_equal(stats["기술없음"], 1, "뺀 개수를 알린다")
+
+
+def test_EXCEPTION_all_details_failing_is_not_a_normal_run():
+    """**목록은 받았는데 상세를 전부 실패했다.**
+
+    여기서 `0` 을 내면 화면에 `정상 · 0행` 이라고 찍혀, 사이트에 공고가 있는데도
+    없는 것처럼 보인다. Pathsdog 에서 실제로 났던 사고다 (`_common/outcome.py`).
+
+    `0행` 자체는 정상일 수 있다 — 조건에 맞는 공고가 없었을 수도 있다. 그 둘을 가르는
+    것이 **잃은 것이 있는가**이고, 그래서 실패 건수를 센다.
+    """
+    listings = saramin.fetch_listings.__globals__["Listings"](
+        rows=[listing("1"), listing("2")], pages=1, reported_total=2,
+        stop_reason="다 모았다")
+
+    def always_fails(client, rec_idx):
+        raise ConnectionError("끊김")
+
+    code = _run_with({
+        "load_config": lambda: _config(),
+        "SaraminClient": lambda: FakeClient({}),
+        "fetch_listings": lambda client, params, **kwargs: listings,
+        "fetch_detail": always_fails,
+        "save": lambda rows, output: _merge_result(rows),
+    })
+    check_equal(code, saramin.INCOMPLETE, "**2 로 알려야 한다** — 0 이면 조용히 틀린다")
+
+
+def test_BOUNDARY_zero_rows_without_any_failure_is_still_normal():
+    """받아 놓고 **다 걸러져서** 0행인 것은 정상이다. 잃은 것이 없다."""
+    listings = saramin.fetch_listings.__globals__["Listings"](
+        rows=[listing("1")], pages=1, reported_total=1, stop_reason="다 모았다")
+    code = _run_with({
+        "load_config": lambda: _config(),
+        "SaraminClient": lambda: FakeClient({"1": NO_SKILL_BODY}),
+        "fetch_listings": lambda client, params, **kwargs: listings,
+        "fetch_detail": lambda client, rec_idx: NO_SKILL_BODY,
+        "save": lambda rows, output: _merge_result(rows),
+    })
+    check_equal(code, 0, "기술이 없어 걸러진 것은 실패가 아니다")
