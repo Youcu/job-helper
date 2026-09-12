@@ -40,6 +40,7 @@ sys.path.insert(0, str(SITES_DIR))
 
 from tqdm import tqdm                                        # noqa: E402
 
+from _common import staleness                                # noqa: E402
 from _common.runlock import guarded                          # noqa: E402
 from _common.store import COLUMNS                            # noqa: E402
 
@@ -360,9 +361,12 @@ def _run_stage(script: Path, name: str, meanings: dict,
     result = Result(site=name, meanings=meanings)
     started = time.monotonic()
     try:
+        # **사슬 안이라고 알린다.** 방금 앞 단계가 만든 파일이므로 "입력이 낡았다" 를
+        # 물을 이유가 없다. 물으면 자식이 tty 를 못 잡아 멈춰 버린다.
         done = subprocess.run(
             [sys.executable, script.name],
             cwd=ROOT_DIR, capture_output=True, text=True, timeout=timeout,
+            env={**os.environ, staleness.CHAIN_ENV: "1"},
         )
         result.code = done.returncode
         result.log = (done.stdout or "") + (done.stderr or "")

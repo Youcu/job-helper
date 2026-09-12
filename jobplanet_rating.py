@@ -105,6 +105,7 @@ sys.path.insert(0, str(ROOT_DIR))
 
 import filter_words                                                # noqa: E402
 from _common.runlock import guarded                                # noqa: E402
+from _common.staleness import confirm, yes_given                       # noqa: E402
 from _common.store import read_csv, write_csv                      # noqa: E402
 
 # 사용자가 정한 선. **미만이면 뺀다** — 2.9 는 남는다.
@@ -361,16 +362,21 @@ def save_cache(path: Path, book: dict) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    return guarded(LOCK, _run)
+    assume_yes = yes_given(argv)
+    return guarded(LOCK, lambda: _run(assume_yes=assume_yes))
 
 
 def _run(source: Path = INPUT, output: Path = OUTPUT, report: Path = REPORT,
          same_names: Path = SAME_NAMES, cache: Path = CACHE,
-         request_log: Path = REQUEST_LOG, searcher: Searcher | None = None) -> int:
+         request_log: Path = REQUEST_LOG, searcher: Searcher | None = None,
+         assume_yes: bool = False) -> int:
     """경로를 인자로 받는 이유는 **테스트가 진짜 `csv/` 와 그물을 안 건드리게** 하려는 것이다."""
     if not source.exists():
         print("%s 가 없습니다. 먼저 거르기까지 돌리세요." % source, file=sys.stderr)
         print("  python3 job_crawling_ochestrator.py", file=sys.stderr)
+        return 1
+    if not confirm(source, assume_yes=assume_yes):
+        print("멈췄습니다 — 아무것도 안 바꿨습니다.", file=sys.stderr)
         return 1
 
     rows = read_csv(source)

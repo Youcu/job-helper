@@ -66,6 +66,7 @@ sys.path.insert(0, str(ROOT_DIR))
 
 from _common.env import ConfigError, csv_list, read_env                 # noqa: E402
 from _common.runlock import guarded                                    # noqa: E402
+from _common.staleness import confirm, yes_given                          # noqa: E402
 from _common.store import read_csv, write_csv                          # noqa: E402
 
 SETTING = "CORE_TECH_STACKS"
@@ -139,15 +140,19 @@ def hits(row: dict, rules: list) -> list[tuple[str, str]]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    return guarded(LOCK, _run)
+    assume_yes = yes_given(argv)
+    return guarded(LOCK, lambda: _run(assume_yes=assume_yes))
 
 
 def _run(source: Path = INPUT, output: Path = OUTPUT, report: Path = REPORT,
-         env_path: Path | None = None) -> int:
+         env_path: Path | None = None, assume_yes: bool = False) -> int:
     """경로를 인자로 받는 이유는 **테스트가 진짜 `csv/` 와 `.env` 를 안 건드리게** 하려는 것이다."""
     if not source.exists():
         print("%s 가 없습니다. 먼저 앞 단계까지 돌리세요." % source, file=sys.stderr)
         print("  python3 job_crawling_ochestrator.py", file=sys.stderr)
+        return 1
+    if not confirm(source, assume_yes=assume_yes):
+        print("멈췄습니다 — 아무것도 안 바꿨습니다.", file=sys.stderr)
         return 1
     try:
         wanted = csv_list(read_env(env_path).get(SETTING))

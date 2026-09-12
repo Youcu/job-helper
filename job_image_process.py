@@ -51,6 +51,7 @@ from tqdm import tqdm                                              # noqa: E402
 
 from _common.env import ConfigError                                # noqa: E402
 from _common.runlock import guarded                                # noqa: E402
+from _common.staleness import confirm, yes_given                       # noqa: E402
 from _common.store import COLUMNS, read_csv, write_csv             # noqa: E402
 from image_process import cache, config, fetch, fill, reader, slicing   # noqa: E402
 
@@ -199,11 +200,12 @@ def process_one(row: dict, *, cfg, book: dict, work_dir: Path, reader_fn=None) -
     return Outcome("채움", fill.apply(row, got))
 
 
-def main() -> int:
-    return guarded(LOCK, _run)
+def main(argv: list[str] | None = None) -> int:
+    assume_yes = yes_given(argv)
+    return guarded(LOCK, lambda: _run(assume_yes=assume_yes))
 
 
-def _run() -> int:
+def _run(assume_yes: bool = False) -> int:
     try:
         cfg = config.load_config()
     except ConfigError as error:
@@ -211,6 +213,10 @@ def _run() -> int:
         return 1
     if not INPUT.exists():
         print("%s 가 없습니다. 먼저 수집을 돌리세요." % INPUT, file=sys.stderr)
+        print("  python3 job_crawling_ochestrator.py", file=sys.stderr)
+        return 1
+    if not confirm(INPUT, assume_yes=assume_yes):
+        print("멈췄습니다 — 아무것도 안 바꿨습니다.", file=sys.stderr)
         return 1
     if not shutil.which("claude"):
         print("claude 명령을 못 찾았습니다. 이 단계는 그것으로 그림을 읽습니다.",

@@ -38,6 +38,7 @@ sys.path.insert(0, str(ROOT_DIR))
 
 import filter_words                                                # noqa: E402
 from _common.runlock import guarded                                # noqa: E402
+from _common.staleness import confirm, yes_given                       # noqa: E402
 from _common.store import COLUMNS, FIRST_SEEN, LAST_SEEN, read_csv, write_csv   # noqa: E402
 
 # 본문이 가장 온전한 사본을 남기려고 재는 칸들. 사이트마다 같은 공고라도 본문을 얼마나
@@ -127,14 +128,20 @@ def screen(rows: list[dict]) -> tuple[list[dict], list[tuple[dict, list]]]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    return guarded(LOCK, _run)
+    assume_yes = yes_given(argv)
+    return guarded(LOCK, lambda: _run(assume_yes=assume_yes))
 
 
-def _run(source: Path = INPUT, output: Path = OUTPUT, report: Path = REPORT) -> int:
+def _run(source: Path = INPUT, output: Path = OUTPUT, report: Path = REPORT,
+         assume_yes: bool = False) -> int:
     """기본 경로를 인자로 받는 이유는 **테스트가 진짜 `csv/` 를 건드리지 않게** 하려는 것이다."""
     if not source.exists():
-        print("%s 가 없습니다. 먼저 수집을 돌리세요." % source, file=sys.stderr)
-        print("  python3 job_crawling_ochestrator.py", file=sys.stderr)
+        print("%s 가 없습니다. 먼저 그림 판독까지 돌리세요." % source, file=sys.stderr)
+        print("  python3 job_crawling_ochestrator.py    # 수집부터 전부", file=sys.stderr)
+        print("  python3 job_image_process.py           # 그림 판독만", file=sys.stderr)
+        return 1
+    if not confirm(source, assume_yes=assume_yes):
+        print("멈췄습니다 — 아무것도 안 바꿨습니다.", file=sys.stderr)
         return 1
 
     rows = read_csv(source)
