@@ -174,17 +174,66 @@ def stacked_headers(lines: list[str], headings=None) -> set[int]:
     """
     marked = set()
     for index, line in enumerate(lines):
-        if not is_heading(line, headings):
+        if not is_bare_heading(line, headings):
             continue
         for neighbour in (index - 1, index + 1):
-            if 0 <= neighbour < len(lines) and is_heading(lines[neighbour], headings):
+            if 0 <= neighbour < len(lines) and is_bare_heading(lines[neighbour], headings):
                 marked.add(index)
                 break
     return marked
 
 
+# 이름 말고 **뜻을 가진 글자**가 남았는가. 글머리표·이모지·구두점은 장식이다.
+_MEANINGFUL = re.compile(r"[0-9A-Za-z가-힣]")
+
+
+def is_bare_heading(line: str, headings=None) -> bool:
+    """절 이름**만** 있는 줄인가. 표의 열 이름은 늘 이 모양이다.
+
+        담당업무          ← 이름만 — 열 이름일 수 있다
+        📋 자격요건        ← 이모지는 장식이다. 역시 이름만
+        ㆍ필수요건 : React ← 내용이 이어진다. **하위 라벨이지 열 이름이 아니다**
+        근무환경 을 알려드릴게요!  ← 문장이다
+
+    쌓인 머리말을 셀 때 이 조건을 안 걸면, 하위 라벨이 다음 줄의 **진짜 머리말을
+    열 이름으로 만들어 버린다.** 실측(`jobkorea/49907988`): `ㆍ필수요건 : …` 바로
+    다음 줄의 `우대사항` 이 그렇게 묻혀 **우대사항 칸이 통째로 비었다.**
+    """
+    patterns = headings or _headings(None)
+    rest, matched = line, False
+    for pattern in patterns:
+        found = pattern.search(rest)
+        if found:
+            matched = True
+            rest = rest[:found.start()] + rest[found.end():]
+    return matched and not _MEANINGFUL.search(rest)
+
+
 def section(text: str, heading: re.Pattern[str], headings=None) -> str:
-    """머리말이 있는 줄 다음부터, **다음 머리말이 나오기 전까지**."""
+    """머리말이 있는 줄 다음부터, **다음 머리말이 나오기 전까지**.
+
+    ## 절을 **끝내지 않는** 줄이 셋 있다
+
+    | 줄 | 왜 안 끝내나 |
+    |---|---|
+    | 절 이름이 둘 이상 (`is_column_header`) | 표의 열 머리글이다 |
+    | 자기 절 이름 + 같은 줄에 내용 | 하위 라벨이다 (`자격요건` 안의 `필수요건 : …`) |
+    | 머리말이 아닌 줄 | 내용이다 |
+
+    **쌓인 머리말(`stacked_headers`)은 여기서 안 쓴다 — 절의 *시작*에만 쓴다.**
+    그 규칙은 표의 열 이름에서 절이 잘못 *시작되는* 것을 막으려고 만든 것인데,
+    끝내기에도 쓰니 **진짜 머리말 둘이 나란히 오면 절이 영영 안 끝났다.**
+
+        ㆍAI/LLM 통합 경험          ← 우대사항 내용
+        근무환경 을 알려드릴게요!     ← 진짜 머리말
+        근무조건                     ← 진짜 머리말 (바로 다음 줄!)
+        ㆍ고용형태 : 정규직          ← 여기부터 우대사항 칸에 섞여 들어왔다
+
+    `전형절차`+`접수기간`, `근무조건`+`근무조건 상세내용`, `모집 부문`+`모집 부문 정보`
+    처럼 흔한 모양이다. 실측(2026-09-12, 사람인·잡코리아 본문 434건 전량): 오염된 칸이
+    **20 → 8** 로 줄고, 내용을 잃은 칸은 **0**이었다. 표를 만나면 절이 *끝나는* 것은
+    오히려 맞다 — 표는 다른 절이다.
+    """
     lines = text.split("\n")
     stacked = stacked_headers(lines, headings)
     start = next((index for index, line in enumerate(lines)
@@ -200,12 +249,40 @@ def section(text: str, heading: re.Pattern[str], headings=None) -> str:
         collected.append(tail.strip())
     for index in range(start + 1, len(lines)):
         line = lines[index]
-        if (is_heading(line, headings) and index not in stacked
-                and not is_column_header(line, headings)):
+        if heading_kinds(line, headings) and not _keeps_going(line, heading, headings):
             break
+        if is_column_header(line, headings):
+            # **열 머리글은 내용이 아니다.** 절을 끝내지도 않지만 담지도 않는다 —
+            # `부문 직무 담당업무 자격 및 우대요건 경력요건 근무지` 같은 줄이 그대로
+            # 지원자격 칸에 들어가면, 다음 단계가 그것을 요건으로 읽는다.
+            # 실측(2026-09-12, 434건): 이 한 줄로 오염된 칸이 11 → 6 이 됐다.
+            continue
         if line.strip():
             collected.append(line.strip())
     return "\n".join(collected).strip()
+
+
+def _keeps_going(line: str, heading: re.Pattern[str], headings=None) -> bool:
+    """머리말이 있는 줄인데도 **절이 계속되는가.**
+
+    두 경우다.
+
+    **표의 열 머리글**(`is_column_header`) — 절 이름을 여럿 나열한 줄이다.
+
+    **자기 절 이름인데 같은 줄에 내용이 이어질 때** — 하위 라벨이다.
+
+        자격요건                                        ← 절 시작
+        ㆍ학력 : 학력무관
+        ㆍ필수요건 : React.JS 또는 Vue.JS에 대한 이해     ← 하위 라벨. 끝이 아니다
+        우대사항                                        ← 여기가 끝
+
+    이름만 있고 내용이 없으면 새 절(또는 표의 열 이름)로 본다. **꼬리를 조건에 두지
+    않으면** 같은 이름이 여러 번 나오는 문서에서 절이 표까지 삼킨다 — 실측으로
+    `275자 → 4,002자` 가 됐다 (`rec_idx=54830693`).
+    """
+    if is_column_header(line, headings):
+        return True
+    return bool(heading.search(line) and _tail_of(line, heading).strip())
 
 
 def _tail_of(line: str, heading: re.Pattern[str]) -> str:

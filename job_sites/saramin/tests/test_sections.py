@@ -272,19 +272,54 @@ def test_BOUNDARY_real_headings_with_content_between_are_not_stacked():
     check_equal(split_body_text(text), ("ㆍJava 경험", "ㆍGo 경험"), "정상 공고는 그대로")
 
 
-def test_BOUNDARY_stacked_headers_do_not_end_a_section_either():
-    """열 머리글은 절을 **끝내지도** 않는다. 끝내면 표 한 칸에서 절이 잘린다.
+def test_BOUNDARY_adjacent_real_headings_still_end_a_section():
+    """**결함이었다.** 진짜 머리말 둘이 나란히 오면 절이 영영 안 끝났다.
 
-    **이 규칙의 한계가 여기 있다.** 머리말 둘이 붙어 있으면 표의 열 이름으로 보므로,
-    진짜 절 머리말 둘이 내용 없이 이어지는 공고에서는 앞 절이 뒤를 삼킨다.
-    실측 52건에서 그런 공고는 안 나왔지만 없다고 증명한 것은 아니다 —
-    나오면 `stacked_headers` 에 "몇 줄까지를 한 블록으로 볼지" 를 더해야 한다.
+    `stacked_headers` 는 표의 열 이름에서 절이 잘못 *시작되는* 것을 막으려고 만든
+    규칙인데, 끝내기에도 쓰고 있었다. 그래서 이런 흔한 모양에서 뒤엣것이 통째로
+    들어왔다 — `전형절차`+`접수기간`, `근무조건`+`근무조건 상세내용`,
+    `모집 부문`+`모집 부문 정보`.
+
+    옛 테스트는 이 한계를 "나오면 고쳐야 한다" 고 적어 뒀는데, 실제로 나왔다.
+    실측(2026-09-12, 사람인·잡코리아 본문 434건 전량): 오염된 칸 **20 → 8**,
+    내용을 잃은 칸 **0**.
     """
     text = "자격요건\nㆍJava\n담당업무\n근무조건\nㆍ표 데이터"
     quality, _ = split_body_text(text)
-    check("ㆍJava" in quality, "자격 내용은 들어 있어야 한다")
-    check("담당업무" in quality,
-          "지금은 붙어 있는 둘을 열 이름으로 보므로 절이 안 끊긴다 — 위 docstring 참조")
+    check_equal(quality, "ㆍJava", "**다음 머리말에서 끊겨야 한다**: %r" % quality)
+
+
+def test_BOUNDARY_stacked_headers_still_do_not_start_a_section():
+    """끝내기에서만 뺐다. **시작 억제는 그대로다** — 그게 원래 고친 사고다."""
+    check_equal(sorted(stacked_headers(_STACKED.split("\n"))), [3, 4],
+                "쌓인 것을 세는 일 자체는 그대로")
+    quality, _ = split_body_text(_STACKED)
+    check("네트워크 트래픽" not in quality,
+          "표 내용이 지원자격에 들어가면 안 된다: %r" % quality[:60])
+
+
+def test_BOUNDARY_own_heading_with_content_on_the_line_is_a_sub_label():
+    """자기 절 이름인데 **같은 줄에 내용이 이어지면** 하위 라벨이다. 절의 끝이 아니다.
+
+    실측(`jobkorea/49907988`): `자격요건` 절 안의 `ㆍ필수요건 : React.JS 또는
+    Vue.JS에 대한 이해와 응용능력 필수` 에서 끊겨, **그 공고에서 가장 중요한 요건**이
+    사라졌다. 남은 것은 `학력 : 학력무관 / 경력 : 신입` 뿐이었다.
+    """
+    text = "자격요건\nㆍ학력 : 무관\nㆍ필수요건 : React 이해\n우대사항\nㆍ자격증"
+    quality, preference = split_body_text(text)
+    check("React 이해" in quality, "**하위 라벨의 내용을 잃으면 안 된다**: %r" % quality)
+    check_equal(preference, "ㆍ자격증", "우대는 제자리로")
+
+
+def test_BOUNDARY_own_heading_without_content_still_ends_the_section():
+    """**이름만 있으면** 새 절이거나 표의 열 이름이다. 꼬리를 안 보면 표를 삼킨다.
+
+    실측 `rec_idx=54830693` 이 그렇게 **275자 → 4,002자** 가 됐다 — 절 이름이
+    반복되는 표에서 절이 끝나지 않고 다음 모집분야의 표 데이터까지 담았다.
+    """
+    text = "자격요건\nㆍJava\n자격요건\n로봇자동화팀\n마곡"
+    quality, _ = split_body_text(text)
+    check_equal(quality, "ㆍJava", "**이름만 있는 줄에서는 끊겨야 한다**: %r" % quality)
 
 
 def test_BOUNDARY_a_lone_heading_is_still_a_section():
@@ -292,3 +327,20 @@ def test_BOUNDARY_a_lone_heading_is_still_a_section():
     check_equal(stacked_headers(text.split("\n")), set(), "사이에 내용이 있으면 안 쌓인 것")
     quality, _ = split_body_text(text)
     check_equal(quality, "ㆍJava 경험", "단독 머리말은 절 시작이다")
+
+
+def test_BOUNDARY_column_header_line_is_not_kept_as_content():
+    """열 머리글은 절을 **끝내지도 담기지도** 않는다.
+
+    끝내면 표 한 칸에서 절이 잘리고, 담으면 표의 이름줄이 요건인 척 남는다 —
+    `부문 직무 담당업무 자격 및 우대요건 경력요건 근무지` 가 그대로 지원자격에
+    들어가면 다음 단계가 그것을 요건으로 읽는다.
+
+    실측(2026-09-12, 사람인·잡코리아 본문 434건 전량): 이 한 줄로 오염된 칸이
+    **11 → 6** 이 됐다.
+    """
+    text = "자격요건\nㆍJava 경험\n모집분야 담당업무 자격요건\nㆍ표 데이터"
+    quality, _ = split_body_text(text)
+    check("ㆍJava 경험" in quality, "자격 내용은 남아야 한다: %r" % quality)
+    check("모집분야 담당업무 자격요건" not in quality,
+          "**열 머리글은 내용이 아니다**: %r" % quality)
