@@ -14,7 +14,7 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT_DIR.parent))
 
-from _common.runlock import LockedError, run_lock
+from _common.runlock import guarded
 from _common.store import RETENTION_DAYS, merge, read_csv, write_csv
 from lib.client import BlockedError, WantedClient
 from lib.collect import build_listing_params, fetch_details, fetch_listings
@@ -28,14 +28,9 @@ LOCK = ROOT / "csv" / ".wanted.lock"
 
 
 def main() -> int:
-    # 파이프라인은 주기로 돈다. cron 이 겹쳐 두 실행이 같은 CSV 를 읽고-고치고-쓰면
-    # 한쪽 결과가 조용히 사라진다.
-    try:
-        with run_lock(LOCK):
-            return _run()
-    except LockedError as exc:
-        print(f"\n{exc}", file=sys.stderr)
-        return 3
+    # 파이프라인은 주기로 돈다. 겹쳐 돌면 두 실행이 같은 CSV 를 읽고-고치고-써서
+    # 한쪽 결과가 조용히 사라진다. 자물쇠와 종료 코드는 `_common` 이 쥔다.
+    return guarded(LOCK, _run)
 
 
 def _run() -> int:

@@ -4,7 +4,7 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-from _common.runlock import LockedError, run_lock
+from _common.runlock import ALREADY_RUNNING, LockedError, run_lock
 from tests.helpers import assert_raises
 
 
@@ -52,3 +52,30 @@ def test_EXCEPTION_stale_lock_from_a_dead_run_is_reclaimed():
         lock.write_text("pid 아님", encoding="utf-8")
         with run_lock(lock):
             pass
+
+
+def test_BOUNDARY_already_running_code_comes_from_the_contract():
+    """**종료 코드는 오케스트레이터와 맺은 계약**이라 한 곳에서만 정한다.
+
+    전에는 `wanted` 만 `run_lock()` 을 펼쳐 쓰고 `return 3` 을 손으로 적었다. 그러면
+    `ALREADY_RUNNING` 을 바꿨을 때 **네 사이트는 따라가고 `wanted` 만 옛 값에 남는다** —
+    예외도 안 나고 화면에 이상한 뜻만 찍힌다.
+
+    `wanted` 가 맨 먼저 만들어졌고 통합 커밋(`b7e8437`)이 두 사이트만 옮기면서 빠졌다.
+    """
+    import wanted
+
+    with tempfile.TemporaryDirectory() as d:
+        saved, wanted.LOCK = wanted.LOCK, Path(d) / "run.lock"
+        ran = []
+        try:
+            with run_lock(wanted.LOCK):
+                wanted._run, saved_run = lambda: ran.append(1) or 0, wanted._run
+                try:
+                    code = wanted.main()
+                finally:
+                    wanted._run = saved_run
+        finally:
+            wanted.LOCK = saved
+    assert code == ALREADY_RUNNING, code      # 손으로 적은 숫자가 아니라 계약값
+    assert ran == [], "**남이 도는 중에는 일을 시작하면 안 된다**"
