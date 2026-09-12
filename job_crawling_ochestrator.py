@@ -42,7 +42,8 @@ from tqdm import tqdm                                        # noqa: E402
 
 from _common import staleness                                # noqa: E402
 from _common.runlock import guarded                          # noqa: E402
-from _common.store import COLUMNS, FIRST_SEEN, KEY_COLUMN   # noqa: E402
+from _common.store import (COLUMNS, FIRST_SEEN, KEY_COLUMN,  # noqa: E402
+                           write_csv)
 
 # 돌릴 사이트. **순서가 곧 화면에 뜨는 순서**이고, 합칠 때도 이 차례를 지킨다 —
 # 실행마다 행 순서가 뒤바뀌면 `merged.csv` 를 눈으로 견주기 어렵다.
@@ -454,28 +455,12 @@ def merge_csvs(paths: list[Path], output: Path, history: Path = HISTORY_READ) ->
     칸은 `_common/store.py` 의 `COLUMNS` 로 맞춘다. 사이트가 다 같은 스키마를 쓰지만,
     한 곳이 칸을 더하거나 빼도 합친 파일이 어긋나지 않게 여기서 한 번 더 맞춘다.
     """
-    # **원자적으로 쓴다.** 같은 디렉터리 임시 파일에 다 쓰고 `os.replace` 로 바꿔치기한다.
-    #
-    # 여기만 이 규칙에서 빠져 있었다 — `_common/store.write_csv` 도, 단계들의 보고 CSV 도
-    # 전부 원자적인데 정작 **파이프라인의 첫 파일**이 아니었다. 도중에 죽으면 반쯤 쓰인
-    # `merged.csv` 가 남고, 그림 판독이 그것을 완성품으로 읽는다.
-    # `image_process/README.md` 가 금지한 바로 그 상황이다.
+    # **원자적으로 쓴다** — `store.write_csv` 가 그것까지 한다. 도중에 죽으면 반쯤 쓰인
+    # `merged.csv` 가 남고 그림 판독이 그것을 완성품으로 읽는다. `image_process/README.md`
+    # 가 금지한 바로 그 상황이다. 한때 **파이프라인의 첫 파일**만 이 규칙에서 빠져 있었다.
     rows = [row for path in paths for row in _read_rows(path)]
     revived = _seed_first_seen(rows, history)
-
-    output.parent.mkdir(parents=True, exist_ok=True)
-    tmp = output.with_name(".%s.tmp%d" % (output.name, os.getpid()))
-    try:
-        with tmp.open("w", encoding="utf-8-sig", newline="") as target:
-            writer = csv.DictWriter(target, fieldnames=list(COLUMNS))
-            writer.writeheader()
-            for row in rows:
-                writer.writerow({column: row.get(column, "") for column in COLUMNS})
-            target.flush()
-            os.fsync(target.fileno())
-        os.replace(tmp, output)
-    finally:
-        tmp.unlink(missing_ok=True)
+    write_csv(output, rows)
     if revived:
         print("  이력에서 최초수집일을 되살린 공고: %d행" % revived)
     return len(rows)

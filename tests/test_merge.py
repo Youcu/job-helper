@@ -7,7 +7,10 @@
 from __future__ import annotations
 
 import job_crawling_ochestrator as orch
+from _common import store
 from _common.store import COLUMNS
+
+_real_write_rows = store.write_rows
 
 from .helpers import check, check_equal, read_csv, temp_dir, write_csv
 
@@ -228,3 +231,79 @@ def test_BOUNDARY_history_never_makes_a_posting_look_newer():
     orch.merge_csvs([site], home / "merged.csv", history)
     got = read_csv(home / "merged.csv")[0]["최초수집일"]
     check(got in ("2026-09-01", "2026-09-20"), "둘 중 하나여야 한다: %r" % got)
+
+
+def test_BOUNDARY_every_csv_writer_goes_through_one_atomic_write():
+    """**원자적 쓰기 보장이 저장소에 한 벌만 있어야 한다.**
+
+    임시 이름 → `fsync` → `os.replace` → `finally` 정리. 이 열 줄이 막는 것은
+    **반쪽 파일이 다음 단계의 입력이 되는 것**이다. 300번째 줄에서 죽으면 299.5줄짜리
+    CSV 가 남는데, CSV 는 잘려도 CSV 처럼 보여서 다음 단계가 읽고도 모른다.
+
+    한때 이 열 줄이 **다섯 벌** 있었다 — `filter.py` · `core_stack.py` ·
+    `jobplanet_rating.py` · `history.py` · `store.write_csv`. 리포트마다 칸이 달라
+    13칸에 묶인 `write_csv()` 를 못 썼기 때문이다.
+
+    **그 열 줄은 테스트가 지켜 주지 않는다.** `fsync` 한 줄을 빼도 전부 통과한다 —
+    같은 프로세스 안에서 쓰고 바로 읽으니 내용은 맞다. 드러나는 것은 진짜로 중간에
+    죽었을 때뿐이고 그때는 이미 늦다. 지켜 주는 것은 **한 곳에만 있다는 사실**뿐이라,
+    그 사실 자체를 여기서 굳힌다.
+    """
+    import core_stack
+    import filter as flt
+    import history
+    import jobplanet_rating
+
+    calls = []
+    stages = (flt, core_stack, jobplanet_rating, history, orch)
+    saved = [module.write_rows if hasattr(module, "write_rows") else None
+             for module in stages]
+
+    def spy(path, columns, rows):
+        calls.append(path.name)
+
+    home = temp_dir()
+    try:
+        for module in stages:
+            if hasattr(module, "write_rows"):
+                module.write_rows = spy
+        store.write_rows = spy                       # write_csv 도 이것을 통한다
+        flt._write_report(home / "filter_report.csv", [], [])
+        core_stack._write_report(home / "core_stack_report.csv", [])
+        jobplanet_rating._write_report(home / "rating_report.csv", [])
+        jobplanet_rating._write_same_names(home / "same_names.csv", [])
+        store.write_csv(home / "merged.csv", [])     # 13칸 쪽도 같은 통로다
+    finally:
+        store.write_rows = _real_write_rows
+        for module, original in zip(stages, saved):
+            if original is not None:
+                module.write_rows = original
+
+    check_equal(len(calls), 5, "다섯 산출물이 전부 한 통로를 지나야 한다: %r" % calls)
+
+
+def test_EXCEPTION_write_rows_leaves_the_old_file_intact_on_a_crash():
+    """도중에 죽어도 **이전 파일이 그대로** 남고 임시 파일도 안 남는다."""
+    home = temp_dir()
+    target = home / "리포트.csv"
+    _real_write_rows(target, ("A", "B"), [{"A": "지난실행", "B": "1"}])
+    before = target.read_bytes()
+
+    saved = store.csv.DictWriter
+
+    class Exploding(saved):
+        def writerows(self, rows):
+            raise OSError("디스크가 찼다")
+
+    store.csv.DictWriter = Exploding
+    try:
+        _real_write_rows(target, ("A", "B"), [{"A": "새것", "B": "2"}])
+        raise AssertionError("터졌어야 한다")
+    except OSError:
+        pass
+    finally:
+        store.csv.DictWriter = saved
+
+    check_equal(target.read_bytes(), before, "**이전 파일이 그대로 남아야 한다**")
+    leftovers = [p.name for p in home.iterdir() if p.name.startswith(".")]
+    check_equal(leftovers, [], "임시 파일도 안 남아야 한다: %r" % leftovers)

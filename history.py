@@ -53,7 +53,6 @@ URL 하나로 답이 나온다. 칸 구조가 온전한 원본은 `./csv` 에 �
 from __future__ import annotations
 
 import csv
-import os
 import sys
 from datetime import date
 from pathlib import Path
@@ -69,7 +68,7 @@ sys.path.insert(0, str(ROOT_DIR))
 
 from _common.runlock import guarded                                # noqa: E402
 from _common.store import (COLUMNS, FIRST_SEEN, KEY_COLUMN,        # noqa: E402
-                           merge, read_csv, write_csv)
+                           merge, read_csv, write_csv, write_rows)
 
 # 13칸 스키마 그대로 쌓는 둘. `store.merge()` 가 URL 키로 병합하고 30일 보존까지 한다.
 SCHEMA_PAIRS = (
@@ -124,21 +123,6 @@ def _read_any(path: Path) -> list[dict]:
         return list(csv.DictReader(handle))
 
 
-def _write_any(path: Path, columns: tuple, rows: list[dict]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_name(".%s.tmp%d" % (path.name, os.getpid()))
-    try:
-        with tmp.open("w", encoding="utf-8-sig", newline="") as handle:
-            writer = csv.DictWriter(handle, fieldnames=columns, extrasaction="ignore")
-            writer.writeheader()
-            writer.writerows(rows)
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(tmp, path)
-    finally:
-        tmp.unlink(missing_ok=True)
-
-
 def dropped_rows(csv_dir: Path, today: str) -> list[dict]:
     """리포트 셋을 한 모양으로 편다. 칸이 다른 나머지는 `근거` 한 칸에 글로 넣는다."""
     out = []
@@ -191,7 +175,7 @@ def _run(csv_dir: Path = CSV_DIR, history_dir: Path = HISTORY_DIR,
     path = history_dir / DROPPED
     kept = _sift(_read_any(path) + dropped_rows(csv_dir, today),
                  DROPPED_COLUMNS, lambda r: (r.get("URL", ""), r.get("단계", "")))
-    _write_any(path, DROPPED_COLUMNS, kept)
+    write_rows(path, DROPPED_COLUMNS, kept)
     lines.append("  %-26s %5d행 — 왜 빠졌나 (세 리포트를 합침)" % (DROPPED, len(kept)))
 
     source, target = SAME_NAMES
@@ -201,7 +185,7 @@ def _run(csv_dir: Path = CSV_DIR, history_dir: Path = HISTORY_DIR,
     if columns:
         kept = _sift(_read_any(path) + fresh, columns,
                      lambda r: tuple(r.get(c, "") for c in SAME_NAME_KEY))
-        _write_any(path, columns, kept)
+        write_rows(path, columns, kept)
         lines.append("  %-26s %5d행 — 동명 회사 후보" % (target, len(kept)))
 
     swept = site_csvs(sites_dir)

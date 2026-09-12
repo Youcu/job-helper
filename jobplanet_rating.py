@@ -106,7 +106,7 @@ sys.path.insert(0, str(ROOT_DIR))
 import filter_words                                                # noqa: E402
 from _common.runlock import guarded                                # noqa: E402
 from _common.staleness import confirm, yes_given                       # noqa: E402
-from _common.store import read_csv, write_csv                      # noqa: E402
+from _common.store import read_csv, write_csv, write_rows                      # noqa: E402
 
 # 사용자가 정한 선. **미만이면 뺀다** — 2.9 는 남는다.
 MIN_RATING = 2.9
@@ -481,7 +481,7 @@ def _write_report(path: Path, cut: list) -> None:
               "회사id": (record or {}).get("회사id") or "",
               "찾은방법": (record or {}).get("찾은방법") or ""}
              for row, text, record in cut]
-    _write(path, REPORT_COLUMNS, lines)
+    write_rows(path, REPORT_COLUMNS, lines)
 
 
 def _write_same_names(path: Path, ambiguous: list) -> None:
@@ -503,22 +503,7 @@ def _write_same_names(path: Path, ambiguous: list) -> None:
                           "업력": candidate.get("업력") or "",
                           "공고수": candidate.get("공고수") or "",
                           "지역": candidate.get("지역") or ""})
-    _write(path, SAME_NAME_COLUMNS, lines)
-
-
-def _write(path: Path, columns: tuple, lines: list[dict]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_name(".%s.tmp%d" % (path.name, os.getpid()))
-    try:
-        with tmp.open("w", encoding="utf-8-sig", newline="") as handle:
-            writer = csv.DictWriter(handle, fieldnames=columns, extrasaction="ignore")
-            writer.writeheader()
-            writer.writerows(lines)
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(tmp, path)
-    finally:
-        tmp.unlink(missing_ok=True)
+    write_rows(path, SAME_NAME_COLUMNS, lines)
 
 
 def _print(before: int, cut: list, after: int, ambiguous: int, net: Searcher,

@@ -177,24 +177,55 @@ def save(rows: list[dict], output: Path):
     return result
 
 
-def write_csv(path: Path, rows: list[dict]) -> None:
-    """원자적으로 쓴다. 도중에 죽어도 이전 파일은 그대로 남는다.
+def write_rows(path: Path, columns: tuple, rows: list[dict]) -> None:
+    """**칸 구조를 받아** 원자적으로 쓴다. 도중에 죽어도 이전 파일은 그대로 남는다.
 
-    임시 파일을 같은 디렉터리에 만든다 — 다른 파일시스템이면 `os.replace` 가 원자적이지 않다.
+    ## 왜 한 곳에만 두나
+
+    이 열 줄은 **반쪽 파일이 다음 단계의 입력이 되는 것**을 막는다. 그냥 쓰면 300번째
+    줄에서 죽었을 때 299.5줄짜리 CSV 가 남는데, CSV 는 잘려도 CSV 처럼 보여서 다음
+    단계가 그걸 읽고도 모른다.
+
+        1. 아무도 안 읽는 이름(`.이름.tmp1234`)으로 연다
+        2. 전부 쓴다
+        3. 디스크까지 밀어 넣는다                     flush + fsync
+        4. 이름을 한 번에 갈아끼운다                  os.replace
+        5. 중간에 죽었으면 임시 파일을 지운다          finally
+
+    핵심은 **4번이 쪼개지지 않는다**는 것이다. 그래서 어느 시점에 죽든 결과 파일은
+    "지난번 온전한 것" 아니면 "이번 온전한 것" 둘 중 하나다.
+
+    임시 파일은 **같은 디렉터리**에 만든다 — 다른 파일시스템이면 `os.replace` 가
+    원자적이지 않다.
+
+    ## 왜 여기로 모았나
+
+    같은 열 줄이 저장소에 **다섯 벌** 있었다 (`filter.py` · `core_stack.py` ·
+    `jobplanet_rating.py` · `history.py` · 여기). 리포트마다 칸이 달라
+    13칸에 묶인 `write_csv()` 를 못 썼기 때문이다. 그래서 칸을 인자로 받는다.
+
+    **이 보장은 테스트가 지켜 주지 않는다.** 누가 `os.fsync` 한 줄을 빠뜨려도
+    테스트는 전부 통과한다 — 같은 프로세스 안에서 쓰고 바로 읽으니 내용은 맞다.
+    드러나는 것은 진짜로 중간에 죽었을 때뿐이고, 그때는 이미 늦다. 지켜 주는 것은
+    **한 곳에만 있다는 사실**뿐이다.
     """
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(f".{path.name}.tmp{os.getpid()}")
     try:
         with tmp.open("w", encoding="utf-8-sig", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=COLUMNS, extrasaction="ignore")
+            writer = csv.DictWriter(f, fieldnames=columns, extrasaction="ignore")
             writer.writeheader()
-            for row in rows:
-                writer.writerow({column: row.get(column, "") for column in COLUMNS})
+            writer.writerows(rows)
             f.flush()
             os.fsync(f.fileno())
         os.replace(tmp, path)
     finally:
         tmp.unlink(missing_ok=True)
+
+
+def write_csv(path: Path, rows: list[dict]) -> None:
+    """**13칸 스키마로** 원자적으로 쓴다. 아무 칸 구조나 쓰려면 `write_rows`."""
+    write_rows(path, COLUMNS, rows)
 
 
 def merge_lines(result, retention_days: int = RETENTION_DAYS) -> list[str]:

@@ -49,8 +49,6 @@
 """
 from __future__ import annotations
 
-import csv
-import os
 import re
 import sys
 from pathlib import Path
@@ -67,7 +65,7 @@ sys.path.insert(0, str(ROOT_DIR))
 from _common.env import ConfigError, csv_list, read_env                 # noqa: E402
 from _common.runlock import guarded                                    # noqa: E402
 from _common.staleness import confirm, yes_given                          # noqa: E402
-from _common.store import read_csv, write_csv                          # noqa: E402
+from _common.store import read_csv, write_csv, write_rows                          # noqa: E402
 
 SETTING = "CORE_TECH_STACKS"
 
@@ -182,19 +180,7 @@ def _write_report(path: Path, cut: list) -> None:
               "사이트명": row.get("사이트명", ""), "URL": row.get("URL", ""),
               "판정": "제외 · 핵심 기술 없음", "기술스택": row.get("기술스택", "")}
              for row, _found in cut]
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_name(".%s.tmp%d" % (path.name, os.getpid()))
-    try:
-        with tmp.open("w", encoding="utf-8-sig", newline="") as handle:
-            writer = csv.DictWriter(handle, fieldnames=REPORT_COLUMNS,
-                                    extrasaction="ignore")
-            writer.writeheader()
-            writer.writerows(lines)
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(tmp, path)
-    finally:
-        tmp.unlink(missing_ok=True)
+    write_rows(path, REPORT_COLUMNS, lines)
 
 
 def _print(wanted: list, rules: list, kept: list, cut: list,

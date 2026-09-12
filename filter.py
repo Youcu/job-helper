@@ -22,8 +22,6 @@
 """
 from __future__ import annotations
 
-import csv
-import os
 import sys
 from pathlib import Path
 
@@ -39,7 +37,8 @@ sys.path.insert(0, str(ROOT_DIR))
 import filter_words                                                # noqa: E402
 from _common.runlock import guarded                                # noqa: E402
 from _common.staleness import confirm, yes_given                       # noqa: E402
-from _common.store import COLUMNS, FIRST_SEEN, LAST_SEEN, read_csv, write_csv   # noqa: E402
+from _common.store import (COLUMNS, FIRST_SEEN, LAST_SEEN, read_csv,
+                           write_csv, write_rows)   # noqa: E402
 
 # 본문이 가장 온전한 사본을 남기려고 재는 칸들. 사이트마다 같은 공고라도 본문을 얼마나
 # 걷어 오는지가 다르다 — 실측으로 Wanted 는 API 원문을 통째로 주고, 사람인은 표 양식이면
@@ -155,7 +154,7 @@ def _run(source: Path = INPUT, output: Path = OUTPUT, report: Path = REPORT,
 
 
 def _write_report(path: Path, duplicated: list, banned: list) -> None:
-    """뺀 행을 전량 적는다. `store.write_csv` 는 13칸 스키마에 묶여 있어 여기 따로 둔다."""
+    """뺀 행을 전량 적는다. 리포트는 13칸 스키마가 아니라 `write_rows` 로 쓴다."""
     lines = []
     for row, survivor in duplicated:
         lines.append(_report_row(row, "제외 · 중복", "",
@@ -165,18 +164,7 @@ def _write_report(path: Path, duplicated: list, banned: list) -> None:
             row, "제외 · 낱말", ", ".join(name for name, _ in hits),
             " / ".join("%s «%s»" % (name, where) for name, where in hits)))
 
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_name(".%s.tmp%d" % (path.name, os.getpid()))
-    try:
-        with tmp.open("w", encoding="utf-8-sig", newline="") as handle:
-            writer = csv.DictWriter(handle, fieldnames=REPORT_COLUMNS, extrasaction="ignore")
-            writer.writeheader()
-            writer.writerows(lines)
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(tmp, path)
-    finally:
-        tmp.unlink(missing_ok=True)
+    write_rows(path, REPORT_COLUMNS, lines)
 
 
 def _report_row(row: dict, verdict: str, words: str, why: str) -> dict:
