@@ -14,6 +14,7 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT_DIR.parent))
 
+from _common.outcome import INCOMPLETE
 from _common.runlock import guarded
 from _common.store import RETENTION_DAYS, merge, read_csv, write_csv
 from lib.client import BlockedError, WantedClient
@@ -83,7 +84,27 @@ def _run() -> int:
         return 0
 
     print(f"\n공고 {len(listings)}건 (중복 제거 후). 상세를 가져옵니다.\n")
-    details = fetch_details(client, sorted(listings))
+    try:
+        details = fetch_details(client, sorted(listings))
+    except BlockedError as exc:
+        # 목록에서 막혔을 때와 **같게** 보고한다. 어디서 막혔든 사람이 할 일은
+        # 같다 — UA·헤더를 보고 간격을 늘린다.
+        print(f"\n차단됨: {exc}", file=sys.stderr)
+        return 2
+
+    if not details:
+        # **목록은 받았는데 상세를 한 건도 못 받았다.** `fetch_details` 는 거르는
+        # 일을 하지 않으므로 다른 해석이 없다.
+        #
+        # 여기서 0 을 내면 화면에 `정상 · 0행` 이라 찍혀, 사이트에 공고가 있는데도
+        # 없는 것처럼 보인다 (`_common/outcome.py` 의 Pathsdog 사고).
+        #
+        # 다른 사이트는 `stats["상세실패"]` 를 세어 판정하는데, 여기는 그럴 필요가
+        # 없다 — `listings` 와 `details` 두 숫자가 이미 손에 있다.
+        print(f"\n걷은 것이 없습니다 — 공고 {len(listings)}건의 상세를 하나도 못 "
+              f"받았습니다.\n  목록은 받았으니 사이트가 아니라 상세 쪽 문제일 수 "
+              f"있습니다.", file=sys.stderr)
+        return INCOMPLETE
 
     rows, broken = [], 0
     for job in details.values():

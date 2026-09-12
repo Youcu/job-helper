@@ -36,6 +36,7 @@ MODULES = [
     "tests.test_record",
     "tests.test_store",
     "tests.test_runlock",
+    "tests.test_run",
 ]
 
 KIND_LABEL = {"NORMAL": "일반", "EXCEPTION": "예외", "BOUNDARY": "경계"}

@@ -10,7 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from tqdm import tqdm
 
-from .client import WantedClient
+from .client import BlockedError, WantedClient
 
 LISTINGS_PATH = "/api/chaos/navigation/v1/results"
 DETAIL_PATH = "/api/chaos/jobs/v2/{job_id}/details"
@@ -116,6 +116,12 @@ def fetch_details(client: WantedClient, job_ids: list[int], *, workers: int = 4)
                 referer=f"https://www.wanted.co.kr/wd/{job_id}",
             )
             return job_id, payload.get("job"), None
+        except BlockedError:
+            # **차단은 한 건의 문제가 아니다.** 403 은 재시도하지 않으므로
+            # (`client.get_json`), 한 번 막히면 남은 상세가 전부 같은 길로 간다.
+            # 여기서 삼키면 목록에서 막혔을 때는 종료 코드 2 인데 상세에서 막혔을
+            # 때는 0 이 되어, **같은 사고가 어디서 났느냐에 따라 다르게 보고된다.**
+            raise
         except Exception as exc:  # 한 건 실패로 전체를 접지 않는다
             return job_id, None, f"{type(exc).__name__}: {exc}"
 
