@@ -149,6 +149,40 @@ def test_EXCEPTION_blocked_run_saves_what_it_got_and_exits_two():
     check((home / "cache.json").exists(), "**걷은 것은 저장돼야 한다**")
 
 
+def test_EXCEPTION_blocked_run_does_not_touch_the_output():
+    """**결함이었다.** 중단돼도 `_judge → write_csv` 로 내려가 출력을 덮어썼다.
+
+    `_judge` 는 캐시에 없는 회사를 "제외 · 잡플래닛에서 못 찾음" 으로 판정한다 —
+    **아직 물어보지도 않은 회사가 '못 찾은 회사' 가 되어 행이 지워졌다.** 그 파일을
+    다음 단계(핵심 기술)가 그대로 먹으면 오염이 최종 산출까지 간다.
+
+    걷은 평점은 캐시에 있으므로 다시 돌리면 이어받아 **온전한 판정으로** 만든다.
+    """
+    home = temp_dir()
+    write_csv(home / "in.csv", [_row(기업명="가", URL="u/1"), _row(기업명="나", URL="u/2")],
+              COLUMNS)
+    # 지난 실행이 남긴 출력이 이미 있다고 치자
+    write_csv(home / "out.csv", [_row(기업명="지난실행", URL="old/1")], COLUMNS)
+    net = _searcher({"가": [_item("가", 3.5)]}, fail=[] + [403] * 20)
+    jr._run(home / "in.csv", home / "out.csv", home / "report.csv", home / "same.csv",
+            home / "cache.json", home / "log.jsonl", searcher=net)
+    check_equal([r["기업명"] for r in read_csv(home / "out.csv")], ["지난실행"],
+                "**출력을 건드리면 안 된다** — 지난 실행 것이 그대로 있어야 한다")
+    check(not (home / "report.csv").exists(), "보고도 안 쓴다")
+    check(not (home / "same.csv").exists(), "동명 후보도 안 쓴다")
+
+
+def test_EXCEPTION_a_finished_run_does_write_the_output():
+    # 위 테스트가 "아무것도 안 쓴다" 로 통과하지 않게 짝을 둔다.
+    home = temp_dir()
+    write_csv(home / "in.csv", [_row(기업명="가나", URL="u/1")], COLUMNS)
+    code = jr._run(home / "in.csv", home / "out.csv", home / "report.csv", home / "same.csv",
+                   home / "cache.json", home / "log.jsonl",
+                   searcher=_searcher({"가나": [_item("가나", 3.5)]}))
+    check_equal(code, 0, "끝까지 걷었으면 0")
+    check_equal(len(read_csv(home / "out.csv")), 1, "출력이 나와야 한다")
+
+
 def test_EXCEPTION_non_block_http_error_is_not_retried():
     # 500 을 403 처럼 다루면 한 질의에 요청 넷을 쓴다. 다시 물어도 답이 같다.
     def open_(request, timeout=None):

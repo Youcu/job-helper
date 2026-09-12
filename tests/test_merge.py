@@ -141,3 +141,54 @@ def test_BOUNDARY_count_rows_ignores_line_breaks_in_cells():
 
 def _merged(_written: int, home):
     return home / "merged.csv"
+
+
+def test_EXCEPTION_a_crash_mid_merge_leaves_the_old_file_intact():
+    """**합치기만 원자적이지 않았다.**
+
+    `store.write_csv` 도, 단계들의 보고 CSV 도 전부 임시 파일 + `os.replace` 인데
+    정작 **파이프라인의 첫 파일**이 아니었다. 도중에 죽으면 반쯤 쓰인 `merged.csv` 가
+    남고, 그림 판독이 그것을 완성품으로 읽는다 — `image_process/README.md` 가 금지한
+    바로 그 상황이다.
+    """
+    home = temp_dir()
+    merged = home / "csv" / "merged.csv"
+    good = write_csv(home / "a.csv", [_row(기업명="지난실행")], COLUMNS)
+    orch.merge_csvs([good], merged)
+    before = merged.read_bytes()
+
+    # 쓰는 도중에 죽는 상황
+    boom = write_csv(home / "b.csv", [_row(기업명="새것")], COLUMNS)
+    saved = orch.csv.DictWriter
+
+    class Exploding(saved):
+        def writerow(self, row):
+            raise OSError("디스크가 찼다")
+
+    orch.csv.DictWriter = Exploding
+    try:
+        orch.merge_csvs([boom], merged)
+        raise AssertionError("터졌어야 한다")
+    except OSError:
+        pass
+    finally:
+        orch.csv.DictWriter = saved
+
+    check_equal(merged.read_bytes(), before,
+                "**이전 파일이 그대로 남아야 한다** — 반쯤 쓰인 것이 남으면 안 된다")
+    leftovers = [p.name for p in (home / "csv").iterdir() if p.name.startswith(".")]
+    check_equal(leftovers, [], "임시 파일도 안 남아야 한다: %r" % leftovers)
+
+
+def test_BOUNDARY_pipeline_holds_one_lock_for_the_whole_run():
+    """오케스트레이터 자신에게 락이 없었다.
+
+    사이트와 단계에는 저마다 락이 있는데 **합치기 구간만 무방비였다.** 둘을 돌리면
+    각 사이트는 `3` 을 내고 물러나지만, 그 뒤 두 실행이 같은 `merged.csv` 를 함께 쓴다.
+    """
+    check(hasattr(orch, "LOCK"), "파이프라인 락 상수가 있어야 한다")
+    check_equal(orch.LOCK.name, ".pipeline.lock", "단계별 락과 이름이 겹치면 안 된다")
+    stage_locks = {".image_process.lock", ".filter.lock",
+                   ".jobplanet_rating.lock", ".core_stack.lock"}
+    check(orch.LOCK.name not in stage_locks,
+          "단계 락 이름과 같으면 단계를 따로 못 돌린다")

@@ -391,12 +391,28 @@ def _run(source: Path = INPUT, output: Path = OUTPUT, report: Path = REPORT,
         if searcher is None:
             net.close()
 
+    if stopped:
+        # **중단됐으면 출력을 손대지 않는다.**
+        #
+        # 예전에는 여기서도 `_judge → write_csv` 로 내려갔다. 그런데 `_judge` 는 캐시에
+        # 없는 회사를 `verdict()` 로 "제외 · 잡플래닛에서 못 찾음" 으로 판정한다 —
+        # **아직 물어보지도 않은 회사가 '못 찾은 회사' 가 되어 행이 지워졌다.**
+        # 그 파일을 다음 단계(핵심 기술)가 그대로 먹으면 오염이 최종 산출까지 간다.
+        #
+        # 걷은 것은 캐시에 있다(회사 하나 끝날 때마다 원자적으로 썼다). 다시 돌리면
+        # 남은 곳부터 이어받아 **온전한 판정으로** 출력을 만든다.
+        print("\n덜 걷었으므로 **출력 파일을 바꾸지 않았습니다.**", file=sys.stderr)
+        print("  %s 는 지난 실행 그대로입니다." % _shown(output), file=sys.stderr)
+        print("  걷은 평점은 %s 에 저장됐습니다 — 다시 돌리면 이어갑니다."
+              % _shown(cache), file=sys.stderr)
+        return 2
+
     kept, cut, ambiguous = _judge(rows, book)
     write_csv(output, kept)
     _write_report(report, cut)
     _write_same_names(same_names, ambiguous)
     _print(len(rows), cut, len(kept), len(ambiguous), net, source, output, report, same_names)
-    return 2 if stopped else 0
+    return 0
 
 
 def _companies(rows: list[dict]) -> dict[str, str]:

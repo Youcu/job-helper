@@ -22,6 +22,7 @@ Wanted · 사람인 · 잡코리아 · 잡플래닛 · 점핏 을 **병렬로** 
 from __future__ import annotations
 
 import csv
+import os
 import subprocess
 import sys
 import time
@@ -32,11 +33,14 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).resolve().parent
 SITES_DIR = ROOT_DIR / "job_sites"
 OUTPUT = ROOT_DIR / "csv" / "merged.csv"
+# 파이프라인 전체를 덮는 락. 단계별 락(`csv/.<단계>.lock`)과 이름이 안 겹쳐야 한다.
+LOCK = ROOT_DIR / "csv" / ".pipeline.lock"
 
 sys.path.insert(0, str(SITES_DIR))
 
 from tqdm import tqdm                                        # noqa: E402
 
+from _common.runlock import guarded                          # noqa: E402
 from _common.store import COLUMNS                            # noqa: E402
 
 # 돌릴 사이트. **순서가 곧 화면에 뜨는 순서**이고, 합칠 때도 이 차례를 지킨다 —
@@ -110,7 +114,7 @@ RATING_TIMEOUT = 60 * 180
 RATING_EXIT_MEANING = {
     0: ("정상", True),
     1: ("단계를 못 돌림 — merged_filtered.csv 가 없음", False),
-    2: ("차단이 실측과 다르게 굴어 덜 걷음 (걷은 것은 저장됨 · 다시 돌리면 이어감)", False),
+    2: ("차단이 실측과 다르게 굴어 덜 걷음 — **출력은 안 바꿨다.** 다시 돌리면 이어감", False),
     3: ("이미 돌고 있음", False),
 }
 
@@ -164,6 +168,19 @@ class Result:
 
 
 def main() -> int:
+    """**실행 락을 쥐고 돈다.**
+
+    사이트와 단계에는 저마다 락이 있는데 **합치기 구간만 무방비였다.** 오케스트레이터를
+    둘 돌리면 각 사이트는 `3` 을 내고 물러나지만, 그 뒤 두 실행이 같은 `merged.csv` 를
+    함께 쓴다. 한쪽이 반쯤 쓴 것을 다른 쪽이 읽을 수 있다.
+
+    락은 **파이프라인 전체**를 덮는다 — 수집부터 마지막 단계까지. 단계들이 자기 락을
+    또 쥐지만 그것은 "이 단계만 따로 돌리는 사람" 을 막는 것이라 역할이 다르다.
+    """
+    return guarded(LOCK, _main)
+
+
+def _main() -> int:
     scrapers = _find_scrapers()
     missing = [site for site in SITES if site not in scrapers]
     if missing:
@@ -371,15 +388,28 @@ def merge_csvs(paths: list[Path], output: Path) -> int:
     칸은 `_common/store.py` 의 `COLUMNS` 로 맞춘다. 사이트가 다 같은 스키마를 쓰지만,
     한 곳이 칸을 더하거나 빼도 합친 파일이 어긋나지 않게 여기서 한 번 더 맞춘다.
     """
+    # **원자적으로 쓴다.** 같은 디렉터리 임시 파일에 다 쓰고 `os.replace` 로 바꿔치기한다.
+    #
+    # 여기만 이 규칙에서 빠져 있었다 — `_common/store.write_csv` 도, 단계들의 보고 CSV 도
+    # 전부 원자적인데 정작 **파이프라인의 첫 파일**이 아니었다. 도중에 죽으면 반쯤 쓰인
+    # `merged.csv` 가 남고, 그림 판독이 그것을 완성품으로 읽는다.
+    # `image_process/README.md` 가 금지한 바로 그 상황이다.
     output.parent.mkdir(parents=True, exist_ok=True)
+    tmp = output.with_name(".%s.tmp%d" % (output.name, os.getpid()))
     written = 0
-    with output.open("w", encoding="utf-8-sig", newline="") as target:
-        writer = csv.DictWriter(target, fieldnames=list(COLUMNS))
-        writer.writeheader()
-        for path in paths:
-            for row in _read_rows(path):
-                writer.writerow({column: row.get(column, "") for column in COLUMNS})
-                written += 1
+    try:
+        with tmp.open("w", encoding="utf-8-sig", newline="") as target:
+            writer = csv.DictWriter(target, fieldnames=list(COLUMNS))
+            writer.writeheader()
+            for path in paths:
+                for row in _read_rows(path):
+                    writer.writerow({column: row.get(column, "") for column in COLUMNS})
+                    written += 1
+            target.flush()
+            os.fsync(target.fileno())
+        os.replace(tmp, output)
+    finally:
+        tmp.unlink(missing_ok=True)
     return written
 
 
