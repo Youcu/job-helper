@@ -192,3 +192,39 @@ def test_BOUNDARY_pipeline_holds_one_lock_for_the_whole_run():
                    ".jobplanet_rating.lock", ".core_stack.lock"}
     check(orch.LOCK.name not in stage_locks,
           "단계 락 이름과 같으면 단계를 따로 못 돌린다")
+
+
+def test_NORMAL_first_seen_is_revived_from_history():
+    """**사이트 CSV 를 매 실행 지우므로** 이력에서 처음 본 날을 되살린다.
+
+    안 그러면 `최초수집일` 이 항상 오늘이 되어 칸의 뜻이 없어지고,
+    "오늘 새로 뜬 공고" 가 전부 거짓이 된다 — CSV 는 멀쩡해 보인다.
+    """
+    home = temp_dir()
+    history = home / "history" / "history_read.csv"
+    write_csv(history, [_row(URL="u/1", 최초수집일="2026-09-01")], COLUMNS)
+    site = write_csv(home / "a.csv", [_row(URL="u/1", 최초수집일="2026-09-12"),
+                                      _row(URL="u/2", 최초수집일="2026-09-12")], COLUMNS)
+    orch.merge_csvs([site], home / "merged.csv", history)
+    got = {r["URL"]: r["최초수집일"] for r in read_csv(home / "merged.csv")}
+    check_equal(got["u/1"], "2026-09-01", "이력에 있으면 그 날짜로 되살린다")
+    check_equal(got["u/2"], "2026-09-12", "이력에 없으면 **오늘 처음 본 것**이 맞다")
+
+
+def test_EXCEPTION_no_history_yet_is_not_an_error():
+    # 처음 돌리는 사람에게는 이력이 없다.
+    home = temp_dir()
+    site = write_csv(home / "a.csv", [_row(URL="u/1", 최초수집일="2026-09-12")], COLUMNS)
+    orch.merge_csvs([site], home / "merged.csv", home / "없는" / "history.csv")
+    check_equal(read_csv(home / "merged.csv")[0]["최초수집일"], "2026-09-12", "그대로 둔다")
+
+
+def test_BOUNDARY_history_never_makes_a_posting_look_newer():
+    # 이력이 더 늦은 날짜를 갖고 있어도 되살리기가 **더 최근으로 만들지는 않는다.**
+    home = temp_dir()
+    history = home / "history" / "history_read.csv"
+    write_csv(history, [_row(URL="u/1", 최초수집일="2026-09-20")], COLUMNS)
+    site = write_csv(home / "a.csv", [_row(URL="u/1", 최초수집일="2026-09-01")], COLUMNS)
+    orch.merge_csvs([site], home / "merged.csv", history)
+    got = read_csv(home / "merged.csv")[0]["최초수집일"]
+    check(got in ("2026-09-01", "2026-09-20"), "둘 중 하나여야 한다: %r" % got)

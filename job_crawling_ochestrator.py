@@ -42,7 +42,7 @@ from tqdm import tqdm                                        # noqa: E402
 
 from _common import staleness                                # noqa: E402
 from _common.runlock import guarded                          # noqa: E402
-from _common.store import COLUMNS                            # noqa: E402
+from _common.store import COLUMNS, FIRST_SEEN, KEY_COLUMN   # noqa: E402
 
 # 돌릴 사이트. **순서가 곧 화면에 뜨는 순서**이고, 합칠 때도 이 차례를 지킨다 —
 # 실행마다 행 순서가 뒤바뀌면 `merged.csv` 를 눈으로 견주기 어렵다.
@@ -130,6 +130,20 @@ CORE_STACK_TIMEOUT = 60 * 5
 CORE_STACK_EXIT_MEANING = {
     0: ("정상", True),
     1: ("단계를 못 돌림 — merged_rated.csv 가 없거나 .env 의 CORE_TECH_STACKS 가 빔", False),
+    3: ("이미 돌고 있음", False),
+}
+
+
+HISTORY_STAGE = ROOT_DIR / "history.py"
+
+# 파일 몇 개를 병합해 쓰고 사이트 CSV 를 지운다. 그물도 모델도 안 탄다.
+HISTORY_TIMEOUT = 60 * 5
+
+# 이력 단계가 내는 코드. `1` 은 **파이프라인이 안 끝났다**는 뜻이다 — 이 단계만
+# 최종본까지 다 나온 것을 전제로 하므로 다른 단계의 표를 빌리면 뜻이 어긋난다.
+HISTORY_EXIT_MEANING = {
+    0: ("정상", True),
+    1: ("단계를 못 돌림 — merged_read.csv 나 merged_core.csv 가 없음", False),
     3: ("이미 돌고 있음", False),
 }
 
@@ -230,10 +244,20 @@ def _main() -> int:
             print("핵심 기술 단계가 실패했습니다 (%s). csv/merged_rated.csv 는 그대로 있습니다."
                   % cored.meaning, file=sys.stderr)
 
+    # **최종본까지 다 나왔을 때만 이력을 쌓는다.** 중간에 멈춘 실행의 반쪽 결과를
+    # 이력에 섞으면, 나중에 "그때 이 공고가 없었다" 를 거짓으로 읽는다.
+    history = _run_stage(HISTORY_STAGE, "이력 쌓기", HISTORY_EXIT_MEANING,
+                         HISTORY_TIMEOUT) if (cored is not None and cored.ok) else None
+    if history is not None:
+        print("\n%s" % "\n".join(_last_lines(history.log, 12)))
+        if not history.ok:
+            print("이력 단계가 실패했습니다 (%s). csv/ 와 사이트 CSV 는 그대로 있습니다."
+                  % history.meaning, file=sys.stderr)
+
     failed = [r for r in results if not r.ok]
     if failed:
         _print_failures(failed)
-    stages = [image, filtered, rated, cored]
+    stages = [image, filtered, rated, cored, history]
     return 1 if (failed or any(st is not None and not st.ok for st in stages)) else 0
 
 
@@ -383,7 +407,34 @@ def _run_stage(script: Path, name: str, meanings: dict,
     return result
 
 
-def merge_csvs(paths: list[Path], output: Path) -> int:
+# 이력이 쌓이는 자리. 합칠 때 여기서 `최초수집일` 을 되살려 넣는다.
+HISTORY_READ = ROOT_DIR / "history" / "history_read.csv"
+
+
+def _seed_first_seen(rows: list[dict], history: Path) -> int:
+    """이력에서 **진짜 `최초수집일`** 을 되살려 넣는다. 몇 행을 되살렸는지 돌려준다.
+
+    사이트별 CSV 가 예전에는 누적 저장소였다 — `store.save()` 가 기존 파일과 병합해
+    처음 본 날을 지켰다. 이제 그 파일을 매 실행 지우므로(`history.py`), 그냥 두면
+    **`최초수집일` 이 항상 오늘**이 되어 칸의 뜻이 없어진다.
+
+    그래서 누적의 자리를 `history/history_read.csv` 로 옮기고, 합칠 때 URL 로 찾아
+    되살린다. 이력에 없는 공고는 **오늘 처음 본 것**이 맞으므로 손대지 않는다.
+    """
+    if not history.exists():
+        return 0
+    known = {row.get(KEY_COLUMN): row.get(FIRST_SEEN)
+             for row in _read_rows(history) if row.get(KEY_COLUMN)}
+    revived = 0
+    for row in rows:
+        seen = known.get(row.get(KEY_COLUMN))
+        if seen and seen != row.get(FIRST_SEEN):
+            row[FIRST_SEEN] = seen
+            revived += 1
+    return revived
+
+
+def merge_csvs(paths: list[Path], output: Path, history: Path = HISTORY_READ) -> int:
     """사이트별 CSV 를 **그대로** 이어 붙인다. 몇 행을 썼는지 돌려준다.
 
     **손대지 않는다** — 중복 제거도, 정규화도, 거르기도 안 한다. 그건 다음 단계의 일이고,
@@ -398,23 +449,25 @@ def merge_csvs(paths: list[Path], output: Path) -> int:
     # 전부 원자적인데 정작 **파이프라인의 첫 파일**이 아니었다. 도중에 죽으면 반쯤 쓰인
     # `merged.csv` 가 남고, 그림 판독이 그것을 완성품으로 읽는다.
     # `image_process/README.md` 가 금지한 바로 그 상황이다.
+    rows = [row for path in paths for row in _read_rows(path)]
+    revived = _seed_first_seen(rows, history)
+
     output.parent.mkdir(parents=True, exist_ok=True)
     tmp = output.with_name(".%s.tmp%d" % (output.name, os.getpid()))
-    written = 0
     try:
         with tmp.open("w", encoding="utf-8-sig", newline="") as target:
             writer = csv.DictWriter(target, fieldnames=list(COLUMNS))
             writer.writeheader()
-            for path in paths:
-                for row in _read_rows(path):
-                    writer.writerow({column: row.get(column, "") for column in COLUMNS})
-                    written += 1
+            for row in rows:
+                writer.writerow({column: row.get(column, "") for column in COLUMNS})
             target.flush()
             os.fsync(target.fileno())
         os.replace(tmp, output)
     finally:
         tmp.unlink(missing_ok=True)
-    return written
+    if revived:
+        print("  이력에서 최초수집일을 되살린 공고: %d행" % revived)
+    return len(rows)
 
 
 def _read_rows(path: Path) -> list[dict]:

@@ -45,7 +45,8 @@ def _fakes_with_csvs():
     return fakes
 
 
-def _main_with(fake_results, image, filtered=None, rated=None, cored=None):
+def _main_with(fake_results, image, filtered=None, rated=None, cored=None,
+               historied=None):
     """`main()` 을 **통째로** 돌린다. 자식 프로세스는 하나도 안 띄운다.
 
     스크래퍼(`_run_one`)와 수집 뒤 단계(`_run_stage`)만 가짜로 바꾸고 **합치기는
@@ -63,7 +64,8 @@ def _main_with(fake_results, image, filtered=None, rated=None, cored=None):
               orch.FILTER_STAGE.name: ("거르기", filtered or _stage("거르기", code=0)),
               orch.RATING_STAGE.name: ("평점", rated or _stage("평점", code=0)),
               orch.CORE_STACK_STAGE.name: ("핵심기술",
-                                           cored or _stage("핵심기술", code=0))}
+                                           cored or _stage("핵심기술", code=0)),
+              orch.HISTORY_STAGE.name: ("이력", historied or _stage("이력", code=0))}
 
     def merge(paths, output):
         events.append("합치기")
@@ -294,9 +296,9 @@ def test_NORMAL_stages_run_in_order_after_merging():
     통과하거나 `ValueError` 로 터진다 — 실패가 아니라 오류로. 그래서 진짜로 돌린다.
     """
     code, events, merged, _ = _main_with(_fakes_with_csvs(), _image(code=0))
-    check_equal(events, ["합치기", "이미지", "거르기", "평점", "핵심기술"],
+    check_equal(events, ["합치기", "이미지", "거르기", "평점", "핵심기술", "이력"],
                 "차례가 이것이다: %r" % events)
-    check_equal(code, 0, "다섯 다 멀쩡하면 0")
+    check_equal(code, 0, "여섯 다 멀쩡하면 0")
     check_equal(len(read_csv(merged)), len(orch.SITES), "합본에 여섯 행이 들어 있다")
 
 
@@ -486,4 +488,25 @@ def test_BOUNDARY_core_stack_exit_table_names_the_env_setting():
           orch.CORE_STACK_EXIT_MEANING[1][0])
     check(2 not in orch.CORE_STACK_EXIT_MEANING, "부분 실패라는 것이 없다")
     ok = {c for c, (_, good) in orch.CORE_STACK_EXIT_MEANING.items() if good}
+    check_equal(ok, {0}, "성공은 0 뿐: %r" % ok)
+
+
+def test_EXCEPTION_history_is_not_called_when_core_stack_died():
+    """**최종본까지 다 나왔을 때만 이력을 쌓는다.**
+
+    중간에 멈춘 실행의 반쪽 결과를 이력에 섞으면, 나중에 "그때 이 공고가 없었다" 를
+    거짓으로 읽는다. 그리고 이력 단계는 **사이트 CSV 를 지우므로** 더 위험하다 —
+    반쪽 결과를 쌓고 원본까지 지우면 다시 걷는 수밖에 없다.
+    """
+    code, events, _merged, _ = _main_with(_fakes_with_csvs(), _image(code=0), None, None,
+                                          _stage("핵심기술", code=1))
+    check("이력" not in events, "앞이 죽었으면 안 부른다: %r" % events)
+    check_equal(code, 1, "1 로 끝난다")
+
+
+def test_BOUNDARY_history_exit_table_says_the_pipeline_did_not_finish():
+    check("merged_core.csv" in orch.HISTORY_EXIT_MEANING[1][0],
+          orch.HISTORY_EXIT_MEANING[1][0])
+    check(2 not in orch.HISTORY_EXIT_MEANING, "부분 실패라는 것이 없다")
+    ok = {c for c, (_, good) in orch.HISTORY_EXIT_MEANING.items() if good}
     check_equal(ok, {0}, "성공은 0 뿐: %r" % ok)

@@ -162,7 +162,16 @@ def merge(
 
 
 def save(rows: list[dict], output: Path):
-    """걷은 행을 기존 CSV 와 병합해 쓴다. 덮어쓰지 않고 쌓는다 (D-07)."""
+    """걷은 행을 기존 CSV 와 병합해 쓴다.
+
+    **이 파일은 더 이상 누적 저장소가 아니다.** 파이프라인이 끝나면 `history.py` 가
+    사이트별 CSV 를 지우고, 누적은 `history/history_read.csv` 한 곳에서만 일어난다
+    (2026-09-12). 여기 병합이 남아 있는 이유는 **한 사이트만 따로 여러 번 돌릴 때**
+    앞 실행 결과를 잃지 않기 위해서다 — 사이트를 고치며 시험할 때 그렇게 쓴다.
+
+    `최초수집일` 을 되살리는 일은 오케스트레이터가 합칠 때 이력을 보고 한다
+    (`job_crawling_ochestrator._seed_first_seen`).
+    """
     result = merge(read_csv(output), rows)
     write_csv(output, result.rows)
     return result

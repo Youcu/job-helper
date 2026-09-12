@@ -5,7 +5,7 @@ python3 job_crawling_ochestrator.py
 ```
 
 다섯 채용 사이트를 **병렬로** 돌리고, 끝나면 각 사이트 CSV 를 그대로 이어 붙여
-`csv/merged.csv` 를 만든다. 그 **뒤에** 수집 뒤 단계 넷을 차례로 자식 프로세스로 부른다.
+`csv/merged.csv` 를 만든다. 그 **뒤에** 수집 뒤 단계 다섯을 차례로 자식 프로세스로 부른다.
 
 ```
 Wanted · 사람인 · 잡코리아 · 잡플래닛 · 점핏
@@ -23,7 +23,10 @@ Wanted · 사람인 · 잡코리아 · 잡플래닛 · 점핏
    csv/merged_rated.csv  +  csv/rating_report.csv  +  csv/same_names.csv
         │
         ▼ 핵심 기술 (core_stack.py)
-   csv/merged_core.csv  +  csv/core_stack_report.csv
+   csv/merged_core.csv  +  csv/core_stack_report.csv        ← 최종
+        │
+        ▼ 이력 쌓기 · 사이트 CSV 치우기 (history.py)
+   history/history_read.csv · history_core.csv · history_dropped.csv · history_same_names.csv
 ```
 
 **앞이 실패하면 뒤를 부르지 않는다.** 뒤 단계의 입력은 앞이 낸 파일인데, 앞이 죽었으면
@@ -38,6 +41,7 @@ Wanted · 사람인 · 잡코리아 · 잡플래닛 · 점핏
 거르기          5분   실측 710행에 0.02초. 그물도 모델도 안 탄다
 평점 거르기    180분   실측 457곳에 126분. 그물을 타고 5초씩 쉰다
 핵심 기술       5분   파일 하나를 읽고 정규식을 돌릴 뿐이다
+이력 쌓기       5분   파일 몇 개를 병합해 쓴다
 ```
 
 ## 무엇을 하고, 무엇을 안 하나

@@ -44,3 +44,5 @@ clear_csv.sh
 # 설계 과정 문서와 보고서. 만들어 가는 동안의 기록이라 저장소에 남기지 않는다.
 docs/superpowers/
 docs/reports/
+# 이력. 산출물이라 저장소에 안 넣는다 — 사람마다 스크랩 조건이 다르다.
+history/

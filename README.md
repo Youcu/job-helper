@@ -20,7 +20,8 @@
 
 ```
 csv/merged.csv  ─그림 판독─▶  csv/merged_read.csv  ─거르기─▶  csv/merged_filtered.csv
-      ─평점─▶  csv/merged_rated.csv  ─핵심 기술─▶  csv/merged_core.csv
+      ─평점─▶  csv/merged_rated.csv  ─핵심 기술─▶  csv/merged_core.csv   ← 최종
+                                        └─이력─▶  history/  (누적)
 ```
 
 **그림 판독** — 사람인·잡코리아 일부는 본문이 그림 한 장이라 `기술스택` 칸에 그림 주소만
@@ -38,6 +39,11 @@ csv/merged.csv  ─그림 판독─▶  csv/merged_read.csv  ─거르기─▶ 
 **핵심 기술** — `.env` 의 `CORE_TECH_STACKS` 가 `기술스택` · `지원자격` · `우대사항`
 **어느 한 곳에라도** 있는 공고만 남긴다. 세 칸을 다 보는 이유는, **채용 사이트의 검색
 조건에는 안 잡히는데 본문에는 적혀 있는 공고가 있기** 때문이다.
+
+**이력** — 파이프라인이 끝나면 `csv/merged_read.csv`(전처리 이전)와
+`csv/merged_core.csv`(최종본), 그리고 리포트를 `history/` 에 **누적**하고 사이트별
+수집본을 지운다. `./csv` 에는 **이번 실행의 산출물만** 남는다 — 사람이 보고 싶은 것은
+지금 돌린 결과이기 때문이다. [HISTORY.md](HISTORY.md).
 
 **앞 단계의 파일은 손대지 않는다.** 네 단계 다 행을 없애므로, 제자리에서 고치면 없어진
 행의 원본이 사라진다. 뺀 것은 단계마다 `*_report.csv` 에 이유와 함께 남는다.
@@ -76,6 +82,7 @@ $EDITOR .env
 .venv/bin/python3 filter.py                     # 이미 있는 csv/merged_read.csv 만 다시 거른다
 .venv/bin/python3 jobplanet_rating.py           # 평점만 다시 (캐시가 차 있으면 요청 0건)
 .venv/bin/python3 core_stack.py                 # .env 를 고치고 핵심 기술만 다시 거른다
+.venv/bin/python3 history.py                    # 이력만 쌓고 사이트 CSV 를 치운다
 ```
 
 수집은 8~10분이지만 뒤 단계만 다시 돌려 보고 싶을 때가 있다 — 캐시를 지웠을 때, 모델을
@@ -180,7 +187,11 @@ cd job_sites/<사이트> && ../../.venv/bin/python3 tests/run.py   # 사이트 �
 | | |
 |---|---|
 | [ORCHESTRATOR.md](ORCHESTRATOR.md) | 다섯을 병렬로 돌리고 합치는 일 · **종료 코드 계약** |
-| [image_process/README.md](image_process/README.md) | 그림 본문을 읽어 채우는 단계 |
+| [image_process/README.md](image_process/README.md) | ① 그림 본문을 읽어 채우는 단계 |
+| [FILTER.md](FILTER.md) | ② 중복 제거 · 낱말 제외 |
+| [RATING.md](RATING.md) | ③ 잡플래닛 평점 게이트 · **차단을 다루는 법** |
+| [CORE_STACK.md](CORE_STACK.md) | ④ 핵심 기술 거르기 |
+| [HISTORY.md](HISTORY.md) | ⑤ 이력 쌓기와 뒷정리 |
 | [docs/convention/](docs/convention/) | **수집 규약.** 새 사이트를 붙일 때 여기부터 읽는다 |
 | [docs/convention/03-adding-a-site.md](docs/convention/03-adding-a-site.md) | 새 사이트 체크리스트 |
 | [docs/convention/06-decisions.md](docs/convention/06-decisions.md) | 결정과 실측 근거 |
