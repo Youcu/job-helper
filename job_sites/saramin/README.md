@@ -1,13 +1,13 @@
 # 사람인 스크래퍼
 
-    python3 saramin.py
+    ../../.venv/bin/python3 saramin.py
 
 `../../.env` 의 조건으로 공고를 전량 수집해 `csv/saramin_post.csv` 를 만든다.
 본문이 그림인 공고는 **읽지 않는다** — 주소만 남겨 나중 단계에 넘긴다.
 
 ```
 ../../.venv/bin/python3 saramin.py       # 실행
-../../.venv/bin/python3 tests/run.py     # 테스트 255건
+../../.venv/bin/python3 tests/run.py     # 이 사이트 + _common 테스트
 ```
 
 ## `.env` 항목
@@ -17,7 +17,7 @@
 
 | 항목 | 필수 | 뜻 |
 |---|---|---|
-| `JOB_ROLES` | **예** | 직무. **여섯 사이트가 함께 쓰는 이름**이다 (`백엔드,웹`) |
+| `JOB_ROLES` | **예** | 직무. **다섯 사이트가 함께 쓰는 이름**이다 (`백엔드,웹`) |
 | `YOE` | 아니오 | 신입=`0`, N년차=`N`, 전체=`-1` (기본 `-1`) |
 | `HOME_LOCATIONS` | 아니오 | 근무지 이름. 비우면 전국 |
 | `EMPLOYMENT_TYPES` | 아니오 | `regular` `contract` `intern` `parttime` `freelance` `dispatch` (기본 `regular,intern`) |
@@ -25,7 +25,7 @@
 | `TECH_STACKS` | 아니오 | **아직 안 쓴다.** 지금은 거르지 않고 전량 수집한다 |
 | `HOPE_ANNUAL_SALARY` | 아니오 | **아직 안 쓴다.** 공고 9%만 실금액을 준다 |
 
-**직무는 사이트 코드가 아니라 이름으로 적는다.** `.env` 는 여섯 사이트가 함께 쓰는
+**직무는 사이트 코드가 아니라 이름으로 적는다.** `.env` 는 다섯 사이트가 함께 쓰는
 한 벌이라, `JOB_ROLES=백엔드,웹` 하나를 적으면 이 사이트가 `tags/saramin_role_map.json` 로 자기 코드를 찾는다.
 쓸 수 있는 이름은 `job_sites/_common/roles.json` 에 있고 별칭도 받는다 — `서버`·`Backend`
 라고 적어도 `백엔드` 로 알아듣는다.
@@ -196,4 +196,4 @@ Wanted 는 UA 하나가 게이트였다. 사람인은 다르다.
 | `tags/saramin_skill.json` | 기술스택 어휘 140개 |
 | `tags/saramin_location.json` | 지역 코드 (시도 17 · 구시 271) |
 | `tags/saramin_filter.json` | 경력 · 학력 등 코드 |
-| `tests/` | 255건 (일반 77 · 예외 69 · 경계 109). `_common` 의 테스트도 여기 있다 |
+| `tests/` | `_common` 의 테스트도 여기 있다. **건수는 돌리면 찍힌다** |

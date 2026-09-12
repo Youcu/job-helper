@@ -4,17 +4,21 @@
 
 ```bash
 cd job_sites/wanted
-python3 wanted.py
+../../.venv/bin/python3 wanted.py
 ```
 
-`requests` `tqdm` `pandas` `python-dotenv` 가 필요하다. 이 기기의 시스템 python3(3.14)과
-`analyze-company/.venv` 양쪽에 이미 깔려 있어 그대로 돌아간다. 다른 기기라면
-`pip install requests tqdm pandas python-dotenv`.
+의존성은 저장소 뿌리의 `requirements.txt` 에 있다 — `requests` `tqdm`
+`python-dotenv` `Pillow` 넷. **Python 3.8 이상.**
+
+```bash
+# 저장소 뿌리에서 한 번만
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+```
 
 테스트(네트워크를 타지 않는다):
 
 ```bash
-python3 tests/run.py
+../../.venv/bin/python3 tests/run.py
 ```
 
 ## 산출물
@@ -95,7 +99,7 @@ HOPE_ANNUAL_SALARY=  # Wanted 는 연봉 미공개라 미적용
 
 | 항목 | 필수 | 뜻 |
 |---|---|---|
-| `JOB_ROLES` | O | 직무. **여섯 사이트가 함께 쓰는 이름**이다. 예 `백엔드,웹` |
+| `JOB_ROLES` | O | 직무. **다섯 사이트가 함께 쓰는 이름**이다. 예 `백엔드,웹` |
 | `EMPLOYMENT_TYPES` | | `regular`(정규직) `contract`(계약직) `intern`(인턴). 기본값 `regular,intern` |
 | `YOE` | | 경력. 신입=`0`, N년차=`N`(1~10), 전체=`-1`. 기본값 `-1` |
 | `HOME_LOCATIONS` | | 희망근무지. 한글 이름 또는 slug. **비우면 전국** |
@@ -124,7 +128,7 @@ HOPE_ANNUAL_SALARY=
 
 ### 직무를 이름으로 적는다
 
-`.env` 는 여섯 사이트가 함께 쓰는 한 벌이라, `JOB_ROLES=백엔드,웹` 하나를 적으면 Wanted 가
+`.env` 는 다섯 사이트가 함께 쓰는 한 벌이라, `JOB_ROLES=백엔드,웹` 하나를 적으면 Wanted 가
 `tags/wanted_role_map.json` 으로 자기 코드를 찾는다. 쓸 수 있는 이름은
 `job_sites/_common/roles.json` 에 있고 별칭도 받는다 — `서버`·`Backend` 라고 적어도
 `백엔드` 로 알아듣는다.

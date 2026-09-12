@@ -1,0 +1,37 @@
+# 테스트를 **깨끗한 환경에서** 돌린다.
+#
+# 이 워크플로가 없던 동안 저장소에 이런 것들이 쌓였다 — 의존성 선언이 아예 없었고,
+# README 가 존재하지 않는 `.venv/bin/pip` 을 쓰라고 했고, 문서의 테스트 건수가 824 인데
+# 실제는 942 였다. **전부 "깨끗한 환경에서 설치하고 돌려 본다" 한 번이면 걸렸을 것들이다.**
+#
+# 그래서 여기서는 캐시를 쓰지 않는다. 캐시가 있으면 "내 기계에서는 되는데" 를 CI 가 흉내 낸다.
+
+name: test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      # **가장 낮은 버전과 가장 높은 버전을 함께 돈다.** README 가 3.8 이상이라고
+      # 약속하므로 그 약속을 CI 가 지켜야 한다. 하나만 돌리면 약속이 조용히 거짓이 된다.
+      fail-fast: false
+      matrix:
+        python: ["3.8", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: 의존성 설치
+        run: pip install -r requirements.txt
+
+      - name: 전체 테스트
+        # 러너 여섯을 한 번에 부른다. 하나라도 깨지면 0 이 아닌 코드로 끝난다.
+        # **그물도 `.env` 도 `claude` 도 안 탄다** — 떠 놓은 응답과 가짜 opener 를 쓴다.
+        run: python tests/run_all.py

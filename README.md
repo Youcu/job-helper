@@ -16,7 +16,7 @@
 마감돼 내려간 공고도 30일까지 남긴다. `최초수집일` 로 오늘 새로 뜬 것을,
 `최종확인일` 로 지금도 열려 있는지를 가린다.
 
-다섯이 다 돌면 수집 뒤 단계 둘이 이어서 돈다.
+다섯이 다 돌면 수집 뒤 단계 넷이 이어서 돈다.
 
 ```
 csv/merged.csv  ─그림 판독─▶  csv/merged_read.csv  ─거르기─▶  csv/merged_filtered.csv
@@ -54,35 +54,53 @@ csv/merged.csv  ─그림 판독─▶  csv/merged_read.csv  ─거르기─▶ 
 
 ## 실행
 
+**Python 3.8 이상.** CI 가 3.8 과 3.13 양쪽에서 테스트를 돈다.
+
 ```bash
-# 저장소 뿌리에 .env 를 직접 만든다. 항목은 아래 "조건" 절에 있다.
-# .env 는 추적되지 않고 예시 파일도 없다 — 없으면 안 도는 것이 맞다.
+# 1) 가상환경과 의존성 — clone 직후 이것부터 한다
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+
+# 2) 그림 본문을 읽는 데 `claude` CLI 를 쓴다
+#    **없으면 거르기·평점·핵심 기술 세 단계가 통째로 안 돈다** — 이미지 판독이
+#    실패하면 뒤를 안 부르기 때문이다. csv/merged.csv 까지만 나오고 종료 코드 1 이다.
+#    설치: https://claude.com/claude-code  (설치 뒤 `claude` 로 한 번 로그인)
+
+# 3) 저장소 뿌리에 .env 를 직접 만든다. 항목은 아래 "조건" 절에 있다.
+#    .env 는 추적되지 않고 예시 파일도 없다 — 없으면 안 도는 것이 맞다.
 $EDITOR .env
 
-python3 job_crawling_ochestrator.py   # 수집부터 거르기까지 한 번에
-python3 job_image_process.py          # 이미 있는 csv/merged.csv 의 그림만 다시 처리
-python3 filter.py                     # 이미 있는 csv/merged_read.csv 만 다시 거른다
-python3 jobplanet_rating.py           # 평점만 다시 (캐시가 차 있으면 요청 0건)
-python3 core_stack.py                 # .env 를 고치고 핵심 기술만 다시 거른다
+# 4) 돌린다
+.venv/bin/python3 job_crawling_ochestrator.py   # 수집부터 최종본까지 한 번에
+.venv/bin/python3 job_image_process.py          # 이미 있는 csv/merged.csv 의 그림만 다시
+.venv/bin/python3 filter.py                     # 이미 있는 csv/merged_read.csv 만 다시 거른다
+.venv/bin/python3 jobplanet_rating.py           # 평점만 다시 (캐시가 차 있으면 요청 0건)
+.venv/bin/python3 core_stack.py                 # .env 를 고치고 핵심 기술만 다시 거른다
 ```
 
 수집은 8~10분이지만 뒤 단계만 다시 돌려 보고 싶을 때가 있다 — 캐시를 지웠을 때, 모델을
-바꿔 볼 때, **낱말표를 고쳐 몇 건이 빠지는지 보고 싶을 때**. 그때는 아래 두 명령만 쓰면
-된다. 거르기는 실측 710행에 0.02초라 얼마든지 다시 돌려도 된다.
+바꿔 볼 때, **낱말표나 `CORE_TECH_STACKS` 를 고쳐 몇 건이 빠지는지 보고 싶을 때**.
+그래서 단계마다 혼자 도는 명령이 있다. 거르기는 실측 710행에 0.02초다.
+
+**단계를 혼자 돌리면 입력이 낡았는지 물어본다.** 앞 단계를 안 돌린 채 뒤만 돌리면 지난
+실행의 데이터로 오늘 결과를 내는데, 그건 터지지 않아서 알아채기 어렵다.
 
 한 사이트만 돌리려면 그 폴더에서 부른다.
 
 ```bash
 cd job_sites/wanted
-python3 wanted.py            # 수집 → csv/wanted_post.csv
-python3 tests/run.py         # 테스트
+../../.venv/bin/python3 wanted.py       # 수집 → csv/wanted_post.csv
+../../.venv/bin/python3 tests/run.py    # 이 사이트 테스트만
 ```
 
-`requests` `tqdm` `python-dotenv` 가 필요하다. 이미지 판독 단계는 **Pillow** 도 쓴다.
+의존성은 `requirements.txt` 에 **버전이 박힌 채로** 있다 — `requests` `tqdm`
+`python-dotenv` `Pillow` 넷뿐이다.
 
-```bash
-.venv/bin/pip install Pillow
-```
+**`.venv` 를 보고 베끼지 마라.** 거기에는 `pandas`·`numpy`·`rapidfuzz` 가 섞여 있는데
+추적되는 코드 중 어느 것도 그것들을 import 하지 않는다. 옛 실험이 남긴 것이다.
+
+**`Pillow` 는 선택이 아니다.** 이미지 단계를 안 쓸 사람도 깔아야 한다 — 루트 테스트가
+`test_image_*` 를 담고 있어서, 없으면 import 단계에서 통째로 죽는다.
 
 ## 조건은 **한 벌**이다
 
@@ -126,21 +144,25 @@ IMAGE_TIMEOUT=                    # 기본 300초
 ## 테스트
 
 ```bash
-python3 tests/run.py                              # 오케스트레이터 + 이미지 판독 145건
-cd job_sites/<사이트> && python3 tests/run.py       # 사이트별
+.venv/bin/python3 tests/run_all.py       # **전부.** 러너 여섯을 차례로 부르고 합계를 낸다
+.venv/bin/python3 tests/run.py           # 루트만 (파이프라인 단계들)
+cd job_sites/<사이트> && ../../.venv/bin/python3 tests/run.py   # 사이트 하나만
 ```
 
-합쳐 824건. 네트워크도 `claude` 도 타지 않는다 — 떠 놓은 실제 응답을 쓰고, 이미지는
-Pillow 로 그 자리에서 그려서 쓴다.
+**건수는 여기 안 적는다.** 돌리면 묶음별 건수와 합계가 찍힌다. 예전에는 문서에 손으로
+적어 뒀는데 전부 틀어졌다 — 문서 824건, 실제 942건. 숫자를 두 곳에서 관리하면 반드시
+갈라진다.
 
-| wanted | saramin | jobkorea | jobplanet | jumpit | 루트(오케스트레이터+이미지 판독) |
-|---|---|---|---|---|---|
-| 88 | 256 | 104 | 120 | 111 | 145 |
+네트워크도 `.env` 도 `claude` 도 타지 않는다 — 떠 놓은 실제 응답과 가짜 opener 를 쓰고,
+이미지는 Pillow 로 그 자리에서 그린다. **그래서 CI 에서 그대로 돈다**
+(`.github/workflows/test.yml`, 3.8 과 3.13 양쪽).
 
-사람인이 많은 것은 **`_common` 의 테스트가 거기 있기** 때문이다 — 어느 한 사이트에 붙여
-두면 그 사이트를 지웠을 때 시험도 같이 사라진다. 루트의 145건은 오케스트레이터·합치기 41건과
-이미지 판독 104건을 합친 것이다 — 이미지 판독은 `job_sites/` 아래에 있지 않으므로 여기서
-돈다.
+러너가 여섯인 것은 사이트마다 `sys.path` 를 자기 쪽으로 밀기 때문이다 — 한 프로세스에서
+이어 부르면 나중 것이 앞 것의 `lib` 를 집는다. `run_all.py` 가 프로세스를 나눠 부른다.
+
+사람인 묶음이 가장 큰 것은 **`_common` 의 테스트가 거기 있기** 때문이다 — 어느 한 사이트에
+붙여 두면 그 사이트를 지웠을 때 시험도 같이 사라진다. 루트 묶음에는 파이프라인 단계
+다섯(합치기·이미지 판독·거르기·평점·핵심 기술)의 테스트가 들어 있다.
 
 ## 문서
 
