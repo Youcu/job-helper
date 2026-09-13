@@ -16,7 +16,7 @@ sys.path.insert(0, str(ROOT_DIR.parent))
 
 from _common.outcome import INCOMPLETE
 from _common.runlock import guarded
-from _common.store import RETENTION_DAYS, merge, read_csv, write_csv
+from _common.store import merge, merge_lines, read_csv, write_csv
 from lib.client import BlockedError, WantedClient
 from lib.collect import build_listing_params, fetch_details, fetch_listings
 from lib.config import ConfigError, load_config
@@ -124,15 +124,12 @@ def _run() -> int:
     result = merge(read_csv(OUTPUT), kept)
     write_csv(OUTPUT, result.rows)
 
+    # **병합 결과를 찍는 말은 `_common` 이 쥔다.** 여기 사본을 두면 세는 규칙이
+    # 바뀌었을 때 넷은 따라가고 이 사이트만 옛말을 찍는다 — 예외도 안 나고 테스트도
+    # 안 깨진다. `RETENTION_DAYS` 를 바꾸면 화면에 서로 다른 숫자가 나온다.
     print(f"\n{OUTPUT.relative_to(ROOT)} — 모두 {len(result.rows)}행")
-    print(f"  새로 뜬 공고        : {result.added}건")
-    print(f"  이번에도 보인 공고  : {result.updated}건")
-    if result.unseen:
-        print(f"  이번에 안 보인 공고 : {result.unseen}건 (최종확인일을 그대로 둡니다)")
-    if result.expired:
-        print(f"  {RETENTION_DAYS}일 넘게 안 보여 뺀 공고: {result.expired}건")
-    if result.undated:
-        print(f"  최종확인일을 알 수 없어 남겨 둔 공고: {result.undated}건")
+    for line in merge_lines(result):
+        print(line)
     if dropped:
         print(f"  기술스택이 하나도 없어 제외: {dropped}건")
     if broken:
