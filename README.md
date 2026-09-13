@@ -200,6 +200,6 @@ cd job_sites/<사이트> && ../../.venv/bin/python3 tests/run.py   # 사이트 �
 | [HISTORY.md](HISTORY.md) | ⑥ 이력 쌓기와 뒷정리 |
 | [docs/convention/](docs/convention/) | **수집 규약.** 새 사이트를 붙일 때 여기부터 읽는다 |
 | [docs/convention/03-adding-a-site.md](docs/convention/03-adding-a-site.md) | 새 사이트 체크리스트 |
-| [docs/convention/06-decisions.md](docs/convention/06-decisions.md) | 결정과 실측 근거 |
+| [docs/convention/06-decisions.md](docs/convention/06-decisions.md) | 결정과 실측 근거 — **새 단계를 만들 기준은 D-25** |
 | [job_sites/_common/README.md](job_sites/_common/README.md) | 사이트 공통 계층 |
 | `job_sites/<사이트>/README.md` | 그 사이트의 조건·코드표·제약 |

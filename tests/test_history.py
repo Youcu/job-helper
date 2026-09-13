@@ -31,7 +31,6 @@ def _stage(home, rows=None, reports=True):
     csv_dir = home / "csv"
     rows = rows if rows is not None else [_row()]
     write_csv(csv_dir / "merged_read.csv", rows, COLUMNS)
-    write_csv(csv_dir / "merged_core.csv", rows[:1], COLUMNS)
     write_csv(csv_dir / "merged_career.csv", rows[:1], COLUMNS)
     if reports:
         for name, columns, line in (
@@ -81,8 +80,7 @@ def test_NORMAL_accumulates_read_and_core():
     code = hist._run(_stage(home), home / "history", _sites(home), today="2026-09-12")
     check_equal(code, 0, "정상 종료")
     check_equal(len(read_csv(home / "history" / "history_read.csv")), 1, "전처리 이전")
-    check_equal(len(read_csv(home / "history" / "history_core.csv")), 1, "기술 거르기까지")
-    check_equal(len(read_csv(home / "history" / "history_career.csv")), 1, "최종본")
+    check_equal(len(read_csv(home / "history" / "history_final.csv")), 1, "최종본")
 
 
 def test_NORMAL_three_reports_become_one_file():
