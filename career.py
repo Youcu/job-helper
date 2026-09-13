@@ -40,6 +40,7 @@ import os
 import shutil
 import subprocess
 import sys
+from datetime import date
 from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parent
@@ -64,6 +65,13 @@ REPORT_COLUMNS = ("기업명", "공고명", "사이트명", "URL", "판정", "�
 MODEL = "sonnet"
 TIMEOUT = 120
 
+# **판정 규칙이 바뀌면 옛 판정을 버린다.** 프롬프트를 고쳐도 이미 판정된 공고가
+# 캐시에서 그대로 나오면 고침이 영영 안 먹는다 — 실제로 그랬다. `또는`·`혹은` 뒤의
+# 대체 경로를 읽으라는 지시를 넣었는데, 캐시에 든 12건은 옛 판정을 계속 냈다.
+#
+# 규칙(프롬프트)을 손대면 **이 숫자를 올려라.** 그러면 다음 실행이 다시 묻는다.
+RULES_VERSION = 2
+
 
 def build_prompt(row: dict, line: str) -> str:
     """모델에게 물을 말.
@@ -81,7 +89,10 @@ def build_prompt(row: dict, line: str) -> str:
         "- `경력 3년 이상` · `5~10년 정도` 처럼 **재직 연수**를 요구하면 모순이다.\n"
         "- `개발 경험이 있으신 분` · `Spring 에 능숙한 분` 은 **역량**이지 경력이 아니다.\n"
         "  신입도 프로젝트·학습으로 가진다. 이런 것은 모순이 **아니다**.\n"
-        "- `신입 또는 경력 3년` 처럼 신입 경로가 함께 적혀 있으면 모순이 **아니다**.\n"
+        "- **경력을 대신할 길이 함께 있으면 모순이 아니다.** `신입 또는 경력 3년` ·\n"
+        "  `경력 3년 또는 이에 준하는 역량` · `석사 이상 또는 경력 3년` 이 그렇다.\n"
+        "  `또는`·`혹은` 뒤를 반드시 읽어라 — 학위나 역량으로 대신할 수 있으면\n"
+        "  신입도 지원할 수 있다.\n"
         "- `경력직 지원자의 경우 …` 처럼 경력직을 **받는다**는 말은 요구가 아니다.\n"
         "- **애매하면 false 를 내라.** 놓치는 것보다 멀쩡한 공고를 지우는 쪽이 나쁘다.\n\n"
         "아래 JSON 만 출력하고 다른 말은 하지 마라.\n"
@@ -203,7 +214,7 @@ def _run(source: Path | None = None, output: Path | None = None,
             continue
         url = row.get("URL") or ""
         remembered = book.get(url)
-        if remembered is not None:
+        if remembered is not None and remembered.get("규칙판") == RULES_VERSION:
             bad, why = bool(remembered.get("모순")), remembered.get("근거", "")
         else:
             try:
@@ -215,7 +226,8 @@ def _run(source: Path | None = None, output: Path | None = None,
                 kept.append(row)
                 continue
             asked += 1
-            book[url] = {"모순": bad, "근거": why, "걸린줄": line}
+            book[url] = {"모순": bad, "근거": why, "걸린줄": line,
+                         "규칙판": RULES_VERSION, "판정일": date.today().isoformat()}
             save_cache(cache_path, book)          # 하나 끝날 때마다 — 중간에 죽어도 이어받는다
         (cut if bad else kept).append(row)
 

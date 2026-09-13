@@ -138,7 +138,8 @@ def test_BOUNDARY_the_cache_answers_without_asking_again():
     code, got, _ = _stage(
         home, [_bad(URL="u/bad")],
         ask=lambda row, line: asked.append(row) or (False, ""),
-        book={"u/bad": {"모순": True, "근거": "지난번 판정", "걸린줄": "경력 4년 이상"}})
+        book={"u/bad": {"모순": True, "근거": "지난번 판정", "걸린줄": "경력 4년 이상",
+                        "규칙판": career.RULES_VERSION}})
     check_equal(asked, [], "**캐시에 있으면 안 묻는다**")
     check_equal(got, [], "지난번 판정대로 뺀다")
 
@@ -176,3 +177,45 @@ def test_BOUNDARY_output_keeps_the_thirteen_column_schema():
     home = temp_dir()
     _code, got, _ = _stage(home, [_row(URL="u/ok")], ask=_says(True))
     check_equal(list(got[0].keys()), list(COLUMNS), "스키마는 그대로다")
+
+
+def test_BOUNDARY_an_old_rules_version_is_asked_again():
+    """**결함이었다.** 프롬프트를 고쳐도 이미 판정된 공고는 캐시에서 옛 답이 나왔다.
+
+    실제로 그랬다 — `또는`·`혹은` 뒤의 대체 경로를 읽으라는 지시를 넣었는데,
+    캐시에 든 12건이 계속 옛 판정을 냈다. **규칙을 고쳐도 안 먹는 캐시는 고침을
+    조용히 없앤다.**
+
+    그래서 판정마다 `규칙판` 을 적고, 지금 판과 다르면 다시 묻는다.
+    """
+    asked = []
+    home = temp_dir()
+    _code, got, _ = _stage(
+        home, [_bad(URL="u/bad")],
+        ask=lambda row, line: asked.append(row) or (False, "새 규칙으로는 아니다"),
+        book={"u/bad": {"모순": True, "근거": "옛 판정", "걸린줄": "경력 4년 이상",
+                        "규칙판": career.RULES_VERSION - 1}})
+    check_equal(len(asked), 1, "**옛 판이면 다시 물어야 한다**")
+    check_equal([r["URL"] for r in got], ["u/bad"], "새 판정대로 남는다")
+
+
+def test_BOUNDARY_a_cache_entry_without_a_version_is_asked_again():
+    """`규칙판` 이 없던 시절에 쌓인 것도 다시 묻는다. 없는 것은 옛 것이다."""
+    asked = []
+    home = temp_dir()
+    _stage(home, [_bad(URL="u/bad")],
+           ask=lambda row, line: asked.append(row) or (False, ""),
+           book={"u/bad": {"모순": True, "근거": "판이 없다", "걸린줄": "경력 4년 이상"}})
+    check_equal(len(asked), 1, "판이 없으면 다시 묻는다")
+
+
+def test_BOUNDARY_the_prompt_reads_the_alternative_path():
+    """**`또는`·`혹은` 뒤를 읽어야 한다.** 안 읽으면 멀쩡한 공고가 사라진다.
+
+    실측 두 건이 그렇게 잘못 빠졌다.
+        `ML 관련 분야 석사 이상 또는 3년 이상의 관련 업무 경력`  ← 석사면 신입도 된다
+        `경력 2년 이상 또는 이에 준하는 개발 역량`               ← 역량으로 대신한다
+    """
+    prompt = career.build_prompt(_bad(), "경력 4년 이상")
+    for word in ("대신할 길", "또는", "혹은", "석사"):
+        check(word in prompt, "'%s' 가 프롬프트에 있어야 한다" % word)
