@@ -4,7 +4,8 @@
 python3 core_stack.py
 ```
 
-`.env` 의 `CORE_TECH_STACKS` 가 적힌 공고만 남긴다. **파이프라인의 마지막 거르기다.**
+`.env` 의 `CORE_TECH_STACKS` 가 적힌 공고만 남긴다. 뒤에 경력 거르기가 하나 더 있다
+([CAREER.md](CAREER.md)).
 
 ```
 csv/merged_rated.csv  ──▶  csv/merged_core.csv        남은 공고

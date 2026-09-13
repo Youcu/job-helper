@@ -73,7 +73,11 @@ from _common.store import (COLUMNS, FIRST_SEEN, KEY_COLUMN,        # noqa: E402
 # 13칸 스키마 그대로 쌓는 둘. `store.merge()` 가 URL 키로 병합하고 30일 보존까지 한다.
 SCHEMA_PAIRS = (
     ("merged_read.csv", "history_read.csv", "전처리 이전"),
-    ("merged_core.csv", "history_core.csv", "최종본"),
+    ("merged_core.csv", "history_core.csv", "기술 거르기까지"),
+    # 경력 거르기가 뒤에 붙으면서 **최종본의 자리가 옮겨졌다.** `history_core.csv` 는
+    # 이름이 가리키는 것(기술 거르기 결과)을 계속 쌓는다 — 이미 쌓인 것을 버리지
+    # 않으려는 것이고, 두 파일을 견주면 경력 거르기가 무엇을 뺐는지도 보인다.
+    ("merged_career.csv", "history_career.csv", "최종본"),
 )
 
 # 리포트 셋 → 한 파일. `(파일, 단계 이름, 근거로 쓸 칸들)`

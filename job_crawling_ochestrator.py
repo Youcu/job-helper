@@ -135,6 +135,18 @@ CORE_STACK_EXIT_MEANING = {
 }
 
 
+CAREER_STAGE = ROOT_DIR / "career.py"
+# 후보만 모델에 묻는다 — 실측 66행 중 10행. 한 건에 10초 안팎이라 5분이면 넉넉하다.
+CAREER_TIMEOUT = 60 * 20
+
+# `1` 에 `claude` 를 적는다. 이 단계는 그것으로 판정하므로, 없으면 **거르지 않고
+# 통과시키는 대신 멈춘다** — 통과시키면 걸렀다고 믿는데 안 걸린 파일을 받는다.
+CAREER_EXIT_MEANING = {
+    0: ("정상", True),
+    1: ("단계를 못 돌림 — merged_core.csv 가 없거나 claude 명령을 못 찾음", False),
+    3: ("이미 돌고 있음", False),
+}
+
 HISTORY_STAGE = ROOT_DIR / "history.py"
 
 # 파일 몇 개를 병합해 쓰고 사이트 CSV 를 지운다. 그물도 모델도 안 탄다.
@@ -171,6 +183,8 @@ STAGES = (
      "csv/merged_filtered.csv"),
     (CORE_STACK_STAGE, "핵심 기술 거르기", CORE_STACK_EXIT_MEANING, CORE_STACK_TIMEOUT,
      "csv/merged_rated.csv"),
+    (CAREER_STAGE, "경력 거르기", CAREER_EXIT_MEANING, CAREER_TIMEOUT,
+     "csv/merged_core.csv"),
     (HISTORY_STAGE, "이력 쌓기", HISTORY_EXIT_MEANING, HISTORY_TIMEOUT,
      "csv/ 와 사이트 CSV"),
 )
