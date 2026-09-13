@@ -4,17 +4,21 @@
 
 ```bash
 cd job_sites/wanted
-python3 wanted.py
+../../.venv/bin/python3 wanted.py
 ```
 
-`requests` `tqdm` `pandas` `python-dotenv` 가 필요하다. 이 기기의 시스템 python3(3.14)과
-`analyze-company/.venv` 양쪽에 이미 깔려 있어 그대로 돌아간다. 다른 기기라면
-`pip install requests tqdm pandas python-dotenv`.
+의존성은 저장소 뿌리의 `requirements.txt` 에 있다 — `requests` `tqdm`
+`python-dotenv` `Pillow` 넷. **Python 3.10 이상.**
+
+```bash
+# 저장소 뿌리에서 한 번만
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+```
 
 테스트(네트워크를 타지 않는다):
 
 ```bash
-python3 tests/run.py
+../../.venv/bin/python3 tests/run.py
 ```
 
 ## 산출물
@@ -95,7 +99,7 @@ HOPE_ANNUAL_SALARY=  # Wanted 는 연봉 미공개라 미적용
 
 | 항목 | 필수 | 뜻 |
 |---|---|---|
-| `JOB_ROLES` | O | 직무. **여섯 사이트가 함께 쓰는 이름**이다. 예 `백엔드,웹` |
+| `JOB_ROLES` | O | 직무. **다섯 사이트가 함께 쓰는 이름**이다. 예 `백엔드,웹` |
 | `EMPLOYMENT_TYPES` | | `regular`(정규직) `contract`(계약직) `intern`(인턴). 기본값 `regular,intern` |
 | `YOE` | | 경력. 신입=`0`, N년차=`N`(1~10), 전체=`-1`. 기본값 `-1` |
 | `HOME_LOCATIONS` | | 희망근무지. 한글 이름 또는 slug. **비우면 전국** |
@@ -124,7 +128,7 @@ HOPE_ANNUAL_SALARY=
 
 ### 직무를 이름으로 적는다
 
-`.env` 는 여섯 사이트가 함께 쓰는 한 벌이라, `JOB_ROLES=백엔드,웹` 하나를 적으면 Wanted 가
+`.env` 는 다섯 사이트가 함께 쓰는 한 벌이라, `JOB_ROLES=백엔드,웹` 하나를 적으면 Wanted 가
 `tags/wanted_role_map.json` 으로 자기 코드를 찾는다. 쓸 수 있는 이름은
 `job_sites/_common/roles.json` 에 있고 별칭도 받는다 — `서버`·`Backend` 라고 적어도
 `백엔드` 로 알아듣는다.
@@ -691,6 +695,27 @@ corpus 전체를 쓴다.
 블록리스트는 ② 에만 적용된다 — ① 은 회사가 직접 체크한 것이라 그대로 둔다.
 
 `.env` 의 `TECH_STACKS` 는 **현재 적용하지 않는다.** 전량 수집 단계라 스택으로 행을 거르지 않는다.
+
+## 종료 코드
+
+오케스트레이터가 읽는 값이다. 실패한 실행이 성공으로 기록되면 안 된다.
+
+| 코드 | 뜻 | 무엇을 해야 하나 |
+|---|---|---|
+| 0 | 정상 | — (조건에 맞는 공고가 없는 것도 여기다) |
+| 1 | 설정 오류 | `.env` 항목이 없거나 근무지 이름을 못 옮겼다 |
+| 2 | 온전히 못 걷음 | 차단됐거나, **상세를 한 건도 못 받았다** |
+| 3 | 이미 돌고 있다 | 끝나기를 기다린다 (`_common/runlock.py` 의 `ALREADY_RUNNING`) |
+
+**`2` 는 차단만이 아니다.** 목록은 받았는데 상세를 한 건도 못 받으면 그것도 `2` 다 —
+`0` 을 내면 화면에 `정상 · 0행` 이라 찍혀 **사이트에 공고가 있는데도 없는 것처럼**
+보인다. 다만 받아 놓고 다 걸러져 0행이 된 것은 정상이다. 가르는 기준은 **잃은 것이
+있는가**이고, 뜻은 `_common/outcome.py` 한 곳에 있다.
+
+**차단은 목록에서든 상세에서든 똑같이 `2` 다.** 전에는 상세 단계의 `BlockedError` 가
+`fetch()` 의 `except Exception` 에 먼저 잡혀 **한 건의 실패로 삼켜졌다** — 같은 사고인데
+어디서 맞았느냐에 따라 `2` 와 `0` 으로 갈렸다. 403 은 재시도를 안 하므로
+(`lib/client.py` 의 `get_json`) 한 번 막히면 남은 상세가 전부 같은 길로 간다.
 
 ## 차단 회피
 

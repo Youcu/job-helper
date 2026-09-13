@@ -71,6 +71,8 @@ def test_EXCEPTION_one_broken_detail_does_not_kill_the_run():
         [_posting(1), _posting(2), _posting(3)],
         {1: _detail(), 2: RuntimeError("끊김"), 3: _detail()})
     check_equal(len(rows), 2, "터진 하나만 빠지고 나머지는 남는다")
+    check_equal(_stats["상세실패"], 1, "**몇 건을 잃었는지 세야 한다** — 안 세면 전멸도 못 본다")
+    check_equal(_stats["상세시도"], 3, "물어본 건수")
 
 
 def test_EXCEPTION_blocked_stops_but_keeps_earlier_rows():

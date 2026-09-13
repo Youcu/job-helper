@@ -49,9 +49,12 @@ def _run(env_text=NARROW_ENV, listings=None, details=None, blocked_at=None):
     def fake_detail(_client, pid):
         if blocked_at is not None and pid == blocked_at:
             raise BlockedError("403")
-        return details.get(pid, {"name": "회사", "skills": ["java"],
-                                 "required_qualification": "Java 3년",
-                                 "location": "서울 강남구"})
+        answer = details.get(pid, {"name": "회사", "skills": ["java"],
+                                   "required_qualification": "Java 3년",
+                                   "location": "서울 강남구"})
+        if isinstance(answer, Exception):     # 상세가 실패하는 상황
+            raise answer
+        return answer
 
     def fake_save(rows, output):
         saved["rows"] = rows
@@ -229,7 +232,8 @@ def test_BOUNDARY_summary_prints_every_counter():
         tech_stacks = ["Python"]
         hope_annual_salary = "3300"
 
-    stats = {"근무지밖": 6, "본문없음": 7, "기술없음": 8, "번호없음": 9, "차단": False}
+    stats = {"근무지밖": 6, "본문없음": 7, "기술없음": 8, "번호없음": 9,
+             "상세시도": 20, "상세실패": 10, "차단": False}
     listings = Listings(rows=[{}], pages=1)
     original = jobplanet.print if hasattr(jobplanet, "print") else None
     jobplanet.print = printed
@@ -243,7 +247,8 @@ def test_BOUNDARY_summary_prints_every_counter():
 
     for word in ("이번에 안 보인 공고", "넘게 안 보여 뺀 공고", "최종확인일을 알 수 없어",
                  "근무지가 조건 밖", "본문이 빈 것",
-                 "기술스택이 하나도 없어", "공고번호가 없어", "적용하지 않은 조건"):
+                 "기술스택이 하나도 없어", "상세를 못 받아", "공고번호가 없어",
+                 "적용하지 않은 조건"):
         check(word in printed.text, "'%s' 를 못 찍었다:\n%s" % (word, printed.text))
 
 
@@ -256,3 +261,36 @@ def test_BOUNDARY_main_runs_when_the_lock_is_free():
         check_equal(jobplanet.main(), 7, "_run 의 결과를 그대로 돌려줘야 한다")
     finally:
         jobplanet.LOCK, jobplanet._run = original_lock, original_run
+
+
+def test_EXCEPTION_all_details_failing_is_not_a_normal_run():
+    """**목록은 받았는데 상세를 전부 실패했다.**
+
+    여기서 `0` 을 내면 화면에 `정상 · 0행` 이라고 찍혀, 사이트에 공고가 있는데도
+    없는 것처럼 보인다. Pathsdog 에서 실제로 났던 사고다 (`_common/outcome.py`).
+
+    `0행` 자체는 정상일 수 있다 — 조건에 맞는 공고가 없었을 수도 있다. 그 둘을 가르는
+    것이 **잃은 것이 있는가**이다.
+    """
+    listings = Listings(rows=[{"id": 1, "posting_apply_type": "jobplanet"},
+                              {"id": 2, "posting_apply_type": "jobplanet"}],
+                        pages=1, seen=2, reported_total=2, stop_reason="다 훑었다")
+    code, text, saved = _run(listings=listings,
+                             details={1: RuntimeError("끊김"), 2: RuntimeError("끊김")})
+    check_equal(code, jobplanet.INCOMPLETE, "**2 로 알려야 한다** — 0 이면 조용히 틀린다")
+    check_equal(len(saved.get("rows") or []), 0, "건진 것이 없다")
+
+
+def test_BOUNDARY_zero_rows_without_any_failure_is_still_normal():
+    """받아 놓고 **다 걸러져서** 0행인 것은 정상이다. 잃은 것이 없다.
+
+    근무지가 조건 밖이라 빠진 것은 상세를 **잘 받은** 뒤의 일이다.
+    """
+    listings = Listings(rows=[{"id": 1, "posting_apply_type": "jobplanet"}],
+                        pages=1, seen=1, reported_total=1, stop_reason="다 훑었다")
+    code, _text, saved = _run(listings=listings,
+                              details={1: {"name": "회사", "skills": ["java"],
+                                           "required_qualification": "Java 3년",
+                                           "location": "부산 해운대구"}})
+    check_equal(code, 0, "근무지로 걸러진 것은 실패가 아니다")
+    check_equal(len(saved.get("rows") or []), 0, "저장할 행은 없다")

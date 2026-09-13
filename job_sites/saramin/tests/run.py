@@ -28,6 +28,7 @@ sys.path.insert(0, str(ROOT.parent))
 MODULES = [
     "tests.test_html_text",
     "tests.test_sections",
+    "tests.test_staleness",
     "tests.test_runlock",
     "tests.test_store",
     "tests.test_roles",

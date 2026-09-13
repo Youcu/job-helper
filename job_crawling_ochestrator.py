@@ -22,6 +22,7 @@ Wanted · 사람인 · 잡코리아 · 잡플래닛 · 점핏 을 **병렬로** 
 from __future__ import annotations
 
 import csv
+import os
 import subprocess
 import sys
 import time
@@ -32,12 +33,17 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).resolve().parent
 SITES_DIR = ROOT_DIR / "job_sites"
 OUTPUT = ROOT_DIR / "csv" / "merged.csv"
+# 파이프라인 전체를 덮는 락. 단계별 락(`csv/.<단계>.lock`)과 이름이 안 겹쳐야 한다.
+LOCK = ROOT_DIR / "csv" / ".pipeline.lock"
 
 sys.path.insert(0, str(SITES_DIR))
 
 from tqdm import tqdm                                        # noqa: E402
 
-from _common.store import COLUMNS                            # noqa: E402
+from _common import staleness                                # noqa: E402
+from _common.runlock import guarded                          # noqa: E402
+from _common.store import (COLUMNS, FIRST_SEEN, KEY_COLUMN,  # noqa: E402
+                           write_csv)
 
 # 돌릴 사이트. **순서가 곧 화면에 뜨는 순서**이고, 합칠 때도 이 차례를 지킨다 —
 # 실행마다 행 순서가 뒤바뀌면 `merged.csv` 를 눈으로 견주기 어렵다.
@@ -82,6 +88,97 @@ IMAGE_EXIT_MEANING = {
 }
 
 
+FILTER_STAGE = ROOT_DIR / "filter.py"
+
+# 거르기 단계는 그물도 모델도 안 탄다 — 파일 하나를 읽고 정규식을 돌릴 뿐이다.
+# 실측 710행에 0.02초. 5분이면 데이터가 백 배로 늘어도 남는다.
+FILTER_TIMEOUT = 60 * 5
+
+# 거르기가 내는 코드. **`2` 는 이 단계에 없다** — 부분 실패라는 것이 없다.
+FILTER_EXIT_MEANING = {
+    0: ("정상", True),
+    1: ("단계를 못 돌림 — merged_read.csv 가 없음", False),
+    3: ("이미 돌고 있음", False),
+}
+
+
+RATING_STAGE = ROOT_DIR / "jobplanet_rating.py"
+
+# 평점 걷기는 **그물을 탄다.** 잡플래닛이 요청 간격을 보고 403 을 던지므로 5초씩 쉰다.
+# 실측(2026-09-11) 457곳에 요청 660건·70분. 변형 사다리로 회사당 1.5회쯤 묻고,
+# 403 이 11% 나서 건당 30초를 더 쓴다. 웹검색 되찾기까지 하면 더 는다.
+# 넉넉히 세 시간을 준다 — 모자라서 끊기면 걷은 것을 살리려고 다시 처음부터 봐야 한다.
+RATING_TIMEOUT = 60 * 180
+
+# 평점 걷기가 내는 코드. **`2` 가 여기서는 실패가 아닌 "덜 걷었다"** 는 뜻이다 —
+# 걷은 것은 저장됐고 다시 돌리면 이어받는다. 그래도 **성공으로 세지는 않는다.**
+# 덜 걷힌 평점으로 거른 결과를 온전한 것으로 읽으면 안 된다.
+RATING_EXIT_MEANING = {
+    0: ("정상", True),
+    1: ("단계를 못 돌림 — merged_filtered.csv 가 없음", False),
+    2: ("차단이 실측과 다르게 굴어 덜 걷음 — **출력은 안 바꿨다.** 다시 돌리면 이어감", False),
+    3: ("이미 돌고 있음", False),
+}
+
+
+CORE_STACK_STAGE = ROOT_DIR / "core_stack.py"
+
+# 파일 하나를 읽고 정규식을 돌릴 뿐이다. 거르기와 같은 값이면 충분하다.
+CORE_STACK_TIMEOUT = 60 * 5
+
+# 핵심 기술 거르기가 내는 코드. `1` 에 **`.env` 얘기가 들어간다** — 이 단계만 `.env` 의
+# `CORE_TECH_STACKS` 를 읽으므로, 다른 단계의 표를 빌려 쓰면 어디를 고쳐야 할지 못 짚는다.
+CORE_STACK_EXIT_MEANING = {
+    0: ("정상", True),
+    1: ("단계를 못 돌림 — merged_rated.csv 가 없거나 .env 의 CORE_TECH_STACKS 가 빔", False),
+    3: ("이미 돌고 있음", False),
+}
+
+
+HISTORY_STAGE = ROOT_DIR / "history.py"
+
+# 파일 몇 개를 병합해 쓰고 사이트 CSV 를 지운다. 그물도 모델도 안 탄다.
+HISTORY_TIMEOUT = 60 * 5
+
+# 이력 단계가 내는 코드. `1` 은 **파이프라인이 안 끝났다**는 뜻이다 — 이 단계만
+# 최종본까지 다 나온 것을 전제로 하므로 다른 단계의 표를 빌리면 뜻이 어긋난다.
+HISTORY_EXIT_MEANING = {
+    0: ("정상", True),
+    1: ("단계를 못 돌림 — merged_read.csv 나 merged_core.csv 가 없음", False),
+    3: ("이미 돌고 있음", False),
+}
+
+
+# **수집 뒤 단계들. 차례대로 돈다.**
+#
+# 예전에는 단계마다 호출·출력·실패 메시지를 손으로 적고, 마지막에 `stages` 목록에도
+# 또 적었다. 단계 하나를 늘리면 이 파일 안에서 **다섯 군데**를 고쳐야 했고, 그중
+# `stages` 목록을 빠뜨리면 **그 단계가 실패해도 종료 코드가 0** 이 됐다 — 화면에는
+# "실패했습니다" 가 찍히는데 자동화는 성공으로 읽는다. 터지지도 멈추지도 않는다.
+#
+# 표로 모으면 **목록이 곧 반복 대상**이라 빠뜨릴 자리가 없어진다. 단계를 늘리는 일이
+# 한 줄 더하기가 된다.
+#
+# `앞파일` 은 실패했을 때 "무엇이 안 바뀌었나" 를 말해 주는 데 쓴다. 사람이 다음에
+# 무엇을 할지 정하는 재료다.
+STAGES = (
+    # (스크립트, 이름, 종료 코드 표, 제한 시간, 앞 단계가 남긴 파일)
+    (IMAGE_STAGE, "이미지판독", IMAGE_EXIT_MEANING, TIMEOUT_SECONDS,
+     "csv/merged.csv"),
+    (FILTER_STAGE, "거르기", FILTER_EXIT_MEANING, FILTER_TIMEOUT,
+     "csv/merged_read.csv"),
+    (RATING_STAGE, "평점 거르기", RATING_EXIT_MEANING, RATING_TIMEOUT,
+     "csv/merged_filtered.csv"),
+    (CORE_STACK_STAGE, "핵심 기술 거르기", CORE_STACK_EXIT_MEANING, CORE_STACK_TIMEOUT,
+     "csv/merged_rated.csv"),
+    (HISTORY_STAGE, "이력 쌓기", HISTORY_EXIT_MEANING, HISTORY_TIMEOUT,
+     "csv/ 와 사이트 CSV"),
+)
+
+# 단계가 한 말 중 끝에서 이만큼을 보여 준다. 요약이 그 안에 들어간다.
+STAGE_LOG_LINES = 14
+
+
 @dataclass
 class Result:
     site: str
@@ -117,6 +214,19 @@ class Result:
 
 
 def main() -> int:
+    """**실행 락을 쥐고 돈다.**
+
+    사이트와 단계에는 저마다 락이 있는데 **합치기 구간만 무방비였다.** 오케스트레이터를
+    둘 돌리면 각 사이트는 `3` 을 내고 물러나지만, 그 뒤 두 실행이 같은 `merged.csv` 를
+    함께 쓴다. 한쪽이 반쯤 쓴 것을 다른 쪽이 읽을 수 있다.
+
+    락은 **파이프라인 전체**를 덮는다 — 수집부터 마지막 단계까지. 단계들이 자기 락을
+    또 쥐지만 그것은 "이 단계만 따로 돌리는 사람" 을 막는 것이라 역할이 다르다.
+    """
+    return guarded(LOCK, _main)
+
+
+def _main() -> int:
     scrapers = _find_scrapers()
     missing = [site for site in SITES if site not in scrapers]
     if missing:
@@ -132,16 +242,12 @@ def main() -> int:
     merged = merge_csvs([r.output for r in results if r.output], OUTPUT)
     _print_report(results, merged, elapsed)
 
-    image = _run_image_stage()
-    print("\n%s" % "\n".join(_last_lines(image.log, 12)))
-    if not image.ok:
-        print("이미지 판독 단계가 실패했습니다 (%s). csv/merged.csv 는 그대로 있습니다."
-              % image.meaning, file=sys.stderr)
+    stages = _run_chain()
 
     failed = [r for r in results if not r.ok]
     if failed:
         _print_failures(failed)
-    return 1 if (failed or not image.ok) else 0
+    return 1 if (failed or any(not st.ok for st in stages)) else 0
 
 
 def _print_failures(failed: list[Result]) -> None:
@@ -255,35 +361,92 @@ def count_rows(path: Path) -> int:
         return 0
 
 
-def _run_image_stage() -> Result:
-    """이미지 판독 단계를 **자식 프로세스로** 돌린다.
+def _run_chain() -> list[Result]:
+    """수집 뒤 단계들을 차례로 돌린다. **앞이 죽으면 뒤를 안 부른다.**
+
+    뒤 단계의 입력은 앞이 낸 파일인데, 앞이 죽었으면 거기 있는 것은 **지난 실행이 남긴
+    것**이다. 그것을 다듬으면 어제 결과가 오늘 것처럼 나온다 — 터지지 않고 조용히
+    틀리므로 알아채기가 가장 어렵다.
+
+    돌아가는 것은 **실제로 부른 단계들**이다. 안 부른 단계는 성공도 실패도 아니므로
+    목록에 넣지 않는다.
+    """
+    done: list[Result] = []
+    for script, name, meanings, timeout, kept in STAGES:
+        if done and not done[-1].ok:
+            break
+        result = _run_stage(script, name, meanings, timeout)
+        done.append(result)
+        print("\n%s" % "\n".join(_last_lines(result.log, STAGE_LOG_LINES)))
+        if not result.ok:
+            print("%s 단계가 실패했습니다 (%s). %s 는 그대로 있습니다."
+                  % (name, result.meaning, kept), file=sys.stderr)
+    return done
+
+
+def _run_stage(script: Path, name: str, meanings: dict,
+               timeout: int = TIMEOUT_SECONDS) -> Result:
+    """수집 뒤 단계 하나를 **자식 프로세스로** 돌린다.
 
     불러들이지(import) 않는다 — 위의 "왜 프로세스를 나누나" 와 같은 이유다. 그리고
-    이 단계는 혼자서도 도는 엔트리포인트라, 여기서만 쓰는 다른 길을 만들 이유가 없다.
+    이 단계들은 혼자서도 도는 엔트리포인트라, 여기서만 쓰는 다른 길을 만들 이유가 없다.
+
+    **종료 코드 표를 인자로 받는다.** 숫자는 같은 계약이지만 뜻하는 사건이 단계마다
+    다르다 — 이미지 판독의 `2` 를 거르기에 갖다 붙이면 있지도 않은 사건이 화면에 찍힌다.
     """
-    result = Result(site="이미지판독", meanings=IMAGE_EXIT_MEANING)
+    result = Result(site=name, meanings=meanings)
     started = time.monotonic()
     try:
+        # **사슬 안이라고 알린다.** 방금 앞 단계가 만든 파일이므로 "입력이 낡았다" 를
+        # 물을 이유가 없다. 물으면 자식이 tty 를 못 잡아 멈춰 버린다.
         done = subprocess.run(
-            [sys.executable, IMAGE_STAGE.name],
-            cwd=ROOT_DIR, capture_output=True, text=True, timeout=TIMEOUT_SECONDS,
+            [sys.executable, script.name],
+            cwd=ROOT_DIR, capture_output=True, text=True, timeout=timeout,
+            env={**os.environ, staleness.CHAIN_ENV: "1"},
         )
         result.code = done.returncode
         result.log = (done.stdout or "") + (done.stderr or "")
         result.err = done.stderr or ""
     except subprocess.TimeoutExpired:
-        result.error = "%d분을 넘겨 끊었습니다" % (TIMEOUT_SECONDS // 60)
+        result.error = "%d분을 넘겨 끊었습니다" % (timeout // 60)
     except Exception as error:
         result.error = "%s: %s" % (type(error).__name__, error)
     result.seconds = time.monotonic() - started
     # **`output`/`rows` 는 채우지 않는다.** 이 단계가 파일을 쓰기 전에 끝났으면 거기 있는
-    # `merged_read.csv` 는 **지난 실행이 남긴 것**이다. 그것을 이번 결과로 적어 두면,
+    # 산출물은 **지난 실행이 남긴 것**이다. 그것을 이번 결과로 적어 두면,
     # 나중에 누가 이 값을 화면에 끌어다 쓰는 순간 지난 데이터가 이번 것으로 보고된다.
     # 사이트 CSV 와 달리 여기서는 그 수를 밝힐 곳도 없다(`stale` 은 합치기 얘기다).
     return result
 
 
-def merge_csvs(paths: list[Path], output: Path) -> int:
+# 이력이 쌓이는 자리. 합칠 때 여기서 `최초수집일` 을 되살려 넣는다.
+HISTORY_READ = ROOT_DIR / "history" / "history_read.csv"
+
+
+def _seed_first_seen(rows: list[dict], history: Path) -> int:
+    """이력에서 **진짜 `최초수집일`** 을 되살려 넣는다. 몇 행을 되살렸는지 돌려준다.
+
+    사이트별 CSV 가 예전에는 누적 저장소였다 — `store.save()` 가 기존 파일과 병합해
+    처음 본 날을 지켰다. 이제 그 파일을 매 실행 지우므로(`history.py`), 그냥 두면
+    **`최초수집일` 이 항상 오늘**이 되어 칸의 뜻이 없어진다.
+
+    그래서 누적의 자리를 `history/history_read.csv` 로 옮기고, 합칠 때 URL 로 찾아
+    되살린다. 이력에 없는 공고는 **오늘 처음 본 것**이 맞으므로 손대지 않는다.
+    """
+    if not history.exists():
+        return 0
+    known = {row.get(KEY_COLUMN): row.get(FIRST_SEEN)
+             for row in _read_rows(history) if row.get(KEY_COLUMN)}
+    revived = 0
+    for row in rows:
+        seen = known.get(row.get(KEY_COLUMN))
+        if seen and seen != row.get(FIRST_SEEN):
+            row[FIRST_SEEN] = seen
+            revived += 1
+    return revived
+
+
+def merge_csvs(paths: list[Path], output: Path, history: Path = HISTORY_READ) -> int:
     """사이트별 CSV 를 **그대로** 이어 붙인다. 몇 행을 썼는지 돌려준다.
 
     **손대지 않는다** — 중복 제거도, 정규화도, 거르기도 안 한다. 그건 다음 단계의 일이고,
@@ -292,16 +455,15 @@ def merge_csvs(paths: list[Path], output: Path) -> int:
     칸은 `_common/store.py` 의 `COLUMNS` 로 맞춘다. 사이트가 다 같은 스키마를 쓰지만,
     한 곳이 칸을 더하거나 빼도 합친 파일이 어긋나지 않게 여기서 한 번 더 맞춘다.
     """
-    output.parent.mkdir(parents=True, exist_ok=True)
-    written = 0
-    with output.open("w", encoding="utf-8-sig", newline="") as target:
-        writer = csv.DictWriter(target, fieldnames=list(COLUMNS))
-        writer.writeheader()
-        for path in paths:
-            for row in _read_rows(path):
-                writer.writerow({column: row.get(column, "") for column in COLUMNS})
-                written += 1
-    return written
+    # **원자적으로 쓴다** — `store.write_csv` 가 그것까지 한다. 도중에 죽으면 반쯤 쓰인
+    # `merged.csv` 가 남고 그림 판독이 그것을 완성품으로 읽는다. `image_process/README.md`
+    # 가 금지한 바로 그 상황이다. 한때 **파이프라인의 첫 파일**만 이 규칙에서 빠져 있었다.
+    rows = [row for path in paths for row in _read_rows(path)]
+    revived = _seed_first_seen(rows, history)
+    write_csv(output, rows)
+    if revived:
+        print("  이력에서 최초수집일을 되살린 공고: %d행" % revived)
+    return len(rows)
 
 
 def _read_rows(path: Path) -> list[dict]:

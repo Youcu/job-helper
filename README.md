@@ -16,10 +16,37 @@
 마감돼 내려간 공고도 30일까지 남긴다. `최초수집일` 로 오늘 새로 뜬 것을,
 `최종확인일` 로 지금도 열려 있는지를 가린다.
 
-다섯이 다 돌면 이어서 `csv/merged_read.csv` 가 하나 더 나온다. 사람인·잡코리아 일부는
-본문이 그림 한 장이라 `기술스택` 칸에 그림 주소만 남는데(수집은 순수 HTTP 만 하기
-때문이다), 그 그림을 읽어 채운 결과다. `merged.csv` 는 손대지 않는다 — 자세한 것은
+다섯이 다 돌면 수집 뒤 단계 넷이 이어서 돈다.
+
+```
+csv/merged.csv  ─그림 판독─▶  csv/merged_read.csv  ─거르기─▶  csv/merged_filtered.csv
+      ─평점─▶  csv/merged_rated.csv  ─핵심 기술─▶  csv/merged_core.csv   ← 최종
+                                        └─이력─▶  history/  (누적)
+```
+
+**그림 판독** — 사람인·잡코리아 일부는 본문이 그림 한 장이라 `기술스택` 칸에 그림 주소만
+남는다(수집은 순수 HTTP 만 하기 때문이다). 그 그림을 읽어 채운 결과가 `merged_read.csv` 다.
 [image_process/README.md](image_process/README.md).
+
+**거르기** — 같은 공고를 한 행으로 묶고, 정해진 낱말(SI · SM · 병역특례 · 고객사 · 파견 …)이
+든 공고를 뺀다. **뺀 것은 전량 `csv/filter_report.csv` 에 이유와 함께 남는다** — 낱말
+규칙은 반드시 오탐을 내므로 무엇을 잃었는지 되짚을 수 있어야 한다.
+[FILTER.md](FILTER.md).
+
+**평점 거르기** — 잡플래닛에서 회사 평점을 걷어 **2.9 미만 · 평점 없음 · 검색 안 됨**을
+뺀다. [RATING.md](RATING.md).
+
+**핵심 기술** — `.env` 의 `CORE_TECH_STACKS` 가 `기술스택` · `지원자격` · `우대사항`
+**어느 한 곳에라도** 있는 공고만 남긴다. 세 칸을 다 보는 이유는, **채용 사이트의 검색
+조건에는 안 잡히는데 본문에는 적혀 있는 공고가 있기** 때문이다.
+
+**이력** — 파이프라인이 끝나면 `csv/merged_read.csv`(전처리 이전)와
+`csv/merged_core.csv`(최종본), 그리고 리포트를 `history/` 에 **누적**하고 사이트별
+수집본을 지운다. `./csv` 에는 **이번 실행의 산출물만** 남는다 — 사람이 보고 싶은 것은
+지금 돌린 결과이기 때문이다. [HISTORY.md](HISTORY.md).
+
+**앞 단계의 파일은 손대지 않는다.** 네 단계 다 행을 없애므로, 제자리에서 고치면 없어진
+행의 원본이 사라진다. 뺀 것은 단계마다 `*_report.csv` 에 이유와 함께 남는다.
 
 ## 사이트
 
@@ -33,32 +60,69 @@
 
 ## 실행
 
+**Python 3.10 이상.** CI 가 3.10 과 3.13 양쪽에서 테스트를 돈다.
+
+코드만 보면 3.8 에서도 돌지만(`runlock.py` 의 `unlink(missing_ok=True)` 가 그 하한),
+**의존성 셋이 3.10 이상을 요구한다** — `requests` · `python-dotenv` · `Pillow`.
+실제 하한은 둘 중 높은 쪽이다.
+
 ```bash
-# 저장소 뿌리에 .env 를 직접 만든다. 항목은 아래 "조건" 절에 있다.
-# .env 는 추적되지 않고 예시 파일도 없다 — 없으면 안 도는 것이 맞다.
+# 1) 가상환경과 의존성 — clone 직후 이것부터 한다
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+
+# 2) 그림 본문을 읽는 데 `claude` CLI 를 쓴다
+#    **없으면 거르기·평점·핵심 기술 세 단계가 통째로 안 돈다** — 이미지 판독이
+#    실패하면 뒤를 안 부르기 때문이다. csv/merged.csv 까지만 나오고 종료 코드 1 이다.
+#    설치: https://claude.com/claude-code  (설치 뒤 `claude` 로 한 번 로그인)
+
+# 3) 저장소 뿌리에 .env 를 직접 만든다. 항목은 아래 "조건" 절에 있다.
+#    .env 는 추적되지 않고 예시 파일도 없다 — 없으면 안 도는 것이 맞다.
 $EDITOR .env
 
-python3 job_crawling_ochestrator.py   # 수집부터 이미지 판독까지 한 번에 → csv/merged.csv, csv/merged_read.csv
-python3 job_image_process.py          # 이미 있는 csv/merged.csv 의 그림만 다시 처리
+# 4) 돌린다
+.venv/bin/python3 job_crawling_ochestrator.py   # 수집부터 최종본까지 한 번에
+.venv/bin/python3 job_image_process.py          # 이미 있는 csv/merged.csv 의 그림만 다시
+.venv/bin/python3 filter.py                     # 이미 있는 csv/merged_read.csv 만 다시 거른다
+.venv/bin/python3 jobplanet_rating.py           # 평점만 다시 (캐시가 차 있으면 요청 0건)
+.venv/bin/python3 core_stack.py                 # .env 를 고치고 핵심 기술만 다시 거른다
+.venv/bin/python3 history.py                    # 이력만 쌓고 사이트 CSV 를 치운다
 ```
 
-수집은 8~10분이지만 이미지 판독만 다시 돌려 보고 싶을 때가 있다 — 캐시를 지웠을 때,
-모델을 바꿔 볼 때. 그때는 두 번째 명령만 쓰면 된다. 자세한 것은
-[image_process/README.md](image_process/README.md).
+수집은 8~10분이지만 뒤 단계만 다시 돌려 보고 싶을 때가 있다 — 캐시를 지웠을 때, 모델을
+바꿔 볼 때, **낱말표나 `CORE_TECH_STACKS` 를 고쳐 몇 건이 빠지는지 보고 싶을 때**.
+그래서 단계마다 혼자 도는 명령이 있다. 거르기는 실측 710행에 0.02초다.
+
+**단계를 혼자 돌리면 입력이 낡았는지 물어본다.** 앞 단계를 안 돌린 채 뒤만 돌리면 지난
+실행의 데이터로 오늘 결과를 내는데, 그건 터지지 않아서 알아채기 어렵다.
+
+```
+merged_read.csv 는 11일 16시간 전 것입니다 (2026-09-01 00:00).
+  지금 돌리면 **그때 걷은 데이터**로 결과를 냅니다.
+  계속할까요? [y/N]
+```
+
+**막지는 않는다** — 중간 단계를 일부러 다시 돌리는 것은 정상 용법이다. 모르고 돌리는
+일만 없게 한다. 오케스트레이터가 부를 때는 묻지 않고(방금 앞 단계가 만든 파일이다),
+**cron·CI 처럼 터미널이 아닌 자리에서는 묻지 않고 멈춘다** — 물으면 영영 매달린다.
+그때는 `--yes` 를 준다.
 
 한 사이트만 돌리려면 그 폴더에서 부른다.
 
 ```bash
 cd job_sites/wanted
-python3 wanted.py            # 수집 → csv/wanted_post.csv
-python3 tests/run.py         # 테스트
+../../.venv/bin/python3 wanted.py       # 수집 → csv/wanted_post.csv
+../../.venv/bin/python3 tests/run.py    # 이 사이트 테스트만
 ```
 
-`requests` `tqdm` `python-dotenv` 가 필요하다. 이미지 판독 단계는 **Pillow** 도 쓴다.
+의존성은 `requirements.txt` 에 **버전이 박힌 채로** 있다 — `requests` `tqdm`
+`python-dotenv` `Pillow` 넷뿐이다.
 
-```bash
-.venv/bin/pip install Pillow
-```
+**`.venv` 를 보고 베끼지 마라.** 거기에는 `pandas`·`numpy`·`rapidfuzz` 가 섞여 있는데
+추적되는 코드 중 어느 것도 그것들을 import 하지 않는다. 옛 실험이 남긴 것이다.
+
+**`Pillow` 는 선택이 아니다.** 이미지 단계를 안 쓸 사람도 깔아야 한다 — 루트 테스트가
+`test_image_*` 를 담고 있어서, 없으면 import 단계에서 통째로 죽는다.
 
 ## 조건은 **한 벌**이다
 
@@ -71,9 +135,21 @@ YOE=0                             # 신입=0, N년차=N, 전체=-1
 HOME_LOCATIONS=서울,성남시          # 비우면 전국
 EMPLOYMENT_TYPES=regular,intern
 EDUCATION=                        # 비워 둔다 — 걸면 공고가 3분의 1로 준다
-TECH_STACKS=                      # 아직 안 건다
+TECH_STACKS=                      # 수집기는 아직 안 건다
+CORE_TECH_STACKS=Spring, FastAPI  # **마지막에** 이것이 없는 공고를 뺀다 (아래)
 HOPE_ANNUAL_SALARY=               # 아직 안 건다
 ```
+
+**`TECH_STACKS` 와 `CORE_TECH_STACKS` 는 다른 것이다.** 앞은 수집기가 걷을 때 쓰라고 둔
+자리인데 아직 아무 사이트도 안 건다. 뒤는 **다 걷어 온 뒤 마지막에** 거르는 기준이다.
+
+거르는 자리를 뒤로 둔 이유가 있다. 수집기에 걸면 **채용 사이트의 검색 조건에 안 잡히는
+공고를 아예 안 걷게 되는데**, 그중에는 지원자격·우대사항에 그 기술이 적혀 있는 공고가
+있다. 걷어 두고 마지막에 거르면 `.env` 한 줄을 고치고 `python3 core_stack.py` 만 다시
+돌리면 된다 — 다시 걷을 필요가 없다.
+
+`Spring` 과 `Spring Boot` 는 **서로를 잡는다.** `Spring Boot` 로 검색하면 잘 안 나와서
+`Spring` 이라고 적어 두는데, 공고는 둘 중 아무 쪽으로나 쓰기 때문이다.
 
 같은 항목이 사이트마다 다르게 쓰인다 — 잡플래닛은 학력을 안 걸고, 점핏은 기술을 안 건다.
 각 사이트 README 에 무엇을 어떻게 쓰는지 있다.
@@ -90,28 +166,36 @@ IMAGE_TIMEOUT=                    # 기본 300초
 ## 테스트
 
 ```bash
-python3 tests/run.py                              # 오케스트레이터 + 이미지 판독 145건
-cd job_sites/<사이트> && python3 tests/run.py       # 사이트별
+.venv/bin/python3 tests/run_all.py       # **전부.** 러너 여섯을 차례로 부르고 합계를 낸다
+.venv/bin/python3 tests/run.py           # 루트만 (파이프라인 단계들)
+cd job_sites/<사이트> && ../../.venv/bin/python3 tests/run.py   # 사이트 하나만
 ```
 
-합쳐 824건. 네트워크도 `claude` 도 타지 않는다 — 떠 놓은 실제 응답을 쓰고, 이미지는
-Pillow 로 그 자리에서 그려서 쓴다.
+**건수는 여기 안 적는다.** 돌리면 묶음별 건수와 합계가 찍힌다. 예전에는 문서에 손으로
+적어 뒀는데 전부 틀어졌다 — 문서 824건, 실제 942건. 숫자를 두 곳에서 관리하면 반드시
+갈라진다.
 
-| wanted | saramin | jobkorea | jobplanet | jumpit | 루트(오케스트레이터+이미지 판독) |
-|---|---|---|---|---|---|
-| 88 | 256 | 104 | 120 | 111 | 145 |
+네트워크도 `.env` 도 `claude` 도 타지 않는다 — 떠 놓은 실제 응답과 가짜 opener 를 쓰고,
+이미지는 Pillow 로 그 자리에서 그린다. **그래서 CI 에서 그대로 돈다**
+(`.github/workflows/test.yml`, 3.10 과 3.13 양쪽).
 
-사람인이 많은 것은 **`_common` 의 테스트가 거기 있기** 때문이다 — 어느 한 사이트에 붙여
-두면 그 사이트를 지웠을 때 시험도 같이 사라진다. 루트의 145건은 오케스트레이터·합치기 41건과
-이미지 판독 104건을 합친 것이다 — 이미지 판독은 `job_sites/` 아래에 있지 않으므로 여기서
-돈다.
+러너가 여섯인 것은 사이트마다 `sys.path` 를 자기 쪽으로 밀기 때문이다 — 한 프로세스에서
+이어 부르면 나중 것이 앞 것의 `lib` 를 집는다. `run_all.py` 가 프로세스를 나눠 부른다.
+
+사람인 묶음이 가장 큰 것은 **`_common` 의 테스트가 거기 있기** 때문이다 — 어느 한 사이트에
+붙여 두면 그 사이트를 지웠을 때 시험도 같이 사라진다. 루트 묶음에는 파이프라인 단계
+다섯(합치기·이미지 판독·거르기·평점·핵심 기술)의 테스트가 들어 있다.
 
 ## 문서
 
 | | |
 |---|---|
 | [ORCHESTRATOR.md](ORCHESTRATOR.md) | 다섯을 병렬로 돌리고 합치는 일 · **종료 코드 계약** |
-| [image_process/README.md](image_process/README.md) | 그림 본문을 읽어 채우는 단계 |
+| [image_process/README.md](image_process/README.md) | ① 그림 본문을 읽어 채우는 단계 |
+| [FILTER.md](FILTER.md) | ② 중복 제거 · 낱말 제외 |
+| [RATING.md](RATING.md) | ③ 잡플래닛 평점 게이트 · **차단을 다루는 법** |
+| [CORE_STACK.md](CORE_STACK.md) | ④ 핵심 기술 거르기 |
+| [HISTORY.md](HISTORY.md) | ⑤ 이력 쌓기와 뒷정리 |
 | [docs/convention/](docs/convention/) | **수집 규약.** 새 사이트를 붙일 때 여기부터 읽는다 |
 | [docs/convention/03-adding-a-site.md](docs/convention/03-adding-a-site.md) | 새 사이트 체크리스트 |
 | [docs/convention/06-decisions.md](docs/convention/06-decisions.md) | 결정과 실측 근거 |

@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import contextlib
 import io
-import shutil as real_shutil
 from pathlib import Path
 
 from PIL import Image
@@ -42,19 +41,14 @@ def _draw(path, width=800, height=1200):
 
 
 def _run_one(row, *, answer=FULL, book=None, size=(800, 1200), download=None):
-    work = temp_dir()
-
+    """`process_one` 을 **전역을 안 건드리고** 돌린다 — 그물 타는 둘을 인자로 넘긴다."""
     def fake_download(url, dest, **kwargs):
         return _draw(dest, *size)
 
-    original = stage.fetch.download
-    stage.fetch.download = download or fake_download
-    try:
-        return stage.process_one(row, cfg=CONFIG, book=book if book is not None else {},
-                                 work_dir=work,
-                                 reader_fn=lambda paths, **kw: answer)
-    finally:
-        stage.fetch.download = original
+    return stage.process_one(row, cfg=CONFIG, book=book if book is not None else {},
+                             work_dir=temp_dir(),
+                             reader_fn=lambda paths, **kw: answer,
+                             download_fn=download or fake_download)
 
 
 def test_NORMAL_a_normal_row_passes_through_untouched():
@@ -122,13 +116,9 @@ def test_EXCEPTION_read_failure_keeps_the_row():
     def boom(paths, **kwargs):
         raise reader.ReadError("시간 초과")
 
-    work = temp_dir()
-    original = stage.fetch.download
-    stage.fetch.download = lambda url, dest, **kw: _draw(dest)
-    try:
-        got = stage.process_one(_row(), cfg=CONFIG, book={}, work_dir=work, reader_fn=boom)
-    finally:
-        stage.fetch.download = original
+    got = stage.process_one(_row(), cfg=CONFIG, book={}, work_dir=temp_dir(),
+                            reader_fn=boom,
+                            download_fn=lambda url, dest, **kw: _draw(dest))
     check_equal(got.kind, "못읽음", "호출 실패는 버림이 아니다")
 
 
@@ -139,14 +129,9 @@ def test_BOUNDARY_junk_image_is_dropped_without_calling_the_model():
         called.append(paths)
         return FULL
 
-    work = temp_dir()
-    original = stage.fetch.download
-    stage.fetch.download = lambda url, dest, **kw: _draw(dest, 1, 1)
-    try:
-        got = stage.process_one(_row(), cfg=CONFIG, book={}, work_dir=work,
-                                reader_fn=watcher)
-    finally:
-        stage.fetch.download = original
+    got = stage.process_one(_row(), cfg=CONFIG, book={}, work_dir=temp_dir(),
+                            reader_fn=watcher,
+                            download_fn=lambda url, dest, **kw: _draw(dest, 1, 1))
     check_equal(got.kind, "껍데기", "1×1 은 껍데기")
     check_equal(called, [], "모델을 부르면 안 된다 — 돈이 든다")
 
@@ -160,14 +145,9 @@ def test_BOUNDARY_cache_hit_skips_the_model():
         called.append(paths)
         return FULL
 
-    work = temp_dir()
-    original = stage.fetch.download
-    stage.fetch.download = lambda url, dest, **kw: _draw(dest)
-    try:
-        got = stage.process_one(_row(), cfg=CONFIG, book=book, work_dir=work,
-                                reader_fn=watcher)
-    finally:
-        stage.fetch.download = original
+    got = stage.process_one(_row(), cfg=CONFIG, book=book, work_dir=temp_dir(),
+                            reader_fn=watcher,
+                            download_fn=lambda url, dest, **kw: _draw(dest))
     check_equal(got.kind, "캐시", "캐시에서 나와야 한다")
     check_equal(called, [], "부르면 안 된다")
 
@@ -197,14 +177,13 @@ def test_BOUNDARY_read_failure_is_retried_once_then_given_up():
         raise reader.ReadError("한도")
 
     work = temp_dir()
-    original_download, original_pause = stage.fetch.download, stage.RETRY_PAUSE
-    stage.fetch.download = lambda url, dest, **kw: _draw(dest)
+    original_pause = stage.RETRY_PAUSE
     stage.RETRY_PAUSE = 0
     try:
         got = stage.process_one(_row(), cfg=CONFIG, book={}, work_dir=work,
-                                reader_fn=flaky)
+                                reader_fn=flaky,
+                                download_fn=lambda url, dest, **kw: _draw(dest))
     finally:
-        stage.fetch.download = original_download
         stage.RETRY_PAUSE = original_pause
     check_equal(len(tries), 2, "두 번 시도해야 한다")
     check_equal(got.kind, "못읽음", "그래도 안 되면 못읽음")
@@ -220,14 +199,13 @@ def test_BOUNDARY_a_second_try_that_succeeds_is_used():
         return FULL
 
     work = temp_dir()
-    original_download, original_pause = stage.fetch.download, stage.RETRY_PAUSE
-    stage.fetch.download = lambda url, dest, **kw: _draw(dest)
+    original_pause = stage.RETRY_PAUSE
     stage.RETRY_PAUSE = 0
     try:
         got = stage.process_one(_row(), cfg=CONFIG, book={}, work_dir=work,
-                                reader_fn=flaky)
+                                reader_fn=flaky,
+                                download_fn=lambda url, dest, **kw: _draw(dest))
     finally:
-        stage.fetch.download = original_download
         stage.RETRY_PAUSE = original_pause
     check_equal(got.kind, "채움", "두 번째에 성공하면 쓴다")
 
@@ -271,12 +249,6 @@ def test_BOUNDARY_main_returns_three_when_locked():
 WIDE, NARROW = 800, 300      # 가짜 판독이 답을 고르는 실마리 (아래 참조)
 
 
-class _FakeShutil:
-    """`shutil` 을 통째로 갈아 끼운다 — 진짜 모듈의 `which` 를 건드리지 않으려고."""
-    which = staticmethod(lambda name: "/가짜/claude")
-    rmtree = staticmethod(real_shutil.rmtree)
-
-
 def _answer_by_width(paths, **kwargs):
     """가짜 판독. 조각 파일에는 어느 행의 그림이었는지가 안 남으므로 **너비로 가른다** —
     넓은 그림은 읽히고, 좁은 그림은 셋 다 비어 버려진다."""
@@ -292,31 +264,31 @@ def _download_by_url(sizes: dict):
 
 
 def _run_stage(rows, *, download=None, read=None, book=None):
-    """임시 폴더에 CSV 를 깔고 `_run()` 을 돌린다. `(종료코드, 나온 행, 캐시)` 를 준다."""
+    """임시 폴더에 CSV 를 깔고 `_run()` 을 돌린다. `(종료코드, 나온 행, 캐시)` 를 준다.
+
+    **모듈 전역을 하나도 안 건드린다.** 전에는 여덟 개를 바꿔 끼웠고
+    (`ROOT_DIR` · `INPUT` · `OUTPUT` · `shutil` · `fetch.download` ·
+    `reader.read` · `config.load_config` · `cache.CACHE_PATH`), **하나라도
+    빠뜨리면 진짜 `csv/` 를 읽거나 진짜 모델을 불렀다.** 그것도 조용히 —
+    테스트는 그냥 통과한다.
+
+    지금은 `_run()` 이 전부 인자로 받으므로 넘길 것을 빠뜨리면 **기본값이
+    쓰여서** 그 자리에서 드러난다.
+    """
     home = temp_dir()
-    write_csv(home / "csv" / "merged.csv", rows, list(stage.COLUMNS))
+    source = home / "csv" / "merged.csv"
+    write_csv(source, rows, list(stage.COLUMNS))
     output = home / "csv" / "merged_read.csv"
     cache_path = home / "cache" / "image_reads.json"
     if book:
         cache.save(cache_path, book)
 
-    saved = (stage.ROOT_DIR, stage.INPUT, stage.OUTPUT, stage.shutil,
-             stage.fetch.download, stage.reader.read, stage.config.load_config,
-             stage.cache.CACHE_PATH)
-    stage.ROOT_DIR, stage.INPUT, stage.OUTPUT = home, home / "csv" / "merged.csv", output
-    stage.shutil = _FakeShutil
-    stage.fetch.download = download or _download_by_url({})
-    stage.reader.read = read or _answer_by_width
-    stage.config.load_config = lambda *args, **kwargs: CONFIG
-    stage.cache.CACHE_PATH = cache_path
     noise = io.StringIO()                 # 진행 막대와 요약은 시험 화면을 어지럽힌다
-    try:
-        with contextlib.redirect_stdout(noise), contextlib.redirect_stderr(noise):
-            code = stage._run()
-    finally:
-        (stage.ROOT_DIR, stage.INPUT, stage.OUTPUT, stage.shutil,
-         stage.fetch.download, stage.reader.read, stage.config.load_config,
-         stage.cache.CACHE_PATH) = saved
+    with contextlib.redirect_stdout(noise), contextlib.redirect_stderr(noise):
+        code = stage._run(source, output, cache_path, cfg=CONFIG,
+                          download=download or _download_by_url({}),
+                          read=read or _answer_by_width,
+                          have_claude=True, assume_yes=True)
     got = read_csv(output) if output.exists() else []
     return code, got, cache.load(cache_path)
 
@@ -603,3 +575,38 @@ def test_BOUNDARY_no_image_url_survives_into_the_output():
     for r in out:
         check("http" not in r["기술스택"], "주소가 남았다: %r" % r["기술스택"])
     check_equal(book, {}, "우리 실패는 캐시에 안 넣는다 — 다음 실행에 다시 시도해야 한다")
+
+
+def test_BOUNDARY_run_needs_no_module_global_to_work():
+    """**seam 이 완결인가** — 전역을 전부 못 쓰게 해 놓고도 도는가.
+
+    전에는 테스트가 모듈 전역 여덟 개를 바꿔 끼웠다 (`ROOT_DIR` · `INPUT` ·
+    `OUTPUT` · `shutil` · `fetch.download` · `reader.read` · `config.load_config` ·
+    `cache.CACHE_PATH`). **하나라도 빠뜨리면 진짜 `csv/` 를 읽거나 진짜 모델을
+    불렀고, 테스트는 그냥 통과했다.**
+
+    이 테스트는 전역들을 **없는 경로**로 돌려놓는다. 어느 한 줄이라도 인자 대신
+    전역을 보면 그 자리에서 드러난다.
+    """
+    home = temp_dir()
+    source = home / "csv" / "merged.csv"
+    write_csv(source, [_at("https://a/1.png", "https://a/1.png")], list(stage.COLUMNS))
+    output = home / "csv" / "merged_read.csv"
+
+    nowhere = home / "없는곳"
+    saved = (stage.INPUT, stage.OUTPUT, stage.cache.CACHE_PATH)
+    stage.INPUT = nowhere / "merged.csv"
+    stage.OUTPUT = nowhere / "merged_read.csv"
+    stage.cache.CACHE_PATH = nowhere / "image_reads.json"
+    noise = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(noise), contextlib.redirect_stderr(noise):
+            code = stage._run(source, output, home / "cache" / "c.json", cfg=CONFIG,
+                              download=_download_by_url({}), read=_answer_by_width,
+                              have_claude=True, assume_yes=True)
+    finally:
+        (stage.INPUT, stage.OUTPUT, stage.cache.CACHE_PATH) = saved
+
+    check_equal(code, 0, "인자만으로 돌아야 한다: %s" % noise.getvalue())
+    check(output.exists(), "**넘긴 자리에 써야 한다**")
+    check(not nowhere.exists(), "전역이 가리키던 곳은 건드리면 안 된다")

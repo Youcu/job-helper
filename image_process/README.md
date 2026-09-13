@@ -26,7 +26,7 @@ python3 job_image_process.py          # 이미 있는 csv/merged.csv 의 그림�
 ```
 
 수집이 8~10분인데 이미지 쪽만 다시 돌려 보고 싶을 때가 반드시 온다 — 프롬프트를 고쳤을 때,
-모델을 바꿔 볼 때, 캐시를 지우고 다시 읽을 때. 그때마다 여섯 사이트를 다시 긁을 이유가 없다.
+모델을 바꿔 볼 때, 캐시를 지우고 다시 읽을 때. 그때마다 다섯 사이트를 다시 긁을 이유가 없다.
 
 `job_image_process.py` 는 **혼자서도 도는 엔트리포인트**다. 오케스트레이터는 이것을 **자식
 프로세스로** 부른다 — 불러들이지(import) 않는다. 각 스크래퍼를 프로세스로 나눠 부르는 이유와
@@ -304,7 +304,7 @@ job_sites/_common/cache/image_reads.json
 ## 설정
 
 기본값은 코드에 있고, `.env` 에 적으면 그것을 쓴다. **아무것도 안 적어도 돈다** — `.env` 는
-"여섯 사이트가 함께 쓰는 검색 조건" 한 벌이고 이 셋은 성격이 다르다. 조건은 없으면
+"다섯 사이트가 함께 쓰는 검색 조건" 한 벌이고 이 셋은 성격이 다르다. 조건은 없으면
 멈추지만(D-08), 이건 기본값이 있다.
 
 | 항목 | 기본 | 뜻 |
@@ -315,7 +315,7 @@ job_sites/_common/cache/image_reads.json
 
 ## 종료 코드
 
-오케스트레이터가 자식으로 부르므로 여섯 스크래퍼와 **같은 계약**을 물려받는다.
+오케스트레이터가 자식으로 부르므로 다섯 스크래퍼와 **같은 계약**을 물려받는다.
 실행 자물쇠도 같은 것을 쓴다 — `job_sites/_common/runlock.py` 의 `guarded()`. 자물쇠는
 `csv/.image_process.lock` 에 둔다.
 
@@ -411,9 +411,34 @@ csv/merged_read.csv — 703행 (csv/merged.csv 736행에서 33건 버림)
 
 ## 테스트
 
-네트워크도 `claude` 도 타지 않는다. 호출 함수를 가짜로 바꿔 넣고, 이미지는 **Pillow 로 그
-자리에서 그린다** — 5MB 짜리 실물을 저장소에 넣을 수 없고, 넣어도 OCR 결과는 시험할 수
-없다. 시험할 수 있는 것만 시험한다.
+네트워크도 `claude` 도 타지 않는다. 바깥과 닿는 것을 **인자로 넘겨** 가짜로 바꾸고,
+이미지는 **Pillow 로 그 자리에서 그린다** — 5MB 짜리 실물을 저장소에 넣을 수 없고,
+넣어도 OCR 결과는 시험할 수 없다. 시험할 수 있는 것만 시험한다.
+
+### 바깥과 닿는 것은 전부 인자다
+
+```python
+_run(source, output, cache_path, *, cfg, download, read, have_claude, assume_yes)
+process_one(row, *, cfg, book, work_dir, reader_fn, download_fn)
+```
+
+| 인자 | 안 넘기면 | 무엇과 닿나 |
+|---|---|---|
+| `source` · `output` | `INPUT` · `OUTPUT` | 진짜 `csv/` |
+| `cache_path` | `cache.CACHE_PATH` | 진짜 캐시 |
+| `cfg` | `config.load_config()` | 진짜 `.env` |
+| `download` · `read` | `fetch.download` · `reader.read` | 그물과 모델 |
+| `have_claude` | `shutil.which("claude")` | 이 컴퓨터의 PATH |
+
+**전에는 이 자리가 없어서 테스트가 모듈 전역 여덟 개를 바꿔 끼웠다** —
+`ROOT_DIR` · `INPUT` · `OUTPUT` · `shutil` · `fetch.download` · `reader.read` ·
+`config.load_config` · `cache.CACHE_PATH`. 하나라도 빠뜨리면 **진짜 `csv/` 를 읽거나
+진짜 모델을 불렀고, 테스트는 그냥 통과했다.** 다른 단계(`filter` · `core_stack` ·
+`history`)는 진작 이 모양인데 여기만 아니었다.
+
+`test_BOUNDARY_run_needs_no_module_global_to_work` 가 그 자리를 굳힌다 — 전역들을
+**없는 경로**로 돌려놓고 인자만으로 돌려 본다. 어느 한 줄이라도 인자 대신 전역을 보면
+그 자리에서 드러난다.
 
 ```bash
 .venv/bin/python3 tests/run.py       # 루트에서. 오케스트레이터 테스트와 같은 자리에 있다

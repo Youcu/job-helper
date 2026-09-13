@@ -86,6 +86,8 @@ def test_EXCEPTION_one_broken_detail_does_not_kill_the_run():
         {"1": "", "2": RuntimeError("끊김"), "3": ""},
         {"1": "<p>Python</p>", "3": "<p>Java</p>"})
     check_equal(len(rows), 2, "터진 하나만 빠지고 나머지는 남는다")
+    check_equal(_stats["상세실패"], 1, "**몇 건을 잃었는지 세야 한다** — 안 세면 전멸도 못 본다")
+    check_equal(_stats["상세시도"], 3, "물어본 건수")
 
 
 def test_EXCEPTION_blocked_stops_but_keeps_earlier_rows():
@@ -147,3 +149,58 @@ def test_BOUNDARY_output_path_is_under_this_site():
     check_equal(jobkorea.OUTPUT.name, "jobkorea_post.csv", "산출물 이름")
     check("jobkorea" in str(jobkorea.OUTPUT.parent.parent), "다른 사이트 폴더에 쓰면 안 된다")
     check_equal(jobkorea.LOCK.parent, jobkorea.OUTPUT.parent, "자물쇠는 산출물 옆에 둔다")
+
+
+def _run_with(listings_rows, details, bodies):
+    """`_run()` 을 네트워크 없이 돌려 **종료 코드**를 본다.
+
+    `_collect_details` 단위 테스트로는 배선을 못 본다 — 세는 것과 그것을 종료 코드로
+    옮기는 것은 다른 일이고, 조용히 틀리는 쪽은 **뒤**다.
+    """
+    listings = Listings(rows=listings_rows, pages=1, reported_total=len(listings_rows),
+                        stop_reason="다 모았다")
+
+    class Result:
+        def __init__(self, rows):
+            self.rows, self.added, self.updated = rows, len(rows), 0
+            self.unseen = self.expired = self.undated = 0
+
+    class Config:
+        yoe, education = -1, ""
+        job_ids, home_locations = [1], []
+        employment_types, missing_roles = ["정규직"], []
+        tech_stacks, hope_annual_salary = [], ""
+
+    restore = _patch({
+        "load_config": lambda: Config(),
+        "build_conditions": lambda config: {},
+        "JobKoreaClient": lambda *a, **k: FakeClient(),
+        "fetch_listings": lambda *a, **k: listings,
+        "fetch_detail": lambda _client, gno: _raise_or(details.get(gno, "")),
+        "fetch_body": lambda _client, gno: _raise_or(bodies.get(gno, "")),
+        "save": lambda rows, output: Result(rows),
+    })
+    try:
+        return jobkorea._run()
+    finally:
+        restore()
+
+
+def test_EXCEPTION_all_details_failing_is_not_a_normal_run():
+    """**목록은 받았는데 상세를 전부 실패했다.**
+
+    여기서 `0` 을 내면 화면에 `정상 · 0행` 이라고 찍혀, 사이트에 공고가 있는데도
+    없는 것처럼 보인다. Pathsdog 에서 실제로 났던 사고다 (`_common/outcome.py`).
+
+    `0행` 자체는 정상일 수 있다 — 조건에 맞는 공고가 없었을 수도 있다. 그 둘을 가르는
+    것이 **잃은 것이 있는가**이다.
+    """
+    code = _run_with([_listing("1"), _listing("2")],
+                     {"1": RuntimeError("끊김"), "2": RuntimeError("끊김")}, {})
+    check_equal(code, jobkorea.INCOMPLETE, "**2 로 알려야 한다** — 0 이면 조용히 틀린다")
+
+
+def test_BOUNDARY_zero_rows_without_any_failure_is_still_normal():
+    """받아 놓고 **다 걸러져서** 0행인 것은 정상이다. 잃은 것이 없다."""
+    code = _run_with([_listing("1")], {"1": ""}, {"1": "<p>함께 성장할 분</p>"})
+    check_equal(code, 0, "기술이 없어 걸러진 것은 실패가 아니다")

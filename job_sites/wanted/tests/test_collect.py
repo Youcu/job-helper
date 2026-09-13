@@ -144,6 +144,29 @@ def test_EXCEPTION_many_detail_failures_are_summarized():
     assert fetch_details(C(), list(range(20)), workers=2) == {}
 
 
+def test_EXCEPTION_blocked_is_not_swallowed_as_one_more_failure():
+    """**결함이었다.** `BlockedError` 가 `except Exception` 에 먼저 잡혔다.
+
+    `BlockedError` 는 그냥 `Exception` 이라 (`lib/client.py`) 한 건의 실패와 구별이
+    안 됐다. 그래서 목록에서 403 이면 종료 코드 2 인데 **상세에서 403 이면 0** 이 됐다
+    — 같은 사고인데 어디서 맞았느냐에 따라 다르게 보고했다.
+
+    403 은 재시도를 안 하므로(`client.get_json`) 한 번 막히면 남은 상세가 전부 같은
+    길로 간다. 한 건의 문제가 아니다.
+    """
+    from lib.client import BlockedError
+
+    class C:
+        def get_json(self, path, *, referer):
+            raise BlockedError("403")
+
+    try:
+        fetch_details(C(), [1, 2, 3], workers=2)
+    except BlockedError:
+        return
+    raise AssertionError("**차단은 위로 올라가야 한다** — 한 건의 실패로 삼키면 안 된다")
+
+
 def test_NORMAL_details_collected_in_parallel():
     jobs = {int(k): v["job"] for k, v in FIXTURES.items()}
 

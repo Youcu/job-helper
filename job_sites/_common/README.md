@@ -34,8 +34,28 @@
 코드인지는 각 사이트의 `tags/` 에 있다 — `_common` 이 사이트 코드를 알면 그건 공통이
 아니다 (`docs/convention/01-architecture.md` 의 import 방향).
 
-**`_common` 의 테스트는 `saramin/tests/` 에 있다.** 어느 한 사이트에 붙여 두면 그 사이트를
-지웠을 때 시험도 같이 사라진다.
+### 테스트가 어디 있나
+
+**`_common` 에는 `tests/` 가 없다.** 사이트 폴더 안에 흩어져 있다 — 대부분 `saramin`,
+일부는 `wanted` 다. 여기를 고치러 온 사람이 **테스트가 없다고 오해하기 쉬우므로** 적어 둔다.
+
+| 모듈 | 테스트 |
+|---|---|
+| `dictionaries.py` | `wanted/tests/test_dictionaries.py` |
+| `normalize.py` | `wanted/tests/test_skills.py` — `canonical()` `kind_of()` |
+| `skills.py` | `wanted/tests/test_skills.py` · `saramin/tests/test_skills.py` |
+| `store.py` | `saramin/tests/test_store.py` · `wanted/tests/test_store.py` |
+| `runlock.py` | `saramin/tests/test_runlock.py` · `wanted/tests/test_runlock.py` |
+| `roles.py` | `saramin/tests/test_roles.py` |
+| `outcome.py` | `saramin/tests/test_outcome.py` |
+| `env.py` | **전용 파일이 없다.** `saramin/tests/test_config.py` · `wanted/tests/test_config.py` 가 `load_config()` 를 통해 밟는다. 셸 환경변수 차단(D-08)은 두 파일의 `..._does_not_leak...` 이 굳힌다 |
+| `sections.py` | `saramin/tests/test_sections.py` |
+| `html_text.py` | `saramin/tests/test_html_text.py` |
+| `staleness.py` | `saramin/tests/test_staleness.py` |
+| `corpus_candidates.py` | `saramin/tests/test_corpus_candidates.py` |
+
+**함수 이름으로 grep 해서 "테스트 없음" 을 판정하지 마라.** `read_env()` 는 테스트에
+이름이 한 번도 안 나오지만 그 보장은 위 두 파일이 지키고 있다 — 실제로 그렇게 오판했다.
 
 ## 쓰는 법
 
