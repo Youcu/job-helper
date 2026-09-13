@@ -60,7 +60,11 @@ csv/merged.csv  ─그림 판독─▶  csv/merged_read.csv  ─거르기─▶ 
 
 ## 실행
 
-**Python 3.8 이상.** CI 가 3.8 과 3.13 양쪽에서 테스트를 돈다.
+**Python 3.10 이상.** CI 가 3.10 과 3.13 양쪽에서 테스트를 돈다.
+
+코드만 보면 3.8 에서도 돌지만(`runlock.py` 의 `unlink(missing_ok=True)` 가 그 하한),
+**의존성 셋이 3.10 이상을 요구한다** — `requests` · `python-dotenv` · `Pillow`.
+실제 하한은 둘 중 높은 쪽이다.
 
 ```bash
 # 1) 가상환경과 의존성 — clone 직후 이것부터 한다
@@ -173,7 +177,7 @@ cd job_sites/<사이트> && ../../.venv/bin/python3 tests/run.py   # 사이트 �
 
 네트워크도 `.env` 도 `claude` 도 타지 않는다 — 떠 놓은 실제 응답과 가짜 opener 를 쓰고,
 이미지는 Pillow 로 그 자리에서 그린다. **그래서 CI 에서 그대로 돈다**
-(`.github/workflows/test.yml`, 3.8 과 3.13 양쪽).
+(`.github/workflows/test.yml`, 3.10 과 3.13 양쪽).
 
 러너가 여섯인 것은 사이트마다 `sys.path` 를 자기 쪽으로 밀기 때문이다 — 한 프로세스에서
 이어 부르면 나중 것이 앞 것의 `lib` 를 집는다. `run_all.py` 가 프로세스를 나눠 부른다.

@@ -8,7 +8,7 @@ cd job_sites/wanted
 ```
 
 의존성은 저장소 뿌리의 `requirements.txt` 에 있다 — `requests` `tqdm`
-`python-dotenv` `Pillow` 넷. **Python 3.8 이상.**
+`python-dotenv` `Pillow` 넷. **Python 3.10 이상.**
 
 ```bash
 # 저장소 뿌리에서 한 번만
