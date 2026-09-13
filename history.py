@@ -143,7 +143,11 @@ def site_csvs(sites_dir: Path) -> list[Path]:
     return sorted(sites_dir.glob("*/csv/*_post.csv"))
 
 
-def main(argv: list[str] | None = None) -> int:
+def main() -> int:
+    """**`argv` 를 안 받는다.** 다른 단계는 `--yes` 를 받지만 이 단계는 안 묻는다 —
+    낡은 입력인지 물을 일이 없고(앞 단계가 방금 만든 파일이다), 받아 놓고 안 쓰면
+    "무언가 줄 수 있다" 는 없는 사실을 말하게 된다.
+    """
     return guarded(LOCK, _run)
 
 
