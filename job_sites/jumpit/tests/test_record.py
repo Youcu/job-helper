@@ -108,7 +108,7 @@ def test_BOUNDARY_body_keeps_line_breaks():
 
 
 def test_BOUNDARY_long_field_is_trimmed_with_a_mark():
-    from lib.record import MAX_FIELD_LENGTH
+    from _common.store import MAX_FIELD_LENGTH
     row = to_row({"id": 1, "techStacks": ["java"]},
                  {"qualifications": "가" * (MAX_FIELD_LENGTH + 500)},
                  candidates_file=temp_json())

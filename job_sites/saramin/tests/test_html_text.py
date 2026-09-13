@@ -15,7 +15,9 @@ from __future__ import annotations
 from _common.html_text import (
     is_hidden_style,
     split_visible,
+    strip_comments,
     to_text,
+    visible_lines,
     visible_text,
 )
 from tests.helpers import check, check_equal
@@ -147,3 +149,59 @@ def test_BOUNDARY_visible_inside_hidden_stays_hidden():
 
 def test_BOUNDARY_whitespace_only_body_is_empty_string():
     check_equal(visible_text("<div>   \n\t  </div>"), "", "공백만 있으면 빈 문자열이다")
+
+
+# ────────────── 속성값 안에 심은 주석 (사람인 실측 2026-09-10) ──────────────
+#
+# `<div class="desc<!--x-->ription" style='…'>` — 태그 정규식이 전부 `[^>]*` 라
+# **주석을 닫는 첫 `>` 에서 멈춘다.** 그래서 태그의 나머지가 글로 샜다.
+# 실측 3칸이 `ription" style='font-family: Pretendard, …'` 로 시작했다.
+
+_INJECTED = (
+    "<div class=\"desc<!--x-->ription\" "
+    "style='font-family: Pretendard, -apple-system'>자격요건<br>· Java 경험</div>"
+)
+
+
+def test_NORMAL_comment_inside_an_attribute_does_not_leak():
+    # 결함: 이것이 지원자격 첫 줄로 들어갔다.
+    got = visible_lines(_INJECTED)
+    check("style=" not in got and "font-family" not in got,
+          "태그 조각이 글로 새면 안 된다: %r" % got)
+    check_equal(got, "자격요건\n· Java 경험", "본문은 그대로 남아야 한다")
+
+
+def test_EXCEPTION_hidden_style_after_an_injected_comment_is_still_hidden():
+    # 결함: `_OPEN_TAG` 가 속성을 주석의 `>` 에서 잘라 뒤의 display:none 을 못 봤다.
+    # **숨긴 글이 본문으로 새는** 쪽이라 더 나쁘다.
+    check_equal(visible_text('<span class="a<!--x-->b" style="display:none">숨김</span>보임'),
+                "보임", "주석 뒤의 숨김 스타일도 읽어야 한다")
+
+
+def test_BOUNDARY_ordinary_comment_still_disappears():
+    check_equal(visible_text("<!-- 안내 --><p>본문</p>"), "본문", "평범한 주석")
+
+
+def test_BOUNDARY_comment_containing_a_tag_and_a_bracket():
+    check_equal(visible_text("<!-- <p>숨김</p> a > b --><p>본문</p>"), "본문",
+                "주석 안에 `>` 가 있어도 통째로 사라져야 한다")
+
+
+def test_BOUNDARY_unclosed_comment_eats_the_rest():
+    # 응답이 중간에 끊기면 주석이 안 닫힌다. 남겨 두면 그 조각이 글로 새므로,
+    # `_UNCLOSED_TAIL` 이 받아 낸다 — 뒤를 잃더라도 쓰레기는 안 들인다.
+    got = visible_text("<p>본문</p><!-- 끊긴")
+    check("끊긴" not in got, "안 닫힌 주석 조각이 글로 남으면 안 된다: %r" % got)
+    check_equal(got, "본문", "앞의 본문은 지킨다")
+
+
+def test_BOUNDARY_strip_comments_leaves_ordinary_markup_alone():
+    markup = '<p class="a">경력 < 3년</p>'
+    check_equal(strip_comments(markup), markup, "주석이 없으면 아무것도 안 바꾼다")
+    check_equal(strip_comments(""), "", "빈 문자열")
+    check_equal(strip_comments(None), "", "None 도 터지지 않는다")
+
+
+def test_BOUNDARY_comment_spanning_lines():
+    check_equal(visible_text("<!--\n여러\n줄\n--><p>본문</p>"), "본문",
+                "여러 줄에 걸친 주석")

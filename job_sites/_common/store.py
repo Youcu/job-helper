@@ -51,6 +51,20 @@ LAST_SEEN = "최종확인일"
 # 지원할 수도 없는 공고가 지금 열려 있는 것과 섞인다.
 RETENTION_DAYS = 30
 
+# CSV 한 칸의 최대 길이. 넘으면 잘라서 표시한다 — 표 계산기가 긴 칸에서 느려진다.
+#
+# **여기 있는 이유는 이것이 스키마의 약속이기 때문이다.** 예전에는 같은 값과 같은 함수가
+# `_common/sections.py`·`jobplanet/lib/record.py`·`jumpit/lib/record.py` 세 곳에 복사돼
+# 있었다. 한 곳만 고치면 사이트마다 칸 길이가 달라지는데, CSV 를 열어서는 알 수 없다.
+MAX_FIELD_LENGTH = 4000
+
+
+def trim(text: str) -> str:
+    """CSV 한 칸에 넣을 수 있게 자른다. **뒤를 자르고 `…` 를 붙인다.**"""
+    if len(text) <= MAX_FIELD_LENGTH:
+        return text
+    return text[:MAX_FIELD_LENGTH].rstrip() + " …"
+
 @dataclass
 class MergeResult:
     rows: list[dict]

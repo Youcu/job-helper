@@ -138,3 +138,29 @@ def test_BOUNDARY_tech_names_that_normalize_alike_are_all_kept():
     for one in ("C#", "C++"):
         check(one in got["기술스택"], "%s 가 사라졌다: %r" % (one, got["기술스택"]))
     check_equal(len([p for p in got["기술스택"].split(",") if p.strip()]), 3, got["기술스택"])
+
+
+def test_BOUNDARY_o_is_a_bullet_only_when_a_space_follows():
+    """**결함이었다.** `lstrip("•-·※*▪◦o")` 는 문자 집합을 벗기므로 `o` 로 시작하는
+    멀쩡한 낱말이 깎였다 — 실측 `oracle 경험` → `racle경험`, `o365 운영` → `365운영`.
+
+    이 값은 "이미 있는 항목인가" 를 견주는 데 쓰인다. 깎인 쪽과 안 깎인 쪽이 달라지면
+    **같은 항목이 두 번 들어간다.** 저장되는 글은 멀쩡해서 눈으로는 안 보인다.
+    """
+    check_equal(fill.normalize("oracle 경험"), fill.normalize("Oracle 경험"),
+                "대소문자만 다른 같은 항목이어야 한다")
+    check_equal(fill.normalize("o365 운영"), "o365운영", "`o365` 의 o 는 낱말의 일부다")
+    check_equal(fill.normalize("OpenStack"), "openstack", "낱말이 깎이면 안 된다")
+    check_equal(fill.normalize("o 자바 경험"), "자바경험", "뒤에 공백이 오면 글머리표다")
+
+
+def test_BOUNDARY_symbol_bullets_are_stripped():
+    for marked, bare in (("• Java", "java"), ("- 3년", "3년"), ("※ 필수", "필수"),
+                         ("◦ Python", "python"), ("· Go", "go")):
+        check_equal(fill.normalize(marked), bare, "%r 의 글머리표" % marked)
+
+
+def test_BOUNDARY_bullet_only_item_normalizes_to_empty():
+    # `_clean` 이 이것으로 "내용이 아닌 것" 을 걸러 낸다.
+    for junk in ("•", "-", "· ·", "   "):
+        check_equal(fill.normalize(junk), "", "%r 은 내용이 아니다" % junk)

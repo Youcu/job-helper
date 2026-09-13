@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import re
 
-from _common.store import COLUMNS
+from _common.store import COLUMNS, trim
 
 from . import skills as skills_module
 
@@ -28,7 +28,6 @@ SITE_NAME = "jobplanet"
 # 깨끗한 주소를 직접 만든다.
 DETAIL_URL = "https://www.jobplanet.co.kr/job/search?posting_ids%%5B%%5D=%s"
 
-MAX_FIELD_LENGTH = 4000
 
 # 급여가 실금액인지. "회사 내규에 따름" 이나 `" (  ~  )"` 같은 빈 껍데기가 대부분이다.
 SALARY_AMOUNT = re.compile(r"([\d,]{3,})\s*(만원|원)")
@@ -53,8 +52,8 @@ def to_row(posting: dict, detail: dict, *, candidates_file=None) -> dict:
         "기업명": _text(detail.get("name")) or _company_name(posting),
         "공고명": _text(detail.get("title")) or _text(posting.get("title")),
         "마감일": format_deadline(detail.get("end_at") or posting.get("end_at")),
-        "지원자격": _trim(_text(detail.get("required_qualification"))),
-        "우대사항": _trim(_text(detail.get("preferred_skill"))),
+        "지원자격": trim(_text(detail.get("required_qualification"))),
+        "우대사항": trim(_text(detail.get("preferred_skill"))),
         "경력": career_text(detail, posting),
         "URL": url,
         "연봉": find_salary(detail),
@@ -70,11 +69,6 @@ def _text(value) -> str:
         return ""
     return re.sub(r"[ \t]+", " ", str(value)).strip()
 
-
-def _trim(text: str) -> str:
-    if len(text) <= MAX_FIELD_LENGTH:
-        return text
-    return text[:MAX_FIELD_LENGTH].rstrip() + " …"
 
 
 def _company_name(posting: dict) -> str:
