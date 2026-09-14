@@ -25,10 +25,15 @@
 
 # 협업 · 편집 도구
 # Slack·JIRA·Confluence
+# Figma·Word·Excel·PowerPoint 는 wanted 작업 때 산문에서 관측돼 corpus 에 들어가 있었다.
 Figma
 Word
 Excel
-PowerPoint 는 wanted 작업 때 산문에서 관측돼 corpus 에 들어가 있었다.
+PowerPoint
+# 디자인 편집 도구도 같은 갈래다 — 백엔드 공고에 섞여 들어온다.
+Photoshop
+Illustrator
+After Effects
 # 같은 기준이면 이것들도 기술스택이 아니다 — 두면 "Notion 은 빼고 Slack 은 두는"
 # 자기모순이 되어, 다음 사이트를 붙일 때 어느 쪽인지 판단할 근거가 없어진다.
 Claude Code
@@ -103,6 +108,8 @@ NAC
 
 # 너무 흔해서 변별력이 없다
 MCP
+Interface
+AI-based Dev
 JSON
 SMS
 MS Office
@@ -118,6 +125,7 @@ DataGrip
 # 하드웨어 제품
 메타퀘스트
 AVR
+GPU
 
 # corpus 후보에서 직접 걷어낸 것 (2026-09-04).
 # 이것들은 **깊이가 없어서가 아니라 범위 밖**이라 뺐다 — 특정 벤더 제품군(SAP 계열),

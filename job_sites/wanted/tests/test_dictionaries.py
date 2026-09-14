@@ -102,3 +102,19 @@ def test_BOUNDARY_prose_reads_both_lists():
     assert "Docker" in got, got
     for name in ("SaaS", "CI/CD", "풀스택"):
         assert name not in got, "산문에서 잡히면 안 된다: %s (%r)" % (name, got)
+
+
+def test_BOUNDARY_a_dropped_comment_marker_is_caught():
+    """**설명 줄에서 `#` 이 떨어지면 그 문장이 통째로 한 항목이 된다.**
+
+    실제로 그랬다 — `PowerPoint 는 wanted 작업 때 산문에서 관측돼…` 한 줄이 항목이
+    되어, 정작 `PowerPoint` 는 어디에도 없어 안 막혔다 (2026-09-14 실측). 목록이
+    길어질수록 눈으로는 안 보인다.
+
+    기술 이름은 짧고, 문장 부호나 조사로 끝나지 않는다. 그것만 본다.
+    """
+    for name, entries in (("blocklist", dictionaries.blocklist()),
+                          ("rejected", dictionaries.rejected())):
+        for entry in entries:
+            assert not entry.endswith("."), "%s 에 문장이 섞였다: %r" % (name, entry)
+            assert len(entry.split()) <= 4, "%s 에 문장이 섞였다: %r" % (name, entry)
