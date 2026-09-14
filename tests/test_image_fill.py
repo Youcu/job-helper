@@ -164,3 +164,29 @@ def test_BOUNDARY_bullet_only_item_normalizes_to_empty():
     # `_clean` 이 이것으로 "내용이 아닌 것" 을 걸러 낸다.
     for junk in ("•", "-", "· ·", "   "):
         check_equal(fill.normalize(junk), "", "%r 은 내용이 아니다" % junk)
+
+
+def test_BOUNDARY_blocked_names_from_the_image_never_enter():
+    """**그림에서 읽은 이름도 차단을 지난다.**
+
+    오래 안 지났다 — 수집기의 두 경로(태그·산문)는 `tech_blocklist.txt` 를 보는데
+    여기만 안 봤다. 실측으로 `ORM` 이 그림을 타고 최종본까지 들어왔다
+    (2026-09-14, `(주)엔디소프트`). 모델은 공고에 적힌 말을 그대로 읽으므로,
+    거기 `ORM`·`풀스택` 이 쓰여 있으면 그대로 가져온다.
+    """
+    row = {"기술스택": "Java", "지원자격": "", "우대사항": ""}
+    got = fill.apply(row, {"기술스택": ["ORM", "Docker", "풀스택", "컨테이너", "JPA"],
+                           "자격요건": [], "우대사항": []})["기술스택"]
+    names = [one.strip() for one in got.split(",")]
+    check_equal(names, ["Java", "Docker", "JPA"], "기술만 남아야 한다: %r" % got)
+
+
+def test_BOUNDARY_the_row_keeps_its_own_blocked_names():
+    """**이미 행에 있던 것은 안 건드린다.** 이 함수의 일은 그림을 더하는 것이다.
+
+    행에 든 것을 여기서 지우면 "무엇이 언제 빠졌나" 를 되짚을 수 없다. 수집기 쪽에서
+    이미 막았으므로 새 실행에서는 애초에 안 들어온다.
+    """
+    row = {"기술스택": "Java, ORM", "지원자격": "", "우대사항": ""}
+    got = fill.apply(row, {"기술스택": ["Docker"], "자격요건": [], "우대사항": []})["기술스택"]
+    check("ORM" in got, "행에 있던 것은 그대로: %r" % got)

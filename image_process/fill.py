@@ -12,6 +12,8 @@ from __future__ import annotations
 
 import re
 
+from _common.skills import blocked                                 # noqa: E402
+
 from .reader import FIELDS
 
 # 그림에서 읽은 셋을 CSV 의 어느 칸에 넣는가
@@ -93,11 +95,15 @@ def apply(row: dict, read: dict) -> dict:
     # **기술 이름은 `normalize` 로 견주면 안 된다.** 그 함수는 문장부호를 지우므로
     # `C` · `C#` · `C++` 이 전부 `c` 가 된다 — 문장에는 안전한 규칙이 여기서는 서로 다른
     # 언어를 하나로 뭉갠다. 대소문자만 맞춰 보고 그대로 견준다.
+    # **그림에서 읽은 이름도 차단을 지난다.** 오래 안 지났다 — 수집기의 두 경로
+    # (태그·산문)는 `_common/tech_blocklist.txt` 를 보는데 여기만 안 봤다. 실측으로
+    # `ORM` 이 그림을 타고 최종본까지 들어왔다 (2026-09-14). 모델은 공고에 적힌 말을
+    # 그대로 읽으므로, 거기 `ORM`·`풀스택` 이 쓰여 있으면 그대로 가져온다.
     kept = [one for one in _clean(row.get("기술스택", "").split(","))
             if not one.startswith("http")]
     seen = {one.casefold() for one in kept}
     for one in _clean(read.get("기술스택")):
-        if one.casefold() not in seen:
+        if one.casefold() not in seen and not blocked(one):
             kept.append(one)
             seen.add(one.casefold())
     out["기술스택"] = ", ".join(kept)
