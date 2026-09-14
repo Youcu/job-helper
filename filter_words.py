@@ -154,3 +154,41 @@ def _around(text: str, match: re.Match) -> str:
     start = max(0, match.start() - CONTEXT)
     end = min(len(text), match.end() + CONTEXT)
     return " ".join(text[start:end].split())
+
+
+# ── 기술스택으로 빼기 ────────────────────────────────────────────────────
+#
+# **`.env` 의 `EXCLUDE_TECH_STACKS` 가 정한다.** 위의 `BANNED` 와 세 가지가 다르다.
+#
+#   보는 칸    `기술스택` 하나뿐. 산문에서 보면 "PHP 경험 있으면 좋지만 필수 아님"
+#              같은 문장에도 걸린다
+#   정하는 곳  사람이 `.env` 에 적는다. `BANNED` 는 낱말마다 규칙이 달라(ASCII 경계·
+#              띄어쓰기 허용) 평문으로 옮길 수 없다 — `SI` 를 평문으로 두면
+#              `Vision`·`Design` 이 걸려 실측 110행이 날아간다
+#   찾는 법    `core_stack.py` 와 같은 ASCII 경계. `CORE_TECH_STACKS` 의 반대라
+#              규칙도 대칭이어야 한다
+#
+# 실측(2026-09-14, `EXCLUDE_TECH_STACKS=PHP, jQuery`): `merged_read` 676행에서
+# PHP 41행 · jQuery 49행. 일찍 뺄수록 잡플래닛에 물어볼 회사가 준다.
+TECH_COLUMN = "기술스택"
+
+
+def tech_pattern(name: str) -> re.Pattern[str]:
+    """이름 하나를 **낱말로** 찾는 정규식.
+
+    앞뒤에 ASCII 영숫자가 붙으면 다른 낱말이다 — `PHP` 는 `PHPStorm` 이 아니고
+    `jQuery` 는 `Query` 가 아니다. 한글은 경계로 안 친다. 대소문자는 안 가린다.
+    """
+    return re.compile(r"(?<![A-Za-z0-9])%s(?![A-Za-z0-9])" % re.escape(name),
+                      re.IGNORECASE)
+
+
+def build_excluded(names: list[str]) -> list[tuple[str, re.Pattern[str]]]:
+    """`.env` 에 적힌 이름들 → (이름, 정규식). 빈 이름은 버린다."""
+    return [(name, tech_pattern(name)) for name in names if name.strip()]
+
+
+def excluded_techs(row: dict, rules: list) -> list[str]:
+    """이 공고의 `기술스택` 칸에서 걸린 이름들. 없으면 빈 목록."""
+    text = row.get(TECH_COLUMN) or ""
+    return [name for name, rule in rules if rule.search(text)]

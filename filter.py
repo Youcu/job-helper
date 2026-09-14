@@ -35,6 +35,7 @@ sys.path.insert(0, str(ROOT_DIR / "job_sites"))
 sys.path.insert(0, str(ROOT_DIR))
 
 import filter_words                                                # noqa: E402
+from _common.env import ConfigError, csv_list, read_env             # noqa: E402
 from _common.runlock import guarded                                # noqa: E402
 from _common.staleness import confirm, yes_given                       # noqa: E402
 from _common.store import (COLUMNS, FIRST_SEEN, LAST_SEEN, read_csv,
@@ -46,6 +47,9 @@ from _common.store import (COLUMNS, FIRST_SEEN, LAST_SEEN, read_csv,
 BODY_COLUMNS = ("지원자격", "우대사항", "기술스택")
 
 REPORT_COLUMNS = ("기업명", "공고명", "사이트명", "URL", "판정", "걸린낱말", "근거")
+
+# `.env` 항목 이름. `CORE_TECH_STACKS`(남길 것)의 반대다.
+EXCLUDE_SETTING = "EXCLUDE_TECH_STACKS"
 
 
 def weight(row: dict) -> int:
@@ -114,11 +118,28 @@ def _stretch_dates(survivor: dict, group: list[dict]) -> None:
         survivor[LAST_SEEN] = max(lasts)
 
 
-def screen(rows: list[dict]) -> tuple[list[dict], list[tuple[dict, list]]]:
-    """(남긴 행, [(뺀 행, 걸린 낱말들)])."""
+def screen(rows: list[dict], excluded: list | None = None
+           ) -> tuple[list[dict], list[tuple[dict, list]]]:
+    """(남긴 행, [(뺀 행, 걸린 낱말들)]).
+
+    두 가지로 뺀다. **보는 칸이 다르다.**
+
+    | 무엇 | 보는 칸 | 정하는 곳 |
+    |---|---|---|
+    | 낱말 | `공고명`·`지원자격`·`우대사항` | `filter_words.BANNED` (코드) |
+    | 기술 | `기술스택` | `.env` 의 `EXCLUDE_TECH_STACKS` |
+
+    기술을 산문에서 보면 "PHP 경험 있으면 좋지만 필수 아님" 같은 문장에도 걸린다.
+    낱말표를 `.env` 로 못 옮기는 이유는 `filter_words` 의 주석을 보라 — 낱말마다
+    규칙이 달라 평문으로 표현할 수 없다.
+    """
+    excluded = excluded or []
     kept, dropped = [], []
     for row in rows:
         hits = filter_words.banned_words(filter_words.text_of(row))
+        techs = filter_words.excluded_techs(row, excluded)
+        if techs:
+            hits = hits + [(name, "기술스택") for name in techs]
         if hits:
             dropped.append((row, hits))
         else:
@@ -132,7 +153,7 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _run(source: Path = INPUT, output: Path = OUTPUT, report: Path = REPORT,
-         assume_yes: bool = False) -> int:
+         env_path: Path | None = None, assume_yes: bool = False) -> int:
     """기본 경로를 인자로 받는 이유는 **테스트가 진짜 `csv/` 를 건드리지 않게** 하려는 것이다."""
     if not source.exists():
         print("%s 가 없습니다. 먼저 그림 판독까지 돌리세요." % source, file=sys.stderr)
@@ -143,13 +164,21 @@ def _run(source: Path = INPUT, output: Path = OUTPUT, report: Path = REPORT,
         print("멈췄습니다 — 아무것도 안 바꿨습니다.", file=sys.stderr)
         return 1
 
+    try:
+        excluded = filter_words.build_excluded(
+            csv_list(read_env(env_path).get(EXCLUDE_SETTING)))
+    except ConfigError as error:
+        print("설정 오류: %s" % error, file=sys.stderr)
+        return 1
+
     rows = read_csv(source)
     unique, duplicated = dedup(rows)
-    kept, banned = screen(unique)
+    kept, banned = screen(unique, excluded)
 
     write_csv(output, kept)
     _write_report(report, duplicated, banned)
-    _print(len(rows), len(duplicated), banned, len(kept), source, output, report)
+    _print(len(rows), len(duplicated), banned, len(kept), source, output, report,
+           excluded)
     return 0
 
 
@@ -174,13 +203,18 @@ def _report_row(row: dict, verdict: str, words: str, why: str) -> dict:
 
 
 def _print(before: int, duplicated: int, banned: list, after: int,
-           source: Path, output: Path, report: Path) -> None:
+           source: Path, output: Path, report: Path, excluded: list) -> None:
     counts: dict[str, int] = {}
     for _, hits in banned:
         for name, _ in hits:
             counts[name] = counts.get(name, 0) + 1
     print("  중복으로 뺌 : %d행" % duplicated)
-    print("  낱말로 뺌   : %d행" % len(banned))
+    print("  낱말·기술로 뺌 : %d행" % len(banned))
+    if excluded:
+        print("    기술 제외 기준: %s" % ", ".join(name for name, _ in excluded))
+    else:
+        # **비었으면 그렇게 말한다.** 안 말하면 걸렀다고 믿는다.
+        print("    %s 가 비어 있어 기술로는 안 뺐습니다" % EXCLUDE_SETTING)
     if counts:
         print("    %s" % " · ".join(
             "%s %d" % (name, count)
