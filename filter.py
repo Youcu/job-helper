@@ -154,7 +154,7 @@ def _run(source: Path = INPUT, output: Path = OUTPUT, report: Path = REPORT,
 
 
 def _write_report(path: Path, duplicated: list, banned: list) -> None:
-    """뺀 행을 전량 적는다. 리포트는 13칸 스키마가 아니라 `write_rows` 로 쓴다."""
+    """뺀 행을 전량 적는다. 리포트는 14칸 스키마가 아니라 `write_rows` 로 쓴다."""
     lines = []
     for row, survivor in duplicated:
         lines.append(_report_row(row, "제외 · 중복", "",

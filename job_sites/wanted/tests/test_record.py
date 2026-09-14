@@ -84,11 +84,14 @@ def test_NORMAL_deadline():
 
 
 def test_NORMAL_row_from_real_api_responses():
-    """`to_row` 는 공고에서 나오는 칸만 만든다. 이력 두 칸은 병합이 채운다.
+    """`to_row` 는 **공고에서 나오는 칸만** 만든다. 나머지는 뒤 단계가 채운다.
 
-    한 실행 안에서는 '처음 본 날' 을 알 수 없다 — 쌓아 둔 파일과 맞대 봐야 나온다.
+    한 실행의 수집 단계에서는 알 수 없는 값들이다.
+
+        최초수집일 · 최종확인일   쌓아 둔 파일과 맞대 봐야 나온다 → `store.merge()`
+        평점                     잡플래닛에 물어봐야 나온다      → `jobplanet_rating.py`
     """
-    history = {"최초수집일", "최종확인일"}
+    history = {"최초수집일", "최종확인일", "평점"}
     for payload in FIXTURES.values():
         row = to_row(payload["job"])
         assert set(row) == set(COLUMNS) - history, "컬럼 구성이 스키마와 다르다"
@@ -100,7 +103,7 @@ def test_NORMAL_row_from_real_api_responses():
         assert row["연봉"] == ""                      # Wanted 는 연봉을 주지 않는다
         assert row["URL"].startswith("https://www.wanted.co.kr/wd/")
 
-    # 병합을 거치면 13칸이 다 찬다 — CSV 로 나가는 모양이다
+    # 병합을 거치면 14칸이 다 선다 — CSV 로 나가는 모양이다
     merged = merge([], [to_row(p["job"]) for p in FIXTURES.values()], today="2026-09-03")
     assert all(set(r) == set(COLUMNS) for r in merged.rows)
 

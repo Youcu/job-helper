@@ -70,7 +70,7 @@ from _common.runlock import guarded                                # noqa: E402
 from _common.store import (COLUMNS, FIRST_SEEN, KEY_COLUMN,        # noqa: E402
                            merge, read_csv, write_csv, write_rows)
 
-# 13칸 스키마 그대로 쌓는 둘. `store.merge()` 가 URL 키로 병합하고 30일 보존까지 한다.
+# 14칸 스키마 그대로 쌓는 둘. `store.merge()` 가 URL 키로 병합하고 30일 보존까지 한다.
 # **입구와 출구만 쌓는다.** 중간 산출물은 `./csv` 에 이번 실행 것이 그대로 있고,
 # 무엇이 왜 빠졌는지는 `history_dropped.csv` 가 단계별로 담는다. 단계마다 이력 파일을
 # 늘리면 거르기를 하나 더할 때마다 이력도 하나씩 는다 (2026-09-13 사용자).
@@ -119,7 +119,7 @@ def _keep_earliest(rows: list[dict], fresh: list[dict]) -> None:
 
 
 def _read_any(path: Path) -> list[dict]:
-    """칸 이름을 모르는 CSV 를 그대로 읽는다. `store.read_csv` 는 13칸에 묶여 있다."""
+    """칸 이름을 모르는 CSV 를 그대로 읽는다. `store.read_csv` 는 14칸에 묶여 있다."""
     if not path.exists():
         return []
     with path.open(encoding="utf-8-sig", newline="") as handle:

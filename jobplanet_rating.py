@@ -463,6 +463,9 @@ def _judge(rows: list[dict], book: dict) -> tuple[list, list, list]:
         record = book.get(key)
         text = verdict(record)
         if keeps(text):
+            # **읽은 값을 버리지 않는다.** 거르려고 어차피 물어본 평점이라, 남기는
+            # 행에 적어 두면 사람이 최종본만 보고도 회사를 견줄 수 있다.
+            row["평점"] = "%.1f" % record["평점"]
             kept.append(row)
         else:
             cut.append((row, text, record))
