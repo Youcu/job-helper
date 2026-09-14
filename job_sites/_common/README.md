@@ -15,7 +15,8 @@
 |---|---|
 | `tech_corpus.json` | **표준 이름 + 분류.** 358개. `name` `kind` `devtypes` `source` |
 | `tech_aliases.json` | 별칭 → 표준 이름 (`GCP`→`Google Cloud`) |
-| `tech_blocklist.txt` | 산문 매칭에서 걸러 낼 말 (`IR` `SaaS` `Spa` `TPM`) |
+| `tech_blocklist.txt` | **진짜 기술인데 산문에서 오탐**이 되는 이름 (`Lambda` `S3` `Storm`). **산문만** 막는다 |
+| `tech_rejected.txt` | **애초에 기술스택이 아닌** 이름 (`SaaS` `풀스택` `CI/CD`). **산문과 태그를 다** 막는다 |
 | `tech_ko_allowlist.txt` | 산문에서 찾을 한글 기술어 |
 | `dictionaries.py` | **사전 파일을 읽는 유일한 곳.** 형식을 아는 데가 여기 하나여야 사이트를 붙일 때 파싱이 복제되지 않는다 |
 | `normalize.py` | `canonical()` `kind_of()` — 이름을 표준 표기로 |
@@ -205,6 +206,9 @@ DevSkill 에서 문제가 안 되는 이유는 입력이 다르기 때문이다.
 ## 고칠 일이 생기면
 
 - **같은 기술이 두 이름으로 나온다** → `tech_aliases.json` 에 한 줄
-- **기술이 아닌 말이 잡힌다** → `tech_blocklist.txt` 에 한 줄
+- **기술이 아닌 말이 잡힌다** → **어느 파일인지 가려라.**
+  - 진짜 기술인데 산문에서만 오탐이다 (`Lambda` · `S3`) → `tech_blocklist.txt`
+  - 애초에 기술스택이 아니다 (`SaaS` · `풀스택`) → `tech_rejected.txt`.
+    **태그로도 들어오므로** 여기 적어야 막힌다
 - **한글 기술어를 놓친다** → `tech_ko_allowlist.txt` 에 한 줄
 - **새 기술을 넣고 싶다** → `tech_corpus.json` 에 한 항목 추가 (위 "기술을 하나 더 넣으려면")

@@ -2,21 +2,6 @@
 # 사이트 공통이다 — 어느 채용사이트에서든 기술이 아닌 말들이다.
 # 오탐을 보면 여기 한 줄 추가하고 다시 돌린다.
 
-# --- 사업·도메인 용어 ---
-SaaS
-B2B
-B2C
-FMCG
-ERP
-CRM
-SCM
-POS
-IR          # Investor Relations
-ROI
-KPI
-OKR
-BM
-
 # --- 일반 영단어라 문장에서 그냥 걸린다 ---
 Communication
 Processing
@@ -41,10 +26,6 @@ Notion
 Slack
 JIRA
 Confluence
-Figma
-Word
-Excel
-PowerPoint
 
 # --- 너무 흔해 변별력이 없다 ---
 API
@@ -58,50 +39,3 @@ S3
 EC2
 EKS
 ARM
-
-# --- 기술이 아니라 **그 기술로 하는 일** (2026-09-14 사용자) ---
-#
-# 기술스택 칸은 "무엇으로 만드나" 를 담는다. 아래는 그 자리가 아니다.
-#
-#   직무·분야     풀스택 · 웹 개발 · 임베디드 · 네트워크 보안 …
-#   일반 용어     컨테이너(기술은 Docker) · 가상화(기술은 VMware)
-#   방법론·패턴   TDD · DevOps · ORM(스택은 JPA·Hibernate) · 마이크로서비스
-#   분야 이름     ML · 딥러닝 · NLP — 무엇으로 하는지를 말하지 않는다
-#
-# corpus 에서도 뺐다. 여기 적는 이유는 **사이트 어휘로도 들어오기** 때문이다 —
-# 사람인 코드표에 `풀스택`(2232, 347건), 원티드 스킬 사전에 21개가 있다.
-
-BDD
-CMS
-DevOps
-EDA
-ETL
-GUI
-ML
-MVVM
-NLP
-OOP
-ORM
-SDLC
-SDN
-SEO
-TDD
-가상화
-객체지향
-네트워크 보안
-대용량 트래픽
-딥러닝
-마이크로서비스
-머신러닝
-분산처리
-소켓 프로그래밍
-웹 개발
-임베디드
-자연어처리
-추천 시스템
-컨테이너
-클라우드 네이티브
-클라우드 보안
-클라우드 컴퓨팅
-풀스택
-IoT

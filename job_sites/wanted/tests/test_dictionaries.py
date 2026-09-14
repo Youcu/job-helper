@@ -64,6 +64,41 @@ def test_EXCEPTION_hand_edited_dictionary_files():
 
 
 def test_BOUNDARY_blocklist_is_case_insensitive():
-    """블록리스트는 소문자로 모은다 — `SaaS` 와 `saas` 가 갈리면 반쪽만 걸린다."""
-    assert "saas" in dictionaries.blocklist()
-    assert "ir" in dictionaries.blocklist()
+    """두 목록 다 소문자로 모은다 — `Lambda` 와 `lambda` 가 갈리면 반쪽만 걸린다."""
+    assert "lambda" in dictionaries.blocklist()
+    assert "storm" in dictionaries.blocklist()
+    assert "saas" in dictionaries.rejected()
+
+
+def test_BOUNDARY_the_two_lists_mean_different_things():
+    """**`blocklist` 와 `rejected` 는 막는 자리가 다르다.** 섞으면 둘 다 망가진다.
+
+    | 파일 | 무엇 | 막는 곳 |
+    |---|---|---|
+    | `tech_blocklist.txt` | **진짜 기술인데 산문에서 오탐** (`Lambda` · `S3` · `Storm`) | 산문만 |
+    | `tech_rejected.txt` | **애초에 기술스택이 아님** (`SaaS` · `풀스택` · `CI/CD`) | 산문 + 태그 |
+
+    태그로 온 `Lambda` 까지 막으면 멀쩡한 기술이 사라지고, 태그로 온 `SaaS` 를 안
+    막으면 사업 용어가 기술스택 칸에 남는다. 실측으로 둘 다 겪었다 (2026-09-14).
+    """
+    from _common.skills import blocked
+
+    for name in ("Lambda", "S3", "Storm", "Docker"):
+        assert not blocked(name), "태그로 오면 살려야 한다: %s" % name
+    for name in ("SaaS", "풀스택", "CI/CD", "Figma", "컨테이너"):
+        assert blocked(name), "태그로 와도 막아야 한다: %s" % name
+
+
+def test_BOUNDARY_prose_reads_both_lists():
+    """**산문은 두 목록을 다 본다.** `rejected` 는 애초에 기술이 아니므로 산문에서도
+    잡으면 안 된다.
+
+    이 시험이 없을 때 산문이 `rejected` 를 빼먹어도 아무도 못 잡았다 — 되돌려 보니
+    1042건이 그대로 통과했다 (2026-09-14).
+    """
+    from _common.skills import find_in_corpus
+
+    got = find_in_corpus("SaaS 플랫폼에서 Docker 와 CI/CD 경험, 풀스택 개발")
+    assert "Docker" in got, got
+    for name in ("SaaS", "CI/CD", "풀스택"):
+        assert name not in got, "산문에서 잡히면 안 된다: %s (%r)" % (name, got)

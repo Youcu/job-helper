@@ -113,7 +113,7 @@ def blocked(name: str) -> bool:
 
     한글도 막는다 — `_searchable` 은 ASCII 만 보므로 거기서는 한글이 애초에 안 걸린다.
     """
-    return canonical(name).lower() in dictionaries.blocklist()
+    return canonical(name).lower() in dictionaries.rejected()
 
 
 def _searchable(names: list[str], blocked_set: frozenset[str]) -> dict[str, str]:
@@ -151,7 +151,9 @@ def build_matcher(site_terms: list[str] = ()) -> SkillMatcher:
     `site_terms=corpus_names()` 로 넘기면 같은 목록을 두 번 넣는 셈이다 — 결과는 같지만
     코드가 "이 사이트의 어휘가 corpus 다" 라는 없는 사실을 말하게 된다.
     """
-    blocked_set = dictionaries.blocklist()
+    # **산문은 둘 다 본다.** `blocklist` 는 오탐 방지(`Lambda`·`S3`),
+    # `rejected` 는 애초에 기술이 아닌 것 — 어느 쪽이든 산문에서 잡으면 안 된다.
+    blocked_set = dictionaries.blocklist() | dictionaries.rejected()
     ascii_names = _searchable(
         list(site_terms) + dictionaries.corpus_names() + dictionaries.alias_spellings(),
         blocked_set,
