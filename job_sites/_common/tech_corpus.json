@@ -11,8 +11,8 @@
   "protocol": "통신 규약·표준 (TCP, HTTP, OAuth)"
  },
  "_counts": {
-  "총": 359,
-  "concept": 5,
+  "총": 358,
+  "concept": 4,
   "database": 38,
   "framework": 64,
   "language": 62,
@@ -923,12 +923,6 @@
    "kind": "platform",
    "devtypes": [],
    "source": "devskill"
-  },
-  {
-   "name": "IoT",
-   "kind": "concept",
-   "devtypes": [],
-   "source": "observed"
   },
   {
    "name": "IPC",

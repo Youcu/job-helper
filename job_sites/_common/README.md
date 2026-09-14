@@ -13,7 +13,7 @@
 
 | 파일 | 무엇 |
 |---|---|
-| `tech_corpus.json` | **표준 이름 + 분류.** 359개. `name` `kind` `devtypes` `source` |
+| `tech_corpus.json` | **표준 이름 + 분류.** 358개. `name` `kind` `devtypes` `source` |
 | `tech_aliases.json` | 별칭 → 표준 이름 (`GCP`→`Google Cloud`) |
 | `tech_blocklist.txt` | 산문 매칭에서 걸러 낼 말 (`IR` `SaaS` `Spa` `TPM`) |
 | `tech_ko_allowlist.txt` | 산문에서 찾을 한글 기술어 |
@@ -113,7 +113,7 @@ CSV 스키마는 14컬럼이다. 앞 11개는 공고에서 나오고, `평점` �
 
 ## corpus 는 어디서 왔나
 
-`tech_corpus.json` 의 349개는 두 갈래가 합쳐진 것이다. **이미 합쳐져 파일에 들어 있고,
+`tech_corpus.json` 의 358개는 두 갈래가 합쳐진 것이다. **이미 합쳐져 파일에 들어 있고,
 다시 만들 일은 없다.** 이 저장소만 클론하면 그대로 돈다 — 바깥 경로를 보는 코드는 없다.
 
 | 출처 | 개수 | 무엇 |
