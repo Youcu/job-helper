@@ -145,3 +145,29 @@ def test_BOUNDARY_zero_rows_after_filtering_is_still_normal():
     naked["detail"] = {"requirements": "성실한 분", "preferred_points": ""}
     code, _screen = _run_with({1: {}}, {1: naked})
     assert code == 0, code
+
+
+def test_BOUNDARY_merge_summary_comes_from_common():
+    """**병합 결과를 찍는 말은 `_common` 이 쥔다.** 여기 사본을 두면 안 된다.
+
+    `store.merge_lines()` 는 그것을 막으려고 만든 함수다 — 세는 규칙이 바뀌면 찍는
+    말도 같이 바뀌어야 하는데, 사이트마다 사본이 있으면 한 곳만 고치고 지나간다.
+    예외도 안 나고 테스트도 안 깨지므로 **화면에 서로 다른 숫자가 나올 때까지 모른다.**
+
+    `wanted` 는 그 사본을 갖고 있었다 — 여섯 줄이 글자까지 같았다.
+    """
+    from _common import store
+
+    calls = []
+    original = store.merge_lines
+    store.merge_lines = lambda result, **kw: calls.append(result) or ["  (공통)"]
+    wanted.merge_lines = store.merge_lines
+    try:
+        code, screen = _run_with({1: {}}, {1: _job(1)})
+    finally:
+        store.merge_lines = original
+        wanted.merge_lines = original
+
+    assert code == 0, code
+    assert len(calls) == 1, "**공통 함수를 지나야 한다** — 사본을 쓰면 0이다"
+    assert "(공통)" in screen, screen

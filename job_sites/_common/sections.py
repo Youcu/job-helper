@@ -129,7 +129,14 @@ def _headings(extra_other: re.Pattern[str] | None) -> tuple[re.Pattern[str], ...
 
 
 def heading_kinds(line: str, headings: tuple[re.Pattern[str], ...] | None = None) -> int:
-    """이 줄이 몇 종류의 절 이름을 담고 있는가."""
+    """이 줄이 몇 종류의 절 이름을 담고 있는가.
+
+    **셋을 다 본다.** 자기 절 이름과 `OTHER_HEADING` 만 보면 **지원자격이 우대사항을
+    삼킨다** — 우대사항은 둘 중 어디에도 없기 때문이다. 절의 끝은 "다음 머리말" 이지
+    "내가 아는 다른 머리말" 이 아니다.
+
+    0 이면 내용, 1 이면 머리말, 2 이상이면 표의 열 머리글이다 (`is_column_header`).
+    """
     return sum(bool(pattern.search(line)) for pattern in (headings or _headings(None)))
 
 
@@ -143,16 +150,6 @@ def is_column_header(line: str, headings=None) -> bool:
     절 이름 하나만 든 줄은 진짜 머리말이다. 둘 이상이면 머리글이다.
     """
     return heading_kinds(line, headings) > 1
-
-
-def is_heading(line: str, headings=None) -> bool:
-    """어느 절이든 머리말인가.
-
-    자기 머리말과 `OTHER_HEADING` 만 보면 **지원자격이 우대사항을 삼킨다** — 우대사항은
-    둘 중 어디에도 없기 때문이다. 절의 끝은 "다음 머리말" 이지 "내가 아는 다른 머리말"
-    이 아니다.
-    """
-    return heading_kinds(line, headings) > 0
 
 
 def stacked_headers(lines: list[str], headings=None) -> set[int]:
