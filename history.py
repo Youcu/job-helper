@@ -71,9 +71,12 @@ from _common.store import (COLUMNS, FIRST_SEEN, KEY_COLUMN,        # noqa: E402
                            merge, read_csv, write_csv, write_rows)
 
 # 13칸 스키마 그대로 쌓는 둘. `store.merge()` 가 URL 키로 병합하고 30일 보존까지 한다.
+# **입구와 출구만 쌓는다.** 중간 산출물은 `./csv` 에 이번 실행 것이 그대로 있고,
+# 무엇이 왜 빠졌는지는 `history_dropped.csv` 가 단계별로 담는다. 단계마다 이력 파일을
+# 늘리면 거르기를 하나 더할 때마다 이력도 하나씩 는다 (2026-09-13 사용자).
 SCHEMA_PAIRS = (
     ("merged_read.csv", "history_read.csv", "전처리 이전"),
-    ("merged_core.csv", "history_core.csv", "최종본"),
+    ("merged_career.csv", "history_final.csv", "최종본"),
 )
 
 # 리포트 셋 → 한 파일. `(파일, 단계 이름, 근거로 쓸 칸들)`

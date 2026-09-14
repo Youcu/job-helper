@@ -23,7 +23,10 @@ Wanted · 사람인 · 잡코리아 · 잡플래닛 · 점핏
    csv/merged_rated.csv  +  csv/rating_report.csv  +  csv/same_names.csv
         │
         ▼ 핵심 기술 (core_stack.py)
-   csv/merged_core.csv  +  csv/core_stack_report.csv        ← 최종
+   csv/merged_core.csv  +  csv/core_stack_report.csv
+        │
+        ▼ 경력 거르기 (career.py) — 신입이라 적고 경력을 요구하는 공고를 뺀다
+   csv/merged_career.csv  +  csv/career_report.csv        ← 최종
         │
         ▼ 이력 쌓기 · 사이트 CSV 치우기 (history.py)
    history/history_read.csv · history_core.csv · history_dropped.csv · history_same_names.csv
@@ -62,6 +65,7 @@ Wanted · 사람인 · 잡코리아 · 잡플래닛 · 점핏
 거르기          5분   실측 710행에 0.02초. 그물도 모델도 안 탄다
 평점 거르기    180분   실측 457곳에 126분. 그물을 타고 5초씩 쉰다
 핵심 기술       5분   파일 하나를 읽고 정규식을 돌릴 뿐이다
+경력 거르기     20분   후보만 모델에 묻는다. 실측 66행 중 10건
 이력 쌓기       5분   파일 몇 개를 병합해 쓴다
 ```
 

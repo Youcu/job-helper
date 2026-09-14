@@ -31,7 +31,7 @@ def _stage(home, rows=None, reports=True):
     csv_dir = home / "csv"
     rows = rows if rows is not None else [_row()]
     write_csv(csv_dir / "merged_read.csv", rows, COLUMNS)
-    write_csv(csv_dir / "merged_core.csv", rows[:1], COLUMNS)
+    write_csv(csv_dir / "merged_career.csv", rows[:1], COLUMNS)
     if reports:
         for name, columns, line in (
                 ("filter_report.csv", ("기업명", "공고명", "사이트명", "URL", "판정",
@@ -80,7 +80,7 @@ def test_NORMAL_accumulates_read_and_core():
     code = hist._run(_stage(home), home / "history", _sites(home), today="2026-09-12")
     check_equal(code, 0, "정상 종료")
     check_equal(len(read_csv(home / "history" / "history_read.csv")), 1, "전처리 이전")
-    check_equal(len(read_csv(home / "history" / "history_core.csv")), 1, "최종본")
+    check_equal(len(read_csv(home / "history" / "history_final.csv")), 1, "최종본")
 
 
 def test_NORMAL_three_reports_become_one_file():
@@ -123,7 +123,7 @@ def test_EXCEPTION_missing_final_output_stops_and_sweeps_nothing():
     """
     home = temp_dir()
     csv_dir = home / "csv"
-    write_csv(csv_dir / "merged_read.csv", [_row()], COLUMNS)   # core 가 없다
+    write_csv(csv_dir / "merged_read.csv", [_row()], COLUMNS)   # 최종본이 없다
     sites = _sites(home)
     check_equal(hist._run(csv_dir, home / "history", sites, today="2026-09-12"), 1,
                 "1 로 멈춘다")

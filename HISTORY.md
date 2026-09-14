@@ -8,7 +8,7 @@ python3 history.py
 
 ```
 csv/merged_read.csv       ──누적──▶  history/history_read.csv        전처리 이전
-csv/merged_core.csv       ──누적──▶  history/history_core.csv        최종본
+csv/merged_career.csv     ──누적──▶  history/history_final.csv       최종본
 리포트 셋                 ──누적──▶  history/history_dropped.csv     왜 빠졌나
 csv/same_names.csv        ──누적──▶  history/history_same_names.csv  동명 회사 후보
 job_sites/*/csv/*_post.csv  ──삭제──
@@ -94,14 +94,14 @@ history/history_dropped.csv
 읽는다. 그리고 이 단계는 **사이트 CSV 를 지우므로** 더 위험하다 — 반쪽을 쌓고 원본까지
 지우면 다시 걷는 수밖에 없다.
 
-혼자 돌릴 때도 `merged_read.csv` 와 `merged_core.csv` 가 **둘 다** 있어야 돈다.
+혼자 돌릴 때도 `merged_read.csv` 와 `merged_career.csv` 가 **둘 다** 있어야 돈다.
 
 ## 5. 종료 코드
 
 | 코드 | 뜻 |
 |---|---|
 | 0 | 정상 |
-| 1 | `merged_read.csv` 나 `merged_core.csv` 가 없다 — **파이프라인이 안 끝났다** |
+| 1 | `merged_read.csv` 나 `merged_career.csv` 가 없다 — **파이프라인이 안 끝났다** |
 | 3 | 이미 돌고 있다 |
 
 `1` 로 멈출 때는 **사이트 CSV 를 지우지 않고 이력도 안 만든다.**

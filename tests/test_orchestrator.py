@@ -46,7 +46,7 @@ def _fakes_with_csvs():
 
 
 def _main_with(fake_results, image, filtered=None, rated=None, cored=None,
-               historied=None):
+               careered=None, historied=None):
     """`main()` 을 **통째로** 돌린다. 자식 프로세스는 하나도 안 띄운다.
 
     스크래퍼(`_run_one`)와 수집 뒤 단계(`_run_stage`)만 가짜로 바꾸고 **합치기는
@@ -65,6 +65,7 @@ def _main_with(fake_results, image, filtered=None, rated=None, cored=None,
               orch.RATING_STAGE.name: ("평점", rated or _stage("평점", code=0)),
               orch.CORE_STACK_STAGE.name: ("핵심기술",
                                            cored or _stage("핵심기술", code=0)),
+              orch.CAREER_STAGE.name: ("경력", careered or _stage("경력", code=0)),
               orch.HISTORY_STAGE.name: ("이력", historied or _stage("이력", code=0))}
 
     def merge(paths, output):
@@ -296,9 +297,9 @@ def test_NORMAL_stages_run_in_order_after_merging():
     통과하거나 `ValueError` 로 터진다 — 실패가 아니라 오류로. 그래서 진짜로 돌린다.
     """
     code, events, merged, _ = _main_with(_fakes_with_csvs(), _image(code=0))
-    check_equal(events, ["합치기", "이미지", "거르기", "평점", "핵심기술", "이력"],
+    check_equal(events, ["합치기", "이미지", "거르기", "평점", "핵심기술", "경력", "이력"],
                 "차례가 이것이다: %r" % events)
-    check_equal(code, 0, "여섯 다 멀쩡하면 0")
+    check_equal(code, 0, "일곱 다 멀쩡하면 0")
     check_equal(len(read_csv(merged)), len(orch.SITES), "합본에 여섯 행이 들어 있다")
 
 
