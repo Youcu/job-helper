@@ -242,7 +242,7 @@ def test_BOUNDARY_every_csv_writer_goes_through_one_atomic_write():
 
     한때 이 열 줄이 **다섯 벌** 있었다 — `filter.py` · `core_stack.py` ·
     `jobplanet_rating.py` · `history.py` · `store.write_csv`. 리포트마다 칸이 달라
-    13칸에 묶인 `write_csv()` 를 못 썼기 때문이다.
+    14칸에 묶인 `write_csv()` 를 못 썼기 때문이다.
 
     **그 열 줄은 테스트가 지켜 주지 않는다.** `fsync` 한 줄을 빼도 전부 통과한다 —
     같은 프로세스 안에서 쓰고 바로 읽으니 내용은 맞다. 드러나는 것은 진짜로 중간에
@@ -272,7 +272,7 @@ def test_BOUNDARY_every_csv_writer_goes_through_one_atomic_write():
         core_stack._write_report(home / "core_stack_report.csv", [])
         jobplanet_rating._write_report(home / "rating_report.csv", [])
         jobplanet_rating._write_same_names(home / "same_names.csv", [])
-        store.write_csv(home / "merged.csv", [])     # 13칸 쪽도 같은 통로다
+        store.write_csv(home / "merged.csv", [])     # 14칸 쪽도 같은 통로다
     finally:
         store.write_rows = _real_write_rows
         for module, original in zip(stages, saved):

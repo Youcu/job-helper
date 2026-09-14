@@ -25,6 +25,13 @@ def _row(**fields) -> dict:
     return row
 
 
+def _env(home, value="PHP, jQuery"):
+    """**테스트는 진짜 `.env` 를 안 탄다.** CI 에는 그 파일이 없다."""
+    path = home / ".env"
+    path.write_text("EXCLUDE_TECH_STACKS=%s\n" % value, encoding="utf-8")
+    return path
+
+
 # ── 일반 ────────────────────────────────────────────────────────────────
 
 def test_NORMAL_same_posting_on_two_sites_becomes_one():
@@ -49,7 +56,7 @@ def test_NORMAL_report_holds_every_dropped_row():
             _row(기업명="가", 공고명="A", 사이트명="saramin", URL="s/1"),
             _row(기업명="나", 공고명="B", URL="w/2", 지원자격="고객사 상주")]
     write_csv(home / "in.csv", rows, COLUMNS)
-    flt._run(home / "in.csv", home / "out.csv", home / "report.csv")
+    flt._run(home / "in.csv", home / "out.csv", home / "report.csv", _env(home))
     check_equal(len(read_csv(home / "out.csv")), 1, "남는 것은 한 행")
     report = read_csv(home / "report.csv")
     check_equal(len(report), 2, "**뺀 행은 하나도 빠짐없이 보고에 있어야 한다**")
@@ -59,7 +66,7 @@ def test_NORMAL_report_holds_every_dropped_row():
 def test_NORMAL_output_keeps_the_thirteen_column_schema():
     home = temp_dir()
     write_csv(home / "in.csv", [_row()], COLUMNS)
-    flt._run(home / "in.csv", home / "out.csv", home / "report.csv")
+    flt._run(home / "in.csv", home / "out.csv", home / "report.csv", _env(home))
     with (home / "out.csv").open(encoding="utf-8-sig") as handle:
         header = handle.readline().strip().split(",")
     check_equal(header, list(COLUMNS), "산출물도 공통 스키마를 지켜야 한다")
@@ -69,7 +76,7 @@ def test_NORMAL_output_keeps_the_thirteen_column_schema():
 
 def test_EXCEPTION_missing_input_stops_with_one():
     home = temp_dir()
-    check_equal(flt._run(home / "없다.csv", home / "out.csv", home / "r.csv"), 1,
+    check_equal(flt._run(home / "없다.csv", home / "out.csv", home / "r.csv", _env(home)), 1,
                 "입력이 없으면 1 로 멈춰야 한다 — 0 을 내면 자동화가 성공으로 읽는다")
 
 
@@ -77,14 +84,14 @@ def test_EXCEPTION_missing_input_writes_nothing():
     # 결함: 없는 입력에도 빈 산출물을 쓰면, 다음 단계가 **어제 결과가 사라진 것**을
     # 정상으로 읽는다.
     home = temp_dir()
-    flt._run(home / "없다.csv", home / "out.csv", home / "r.csv")
+    flt._run(home / "없다.csv", home / "out.csv", home / "r.csv", _env(home))
     check(not (home / "out.csv").exists(), "입력이 없으면 산출물을 만들면 안 된다")
 
 
 def test_EXCEPTION_empty_input_is_not_a_failure():
     home = temp_dir()
     write_csv(home / "in.csv", [], COLUMNS)
-    check_equal(flt._run(home / "in.csv", home / "out.csv", home / "r.csv"), 0,
+    check_equal(flt._run(home / "in.csv", home / "out.csv", home / "r.csv", _env(home)), 0,
                 "행이 0개인 것과 파일이 없는 것은 다르다")
     check_equal(read_csv(home / "out.csv"), [], "빈 산출물")
 
@@ -155,7 +162,7 @@ def test_BOUNDARY_dedup_runs_before_screening():
                  지원자격="고객사 상주가 필요합니다"),
             _row(기업명="가", 공고명="A", 사이트명="saramin", URL="s/1", 지원자격="짧다")]
     write_csv(home / "in.csv", rows, COLUMNS)
-    flt._run(home / "in.csv", home / "out.csv", home / "report.csv")
+    flt._run(home / "in.csv", home / "out.csv", home / "report.csv", _env(home))
     check_equal(read_csv(home / "out.csv"), [],
                 "먼저 묶어 **가장 온전한 본문 하나로** 판정해야 한다")
 
@@ -164,8 +171,63 @@ def test_BOUNDARY_report_records_where_the_word_was_found():
     home = temp_dir()
     write_csv(home / "in.csv",
               [_row(지원자격="여러 줄 중에\n고객사 상주 근무가 있습니다\n끝")], COLUMNS)
-    flt._run(home / "in.csv", home / "out.csv", home / "report.csv")
+    flt._run(home / "in.csv", home / "out.csv", home / "report.csv", _env(home))
     why = read_csv(home / "report.csv")[0]["근거"]
     check("고객사" in why, "**근거에 그 자리의 글이 있어야** 오탐을 되짚을 수 있다: %r" % why)
 
 
+def test_NORMAL_tech_stack_exclusion_from_env():
+    """`.env` 의 `EXCLUDE_TECH_STACKS` 가 **기술스택 칸**에서 뺀다.
+
+    `CORE_TECH_STACKS`(남길 것)의 반대다. 사람이 실제 목록을 보고 고치는 값이라
+    코드가 아니라 `.env` 에 둔다 (2026-09-14 사용자).
+    """
+    rules = filter_words.build_excluded(["PHP", "jQuery"])
+    kept, dropped = flt.screen([_row(기술스택="Java, jQuery, Spring"),
+                                _row(기술스택="Java, Spring", URL="u/2")], rules)
+    check_equal(len(kept), 1, "걸린 것만 빠진다")
+    check_equal(kept[0]["URL"], "u/2", "멀쩡한 행은 남는다")
+    check_equal(dropped[0][1][0], ("jQuery", "기술스택"),
+                "**어느 칸에서 걸렸는지** 보고에 남아야 한다: %r" % (dropped[0][1],))
+
+
+def test_EXCEPTION_an_empty_setting_excludes_nothing():
+    """비면 **아무것도 안 뺀다.** 화면에 그렇게 적는다 — 안 적으면 걸렀다고 믿는다."""
+    home = temp_dir()
+    write_csv(home / "in.csv", [_row(기술스택="PHP, jQuery")], COLUMNS)
+    code = flt._run(home / "in.csv", home / "out.csv", home / "r.csv",
+                    _env(home, ""))
+    check_equal(code, 0, "빈 설정은 오류가 아니다")
+    check_equal(len(read_csv(home / "out.csv")), 1, "안 뺀다")
+
+
+def test_BOUNDARY_tech_names_are_matched_as_words():
+    """`PHP` 는 `PHPStorm` 이 아니고 `jQuery` 는 `Query` 가 아니다.
+
+    부분문자열로 보면 멀쩡한 공고가 사라지는데, **지워진 공고는 흔적이 안 남는다.**
+    """
+    rules = filter_words.build_excluded(["PHP", "jQuery"])
+    for stack in ("PHPStorm, Query", "GraphQL, Queryable", "phpMyAdmin설정"):
+        check_equal(filter_words.excluded_techs({"기술스택": stack}, rules), [],
+                    "낱말이 아니다: %r" % stack)
+    for stack in ("Java, jQuery, Spring", "php, MySQL", "PHP/Laravel"):
+        check(filter_words.excluded_techs({"기술스택": stack}, rules),
+              "낱말이다: %r" % stack)
+
+
+def test_BOUNDARY_prose_mentions_of_the_tech_do_not_count():
+    """**기술스택 칸만 본다.** 산문에서 보면 "PHP 경험 있으면 좋지만 필수 아님" 도 걸린다."""
+    rules = filter_words.build_excluded(["PHP"])
+    row = _row(기술스택="Java, Spring", 우대사항="PHP 경험이 있으면 좋지만 필수는 아닙니다")
+    check_equal(filter_words.excluded_techs(row, rules), [], "산문은 안 본다")
+
+
+def test_BOUNDARY_tests_never_read_the_real_env():
+    """**진짜 `.env` 를 타면 CI 에서 깨진다.** 그 파일은 저장소에 없다.
+
+    실제로 그랬다 — `_run` 에 `env_path` 를 안 넘겼더니 `.env` 를 숨긴 상태에서
+    다섯 건이 실패했다.
+    """
+    import inspect
+    source = inspect.getsource(flt._run)
+    check("env_path" in source, "`_run` 이 경로를 인자로 받아야 한다")

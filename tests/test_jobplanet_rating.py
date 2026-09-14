@@ -329,3 +329,28 @@ def test_BOUNDARY_there_is_no_web_search_fallback():
     check(source.endswith(".py"), "모듈 경로")
     text = open(source, encoding="utf-8").read()
     check("WebSearch" not in text, "모델에게 웹을 뒤지게 하는 길이 다시 생겼다")
+
+
+def test_NORMAL_the_kept_rows_carry_their_rating():
+    """**읽은 평점을 버리지 않는다.**
+
+    거르려고 어차피 물어본 값이라, 남기는 행에 적어 두면 사람이 최종본만 보고도
+    회사를 견줄 수 있다. 이 칸은 뒤 단계(`core_stack`·`career`)를 지나 최종본까지
+    간다 — `store.COLUMNS` 에 있으므로 `read_csv` 가 안 버린다.
+    """
+    home = temp_dir()
+    write_csv(home / "in.csv", [_row(기업명="좋은회사", URL="u/1")], COLUMNS)
+    net = _searcher({"좋은회사": [_item("좋은회사", 3.4)]})
+    jr._run(home / "in.csv", home / "out.csv", home / "report.csv",
+            home / "same.csv", home / "cache.json", home / "log.jsonl", searcher=net)
+    got = read_csv(home / "out.csv")[0]
+    check_equal(got["평점"], "3.4", "**남긴 행에 평점이 적혀야 한다**: %r" % got["평점"])
+
+
+def test_BOUNDARY_rating_is_blank_before_this_stage():
+    """앞 단계의 CSV 에서는 **빈칸이다.** 그게 "아직 안 물어봤다" 를 정직하게 말한다.
+
+    수집 단계의 CSV 에 평점이 차 있으면 그것이 어디서 왔는지 알 수 없다.
+    """
+    check("평점" in COLUMNS, "스키마에 있어야 뒤 단계가 안 버린다")
+    check_equal(_row()["평점"], "", "수집기가 만든 행은 빈칸")

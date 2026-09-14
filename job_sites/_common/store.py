@@ -37,6 +37,10 @@ COLUMNS = [
     "기술스택",
     "근무지",
     "사이트명",
+    # **수집기가 채우지 않는 칸.** 평점은 잡플래닛에 물어봐야 알 수 있어서 한 실행의
+    # 수집 단계에서는 알 수 없다 — `최초수집일`·`최종확인일` 과 같은 부류다.
+    # 거르기 전까지는 빈칸이고, `jobplanet_rating.py` 가 채운다.
+    "평점",
     "최초수집일",
     "최종확인일",
 ]
@@ -129,7 +133,10 @@ def merge(
             added += 1
             row[FIRST_SEEN] = today
         row[LAST_SEEN] = today
-        merged[key] = row
+        # **스키마를 온전히 갖춰 내보낸다.** 수집기는 자기가 아는 칸만 만들고,
+        # `평점` 처럼 뒤 단계가 채우는 칸은 아예 없다. 여기서 빈칸을 세워 두지 않으면
+        # 병합 결과를 받는 쪽이 칸이 있는지 없는지를 매번 따져야 한다.
+        merged[key] = {column: row.get(column, "") for column in COLUMNS}
 
     kept, expired, undated = [], 0, 0
     cutoff = _parse_day(today)
@@ -202,7 +209,7 @@ def write_rows(path: Path, columns: tuple, rows: list[dict]) -> None:
 
     같은 열 줄이 저장소에 **다섯 벌** 있었다 (`filter.py` · `core_stack.py` ·
     `jobplanet_rating.py` · `history.py` · 여기). 리포트마다 칸이 달라
-    13칸에 묶인 `write_csv()` 를 못 썼기 때문이다. 그래서 칸을 인자로 받는다.
+    14칸에 묶인 `write_csv()` 를 못 썼기 때문이다. 그래서 칸을 인자로 받는다.
 
     **이 보장은 테스트가 지켜 주지 않는다.** 누가 `os.fsync` 한 줄을 빠뜨려도
     테스트는 전부 통과한다 — 같은 프로세스 안에서 쓰고 바로 읽으니 내용은 맞다.
@@ -224,7 +231,7 @@ def write_rows(path: Path, columns: tuple, rows: list[dict]) -> None:
 
 
 def write_csv(path: Path, rows: list[dict]) -> None:
-    """**13칸 스키마로** 원자적으로 쓴다. 아무 칸 구조나 쓰려면 `write_rows`."""
+    """**14칸 스키마로** 원자적으로 쓴다. 아무 칸 구조나 쓰려면 `write_rows`."""
     write_rows(path, COLUMNS, rows)
 
 
