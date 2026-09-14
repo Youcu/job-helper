@@ -103,12 +103,25 @@ class SkillMatcher:
         return found
 
 
-def _searchable(names: list[str], blocked: frozenset[str]) -> dict[str, str]:
+def blocked(name: str) -> bool:
+    """기술스택 칸에 **넣지 않을 말**인가. `tech_blocklist.txt` 가 정한다.
+
+    **산문 경로와 태그 경로 둘 다 이것을 지나야 한다.** 오래 한쪽만 막고 있었다 —
+    `_searchable` 은 차단을 보는데 사이트가 태그 코드를 이름으로 옮기는 자리
+    (`structured_skills`)는 안 봤다. 그래서 `풀스택` 이 사람인 코드표(2232·347건)를
+    타고 그대로 들어왔다 (2026-09-14 실측).
+
+    한글도 막는다 — `_searchable` 은 ASCII 만 보므로 거기서는 한글이 애초에 안 걸린다.
+    """
+    return canonical(name).lower() in dictionaries.blocklist()
+
+
+def _searchable(names: list[str], blocked_set: frozenset[str]) -> dict[str, str]:
     """찾을 만한 이름만 걸러 (소문자 → 표준 표기) 로 만든다."""
     keep: dict[str, str] = {}
     for name in names:
         low = name.lower()
-        if low in blocked or not _is_ascii_skill(name):
+        if low in blocked_set or not _is_ascii_skill(name):
             continue
         if len(name) <= 2 and low not in SHORT_NAME_ALLOWLIST:
             continue
@@ -138,10 +151,10 @@ def build_matcher(site_terms: list[str] = ()) -> SkillMatcher:
     `site_terms=corpus_names()` 로 넘기면 같은 목록을 두 번 넣는 셈이다 — 결과는 같지만
     코드가 "이 사이트의 어휘가 corpus 다" 라는 없는 사실을 말하게 된다.
     """
-    blocked = dictionaries.blocklist()
+    blocked_set = dictionaries.blocklist()
     ascii_names = _searchable(
         list(site_terms) + dictionaries.corpus_names() + dictionaries.alias_spellings(),
-        blocked,
+        blocked_set,
     )
     ascii_pattern = re.compile(
         r"(?<![A-Za-z0-9])(" + _alternation(list(ascii_names), version_suffix=True) + r")(?![A-Za-z0-9])",
@@ -149,7 +162,8 @@ def build_matcher(site_terms: list[str] = ()) -> SkillMatcher:
     )
 
     korean_names = {found: canonical(standard)
-                    for found, standard in dictionaries.korean_terms().items()}
+                    for found, standard in dictionaries.korean_terms().items()
+                    if not blocked(standard)}
     korean_pattern = (
         re.compile("(" + _alternation(list(korean_names), version_suffix=False) + ")")
         if korean_names else None

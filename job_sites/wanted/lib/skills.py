@@ -23,7 +23,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from _common.normalize import canonical
-from _common.skills import build_matcher
+from _common.skills import blocked, build_matcher
 
 TAGS_DIR = Path(__file__).resolve().parent.parent / "tags"
 SKILL_FILE = "wanted_skill.json"
@@ -52,7 +52,9 @@ def normalize_tag(tag: dict) -> str:
     먼저 얻고, 그 다음 공통 계층이 사이트 간 표준으로 모은다.
     """
     text = _skill_corpus().get(tag.get("tag_type_id")) or (tag.get("text") or "").strip()
-    return canonical(text)
+    # **태그로 와도 차단은 지난다.** Wanted 스킬 사전에 `DevOps`·`ORM`·`웹 개발` 처럼
+    # 기술이 아닌 말이 21개 있었다 (2026-09-14 실측).
+    return "" if blocked(text) else canonical(text)
 
 
 def find_skills_in_text(text: str) -> list[str]:

@@ -11,10 +11,15 @@
   "protocol": "통신 규약·표준 (TCP, HTTP, OAuth)"
  },
  "_counts": {
-  "devskill": 270,
-  "saramin": 49,
-  "observed": 73,
-  "total": 392
+  "총": 359,
+  "concept": 5,
+  "database": 38,
+  "framework": 64,
+  "language": 62,
+  "library": 55,
+  "platform": 57,
+  "protocol": 21,
+  "tool": 57
  },
  "tech": [
   {
@@ -286,12 +291,6 @@
    "source": "devskill"
   },
   {
-   "name": "BDD",
-   "kind": "concept",
-   "devtypes": [],
-   "source": "observed"
-  },
-  {
    "name": "BGP",
    "kind": "protocol",
    "devtypes": [],
@@ -402,12 +401,6 @@
    "source": "devskill"
   },
   {
-   "name": "CMS",
-   "kind": "concept",
-   "devtypes": [],
-   "source": "observed"
-  },
-  {
    "name": "CNN",
    "kind": "concept",
    "devtypes": [],
@@ -504,12 +497,6 @@
    "source": "devskill"
   },
   {
-   "name": "DevOps",
-   "kind": "concept",
-   "devtypes": [],
-   "source": "observed"
-  },
-  {
    "name": "DigitalOcean",
    "kind": "platform",
    "devtypes": [],
@@ -574,12 +561,6 @@
    "source": "devskill"
   },
   {
-   "name": "EDA",
-   "kind": "concept",
-   "devtypes": [],
-   "source": "observed"
-  },
-  {
    "name": "Elastic Stack",
    "kind": "tool",
    "devtypes": [],
@@ -626,12 +607,6 @@
   {
    "name": "ES6",
    "kind": "language",
-   "devtypes": [],
-   "source": "observed"
-  },
-  {
-   "name": "ETL",
-   "kind": "concept",
    "devtypes": [],
    "source": "observed"
   },
@@ -826,12 +801,6 @@
    "kind": "framework",
    "devtypes": [],
    "source": "saramin"
-  },
-  {
-   "name": "GUI",
-   "kind": "concept",
-   "devtypes": [],
-   "source": "observed"
   },
   {
    "name": "Gulp",
@@ -1172,12 +1141,6 @@
    "source": "devskill"
   },
   {
-   "name": "ML",
-   "kind": "concept",
-   "devtypes": [],
-   "source": "observed"
-  },
-  {
    "name": "Mojo",
    "kind": "language",
    "devtypes": [],
@@ -1200,12 +1163,6 @@
    "kind": "tool",
    "devtypes": [],
    "source": "devskill"
-  },
-  {
-   "name": "MVVM",
-   "kind": "concept",
-   "devtypes": [],
-   "source": "observed"
   },
   {
    "name": "MyBatis",
@@ -1270,12 +1227,6 @@
    "kind": "tool",
    "devtypes": [],
    "source": "devskill"
-  },
-  {
-   "name": "NLP",
-   "kind": "concept",
-   "devtypes": [],
-   "source": "observed"
   },
   {
    "name": "Node.js",
@@ -1358,12 +1309,6 @@
    "source": "devskill"
   },
   {
-   "name": "OOP",
-   "kind": "concept",
-   "devtypes": [],
-   "source": "observed"
-  },
-  {
    "name": "OpenAI",
    "kind": "library",
    "devtypes": [],
@@ -1422,12 +1367,6 @@
    "kind": "platform",
    "devtypes": [],
    "source": "saramin"
-  },
-  {
-   "name": "ORM",
-   "kind": "concept",
-   "devtypes": [],
-   "source": "observed"
   },
   {
    "name": "OSS",
@@ -1805,18 +1744,6 @@
    "source": "devskill"
   },
   {
-   "name": "SDLC",
-   "kind": "concept",
-   "devtypes": [],
-   "source": "observed"
-  },
-  {
-   "name": "SDN",
-   "kind": "concept",
-   "devtypes": [],
-   "source": "observed"
-  },
-  {
    "name": "Selenium",
    "kind": "tool",
    "devtypes": [],
@@ -1827,12 +1754,6 @@
    "kind": "tool",
    "devtypes": [],
    "source": "saramin"
-  },
-  {
-   "name": "SEO",
-   "kind": "concept",
-   "devtypes": [],
-   "source": "observed"
   },
   {
    "name": "Servlet",
@@ -2051,12 +1972,6 @@
   {
    "name": "TCP",
    "kind": "protocol",
-   "devtypes": [],
-   "source": "observed"
-  },
-  {
-   "name": "TDD",
-   "kind": "concept",
    "devtypes": [],
    "source": "observed"
   },
@@ -2371,114 +2286,6 @@
    "kind": "library",
    "devtypes": [],
    "source": "devskill"
-  },
-  {
-   "name": "가상화",
-   "kind": "concept",
-   "devtypes": [],
-   "source": "observed"
-  },
-  {
-   "name": "객체지향",
-   "kind": "concept",
-   "devtypes": [],
-   "source": "observed"
-  },
-  {
-   "name": "네트워크 보안",
-   "kind": "concept",
-   "devtypes": [],
-   "source": "observed"
-  },
-  {
-   "name": "대용량 트래픽",
-   "kind": "concept",
-   "devtypes": [],
-   "source": "observed"
-  },
-  {
-   "name": "딥러닝",
-   "kind": "concept",
-   "devtypes": [],
-   "source": "observed"
-  },
-  {
-   "name": "마이크로서비스",
-   "kind": "concept",
-   "devtypes": [],
-   "source": "observed"
-  },
-  {
-   "name": "머신러닝",
-   "kind": "concept",
-   "devtypes": [],
-   "source": "observed"
-  },
-  {
-   "name": "분산처리",
-   "kind": "concept",
-   "devtypes": [],
-   "source": "observed"
-  },
-  {
-   "name": "소켓 프로그래밍",
-   "kind": "concept",
-   "devtypes": [],
-   "source": "observed"
-  },
-  {
-   "name": "웹 개발",
-   "kind": "concept",
-   "devtypes": [],
-   "source": "observed"
-  },
-  {
-   "name": "임베디드",
-   "kind": "concept",
-   "devtypes": [],
-   "source": "observed"
-  },
-  {
-   "name": "자연어처리",
-   "kind": "concept",
-   "devtypes": [],
-   "source": "observed"
-  },
-  {
-   "name": "추천 시스템",
-   "kind": "concept",
-   "devtypes": [],
-   "source": "observed"
-  },
-  {
-   "name": "컨테이너",
-   "kind": "concept",
-   "devtypes": [],
-   "source": "observed"
-  },
-  {
-   "name": "클라우드 네이티브",
-   "kind": "concept",
-   "devtypes": [],
-   "source": "observed"
-  },
-  {
-   "name": "클라우드 보안",
-   "kind": "concept",
-   "devtypes": [],
-   "source": "observed"
-  },
-  {
-   "name": "클라우드 컴퓨팅",
-   "kind": "concept",
-   "devtypes": [],
-   "source": "observed"
-  },
-  {
-   "name": "풀스택",
-   "kind": "concept",
-   "devtypes": [],
-   "source": "saramin"
   }
  ]
 }

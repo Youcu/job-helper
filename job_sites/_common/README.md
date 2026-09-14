@@ -13,7 +13,7 @@
 
 | 파일 | 무엇 |
 |---|---|
-| `tech_corpus.json` | **표준 이름 + 분류.** 349개. `name` `kind` `devtypes` `source` |
+| `tech_corpus.json` | **표준 이름 + 분류.** 359개. `name` `kind` `devtypes` `source` |
 | `tech_aliases.json` | 별칭 → 표준 이름 (`GCP`→`Google Cloud`) |
 | `tech_blocklist.txt` | 산문 매칭에서 걸러 낼 말 (`IR` `SaaS` `Spa` `TPM`) |
 | `tech_ko_allowlist.txt` | 산문에서 찾을 한글 기술어 |

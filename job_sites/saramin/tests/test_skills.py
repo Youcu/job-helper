@@ -38,15 +38,38 @@ def test_NORMAL_two_sources_are_merged_without_duplicates():
                 "양쪽에 다 있는 이름이 두 번 나오면 안 된다")
 
 
-def test_NORMAL_real_posting_needs_both_sources():
-    # 합치기로 한 근거 자체를 굳힌다 — 한쪽만으로는 부족하다는 실제 사례.
+def test_NORMAL_real_posting_merges_both_sources():
+    """두 경로(①태그 ②산문)를 합친 결과가 실제 공고에서 어떻게 나오나.
+
+    **2026-09-14 에 달라진 것** — 기술이 아닌 말을 corpus 에서 걷어 내자, 이 픽스처
+    셋에서 **산문 경로의 기여가 0 이 됐다.** 정리 전에 산문이 더하던 유일한 이름이
+    `웹 개발` 이었다 — 기술이 아니었다.
+
+    합치기 자체는 그대로 둔다. 산문 경로는 **태그를 안 붙인 공고를 위한 것**이고,
+    이 픽스처 셋이 마침 태그가 풍부할 뿐이다. 다만 **"산문이 늘 뭔가를 더한다" 는
+    말은 이제 이 픽스처로 증명되지 않는다** — 그래서 그 단언을 뺀다.
+    """
     fixture = detail_pages()["52783795"]
-    only_structured = set(fixture["structured"])
-    only_text = set(fixture["in_text"])
-    check(only_structured - only_text, "① 에만 있는 이름이 있어야 한다")
-    check(only_text - only_structured, "② 에만 있는 이름이 있어야 한다")
+    check(set(fixture["structured"]), "① 태그에서 이름이 나와야 한다")
     check_equal(skills.extract_skills(fixture["page"]), fixture["final"],
                 "실제 공고의 최종 결과")
+
+
+def test_BOUNDARY_non_tech_names_never_reach_the_output():
+    """**기술이 아닌 말은 어느 경로로도 안 들어온다** (2026-09-14 사용자).
+
+    막을 자리가 둘이다. 산문은 `_searchable` 이 차단을 보고, **태그는 오래 안 봤다** —
+    그래서 `풀스택` 이 사람인 코드표(2232·347건)를 타고 그대로 들어왔다.
+    """
+    from _common.skills import blocked
+
+    for name in ("풀스택", "컨테이너", "웹 개발", "DevOps", "ORM", "딥러닝", "SDLC"):
+        check(blocked(name), "차단돼야 한다: %s" % name)
+    for name in ("Docker", "Java", "Spring Boot", "PyTorch"):
+        check(not blocked(name), "막으면 안 된다: %s" % name)
+    # 실제 공고의 결과에도 없어야 한다
+    got = skills.extract_skills(detail_pages()["52783795"]["page"])
+    check(not [n for n in got if blocked(n)], "결과에 남았다: %r" % got)
 
 
 # ─────────────────────────────── 예외 ───────────────────────────────
@@ -128,10 +151,15 @@ def test_BOUNDARY_every_vocabulary_name_resolves_to_the_common_corpus():
     from _common import dictionaries
     from _common.normalize import canonical
 
+    from _common.skills import blocked
+
     corpus = dictionaries.corpus()
+    # **차단된 이름은 예외다.** 사람인 코드표에는 `풀스택`(2232·347건)처럼 기술이
+    # 아닌 것이 섞여 있다. corpus 에서 뺐으므로 여기서도 안 풀리는 것이 맞고,
+    # `blocked()` 가 태그 경로에서 걸러 낸다 (2026-09-14).
     unresolved = [name for name in skills._tech_codes().values()
-                  if canonical(name).lower() not in corpus]
-    check_equal(unresolved, [], "공통 코퍼스로 안 풀리는 사람인 어휘")
+                  if canonical(name).lower() not in corpus and not blocked(name)]
+    check_equal(unresolved, [], "공통 코퍼스로 안 풀리고 차단도 안 된 사람인 어휘")
 
 
 def test_EXCEPTION_clear_caches_reloads_the_vocabulary():
