@@ -118,3 +118,50 @@ def test_BOUNDARY_a_dropped_comment_marker_is_caught():
         for entry in entries:
             assert not entry.endswith("."), "%s 에 문장이 섞였다: %r" % (name, entry)
             assert len(entry.split()) <= 4, "%s 에 문장이 섞였다: %r" % (name, entry)
+
+
+def test_BOUNDARY_no_name_sits_in_two_places_at_once():
+    """**한 이름이 두 자리를 차지하면 셋 중 하나는 거짓말이다.**
+
+    | 겹침 | 무엇이 틀렸나 |
+    |---|---|
+    | corpus ∩ rejected | 사전은 "기술이다" 라 하고 차단 목록은 "아니다" 라 한다 |
+    | blocklist ∩ rejected | "진짜 기술인데 오탐" 과 "애초에 기술 아님" 을 동시에 주장한다 |
+    | 같은 파일 안 중복 | 한 곳만 고치고 지나가면 다른 곳이 남아 조용히 되살아난다 |
+
+    셋 다 실제로 있었다 (2026-09-18 점검). 동작은 안 틀렸다 — 어차피 막히니까.
+    **틀린 것은 근거다.** 사전을 읽고 판단하는 다음 사람이 반대 결론을 얻는다.
+    """
+    import collections
+    import json
+
+    corpus = json.loads((dictionaries.DICT_DIR / "tech_corpus.json").read_text("utf-8"))
+    names = {tech["name"].lower() for tech in corpus["tech"]}
+    blocklist, rejected = dictionaries.blocklist(), dictionaries.rejected()
+
+    assert not names & rejected, "corpus 와 rejected 가 겹친다: %s" % sorted(names & rejected)
+    assert not blocklist & rejected, \
+        "blocklist 와 rejected 가 겹친다: %s" % sorted(blocklist & rejected)
+
+    for name in ("tech_blocklist.txt", "tech_rejected.txt"):
+        lines = [line.strip() for line in (dictionaries.DICT_DIR / name).read_text("utf-8").splitlines()
+                 if line.strip() and not line.startswith("#")]
+        counted = collections.Counter(line.lower() for line in lines)
+        twice = sorted(word for word, times in counted.items() if times > 1)
+        # 철자만 다른 것(`GitHub`/`Github`)은 관측 기록이라 남긴다. 똑같은 줄만 잡는다.
+        same = sorted(word for word in twice if lines.count(word) > 1 or
+                      len({line for line in lines if line.lower() == word}) == 1)
+        assert not same, "%s 안에 똑같은 줄이 두 번: %s" % (name, same)
+
+
+def test_BOUNDARY_the_corpus_header_counts_match_the_entries():
+    """`_counts` 는 손으로 적는 값이다 — 항목을 지우고 안 고치면 바로 어긋난다."""
+    import collections
+    import json
+
+    corpus = json.loads((dictionaries.DICT_DIR / "tech_corpus.json").read_text("utf-8"))
+    kinds = collections.Counter(tech["kind"] for tech in corpus["tech"])
+    assert corpus["_counts"]["총"] == len(corpus["tech"])
+    for kind, times in kinds.items():
+        assert corpus["_counts"][kind] == times, "%s: 적힌 값 %s · 실제 %s" % (
+            kind, corpus["_counts"].get(kind), times)

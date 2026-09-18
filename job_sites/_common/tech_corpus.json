@@ -11,15 +11,15 @@
   "protocol": "통신 규약·표준 (TCP, HTTP, OAuth)"
  },
  "_counts": {
-  "총": 358,
+  "총": 352,
   "concept": 4,
   "database": 38,
   "framework": 64,
   "language": 62,
   "library": 55,
-  "platform": 57,
+  "platform": 55,
   "protocol": 21,
-  "tool": 57
+  "tool": 53
  },
  "tech": [
   {
@@ -59,12 +59,6 @@
    "kind": "language",
    "devtypes": [],
    "source": "devskill"
-  },
-  {
-   "name": "After Effects",
-   "kind": "tool",
-   "devtypes": [],
-   "source": "saramin"
   },
   {
    "name": "Airflow",
@@ -641,12 +635,6 @@
    "source": "devskill"
   },
   {
-   "name": "Figma",
-   "kind": "tool",
-   "devtypes": [],
-   "source": "saramin"
-  },
-  {
    "name": "Firebase",
    "kind": "database",
    "devtypes": [],
@@ -765,12 +753,6 @@
    "kind": "library",
    "devtypes": [],
    "source": "devskill"
-  },
-  {
-   "name": "GPU",
-   "kind": "platform",
-   "devtypes": [],
-   "source": "observed"
   },
   {
    "name": "Gradle",
@@ -897,12 +879,6 @@
    "kind": "platform",
    "devtypes": [],
    "source": "devskill"
-  },
-  {
-   "name": "Illustrator",
-   "kind": "tool",
-   "devtypes": [],
-   "source": "saramin"
   },
   {
    "name": "InfluxDB",
@@ -1401,12 +1377,6 @@
    "source": "devskill"
   },
   {
-   "name": "Photoshop",
-   "kind": "tool",
-   "devtypes": [],
-   "source": "saramin"
-  },
-  {
    "name": "PHP",
    "kind": "language",
    "devtypes": [],
@@ -1700,12 +1670,6 @@
    "kind": "platform",
    "devtypes": [],
    "source": "saramin"
-  },
-  {
-   "name": "SaaS",
-   "kind": "platform",
-   "devtypes": [],
-   "source": "devskill"
   },
   {
    "name": "Salesforce",

@@ -21,11 +21,6 @@ SD
 Spa         # 본문의 SPA(Single Page Application)가 corpus 의 '스파'와 겹친다
 TPM         # 직무 이름(Technical Program Manager). "PM, TPM, Software Engineer와 협업"
 
-# --- 협업 도구. 기술스택으로 보긴 어렵다 ---
-Notion
-Slack
-JIRA
-Confluence
 
 # --- 너무 흔해 변별력이 없다 ---
 API
