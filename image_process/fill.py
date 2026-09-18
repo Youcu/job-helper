@@ -13,7 +13,7 @@ from __future__ import annotations
 import re
 
 from _common import corpus_candidates                              # noqa: E402
-from _common.skills import keep_known, unknown_names               # noqa: E402
+from _common.skills import keep_known, split_names, unknown_names  # noqa: E402
 
 from .reader import FIELDS
 
@@ -106,7 +106,10 @@ def apply(row: dict, read: dict) -> dict:
     kept = [one for one in _clean(row.get("기술스택", "").split(","))
             if not one.startswith("http")]
     seen = {one.casefold() for one in kept}
-    read_names = _clean(read.get("기술스택"))
+    # **괄호를 존중해 가른다.** 모델이 `AWS(ECS, Cognito)` 처럼 한 항목에 여럿을
+    # 묶어 낼 때가 있다 — 쉼표로만 가르면 조각이 나고 진짜 이름을 놓친다.
+    read_names = _clean([one for item in (read.get("기술스택") or [])
+                         for one in split_names(item)])
     strange = unknown_names(read_names)
     if strange:
         corpus_candidates.record(strange, site="image", source_url=row.get("URL", ""))

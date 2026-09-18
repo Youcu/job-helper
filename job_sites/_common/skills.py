@@ -120,6 +120,60 @@ def blocked(name: str) -> bool:
     return canonical(name).lower() in dictionaries.rejected()
 
 
+def split_names(text: str) -> list[str]:
+    """기술 이름 줄을 낱낱으로 가른다. **괄호를 존중한다.**
+
+    쉼표로만 가르면 괄호 안의 쉼표까지 갈라 조각이 난다 — 실측(2026-09-18)으로
+    후보 파일에 이런 것들이 쌓였다.
+
+        AWS(ECS, Cognito)          →  `AWS(ECS`  ·  `Cognito)`
+        Python (FastAPI, Django)   →  `Python (FastAPI`  ·  `Django)`
+        AI 에이전트(Claude Code, Codex 등)
+
+    결과가 더러워지지는 않았다(흰 목록이 어차피 버린다). 문제는 **진짜 이름을
+    놓친다**는 것이다 — 위 첫 줄은 `AWS`·`ECS`·`Cognito` 셋이어야 한다.
+
+    그래서 괄호 **밖의** 쉼표로만 가르고, `이름(속엣것)` 모양이면 **둘 다** 낸다.
+    속은 회사가 풀어 쓴 자리라 거기도 목록일 수 있다.
+    """
+    pieces: list[str] = []
+    depth = 0
+    buffer: list[str] = []
+    for letter in str(text or ""):
+        if letter in "([":
+            depth += 1
+        elif letter in ")]":
+            depth = max(0, depth - 1)
+        if letter == "," and depth == 0:
+            pieces.append("".join(buffer))
+            buffer = []
+        else:
+            buffer.append(letter)
+    pieces.append("".join(buffer))
+
+    out: list[str] = []
+    for piece in pieces:
+        piece = piece.strip()
+        if not piece:
+            continue
+        found = _WRAPPED.match(piece)
+        if not found:
+            out.append(piece)
+            continue
+        # `이름(속엣것)` — 바깥 이름과 속엣것을 다 낸다.
+        out.append(found.group(1).strip())
+        for inner in re.split(r"[,/·]", found.group(2)):
+            inner = inner.strip()
+            if inner:
+                out.append(inner)
+    return [one for one in out if one]
+
+
+# `Node.js(NestJS, Express)` 처럼 **이름 뒤에 괄호가 붙은** 모양만 본다.
+# `C#`·`C++` 은 안 걸리고, `(주)어쩌고` 처럼 괄호로 시작하는 것도 안 걸린다.
+_WRAPPED = re.compile(r"^([^()\[\]]+?)\s*[(\[]([^()\[\]]*)[)\]]$")
+
+
 def known(name: str) -> str:
     """corpus 나 별칭에 있는 이름이면 **표준 표기**로, 없으면 빈 문자열.
 

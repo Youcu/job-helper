@@ -88,7 +88,7 @@ from _common import bodies as bodies_module                        # noqa: E402
 from _common import roles                                          # noqa: E402
 from _common.env import ConfigError, read_env                      # noqa: E402
 from _common import corpus_candidates                              # noqa: E402
-from _common.skills import keep_known, unknown_names               # noqa: E402
+from _common.skills import keep_known, split_names, unknown_names  # noqa: E402
 from _common.runlock import guarded                                # noqa: E402
 from _common.staleness import confirm, yes_given                   # noqa: E402
 from _common.store import read_csv, trim, write_csv, write_rows    # noqa: E402
@@ -229,7 +229,7 @@ def clean_techs(value: str, *, url: str = "") -> str:
     그래서 **아는 이름만 통과시킨다** (`skills.keep_known`). 산문 경로가 진작부터
     그러고 있다. 모르는 이름은 버리되 `corpus_candidates` 에 쌓아 사람이 보게 한다.
     """
-    pieces = [piece.strip() for piece in str(value or "").split(",") if piece.strip()]
+    pieces = split_names(value)
     unknown = unknown_names(pieces)
     if unknown:
         corpus_candidates.record(unknown, site="role", source_url=url)

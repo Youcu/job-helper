@@ -72,3 +72,22 @@ def test_BOUNDARY_the_same_word_twice_is_counted_once():
 def test_BOUNDARY_an_empty_row_does_not_crash():
     assert role_words.looks_mixed({}) == []
     assert role_words.looks_mixed({"공고명": None}, None) == []
+
+
+def test_BOUNDARY_a_parenthesised_list_is_not_chopped():
+    """**쉼표로만 가르면 괄호 안의 쉼표까지 갈라 조각이 난다.**
+
+    실측(2026-09-18) 후보 파일에 `AWS(ECS` · `Cognito)` · `Python (FastAPI` ·
+    `aiohttp)` 같은 것이 30개 쌓였다. 결과가 더러워지지는 않았다 — 흰 목록이
+    어차피 버린다. 문제는 **진짜 이름을 놓친다**는 것이다.
+    """
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "job_sites"))
+    from _common.skills import split_names
+
+    assert split_names("AWS(ECS, Cognito), Spring") == ["AWS", "ECS", "Cognito", "Spring"]
+    assert split_names("Python (FastAPI, Django)") == ["Python", "FastAPI", "Django"]
+    assert split_names("C#, C++, Node.js") == ["C#", "C++", "Node.js"]
+    assert split_names("Opensearch(ElasticSearch)") == ["Opensearch", "ElasticSearch"]
