@@ -167,6 +167,7 @@ HOPE_ANNUAL_SALARY=               # 아직 안 건다
 ```bash
 IMAGE_MODEL=                      # 기본 sonnet
 IMAGE_CLAUDE_WORKER=              # 기본 4. 동시에 띄울 claude 개수
+                                  # 하나가 300~600MB 다 — 코어가 아니라 남은 메모리로 정한다
 IMAGE_TIMEOUT=                    # 기본 300초
 ```
 
