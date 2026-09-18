@@ -351,3 +351,22 @@ def test_EXCEPTION_an_unknown_role_name_stops():
         paths["env_path"] = _env(home, value="없는직군")
         assert role._run(source, _bodies(home, {}), **paths,
                          have_claude=True, assume_yes=True) == 1
+
+
+def test_BOUNDARY_web_covers_back_front_and_full_stack():
+    """**`웹` 의 범위는 사용자가 정한 것이다** (2026-09-18) — 백엔드 · 프론트엔드 ·
+    풀스택을 다 포함한다.
+
+    처음 판정에서 `프론트엔드 (Front-end) 개발` 이 `JOB_ROLES=백엔드,웹` 인데도
+    빠졌다. `roles.json` 의 설명이 "웹 전반. 사이트에 따라 백엔드·프론트와 겹친다"
+    라 모델이 좁게 읽었기 때문이다. 그 설명은 **프롬프트에 그대로 실리므로**
+    말이 흐리면 판정이 흔들린다.
+    """
+    from _common import roles
+
+    said = roles.describe("웹")
+    for word in ("백엔드", "프론트엔드", "풀스택"):
+        assert word in said, "`웹` 설명에 %s 가 없습니다: %r" % (word, said)
+    assert "웹" in role.build_prompt({"공고명": "가"}, "본문", ["웹"])
+    assert "프론트엔드" in role.build_prompt({"공고명": "가"}, "본문", ["웹"]), \
+        "프롬프트에 `웹` 의 범위가 안 실렸다"
