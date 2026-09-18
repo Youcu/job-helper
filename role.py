@@ -87,6 +87,8 @@ sys.path.insert(0, str(ROOT_DIR))
 from _common import bodies as bodies_module                        # noqa: E402
 from _common import roles                                          # noqa: E402
 from _common.env import ConfigError, read_env                      # noqa: E402
+from _common.normalize import canonical                            # noqa: E402
+from _common.skills import blocked                                 # noqa: E402
 from _common.runlock import guarded                                # noqa: E402
 from _common.staleness import confirm, yes_given                   # noqa: E402
 from _common.store import read_csv, trim, write_csv, write_rows    # noqa: E402
@@ -111,6 +113,7 @@ RULES_VERSION = 4
 
 # 덮어쓰는 칸. 나머지는 공고 전체의 것이라 그대로 둔다.
 OVERWRITE = ("기술스택", "지원자격", "우대사항", "경력")
+TECH_COLUMN = "기술스택"
 
 
 class JudgeError(RuntimeError):
@@ -210,15 +213,56 @@ def judge(row: dict, body: str, wanted: list[str], *, model: str = MODEL,
         raise JudgeError("%s: %s" % (type(error).__name__, error)) from error
 
 
+# 기술 이름 하나로 받아들일 최대 길이. 모델이 `KAFKA / [공용서비스 개발 및 운영] Java`
+# 처럼 절 머리말을 끼워 넣은 것을 걸러 낸다 (2026-09-18 실측). 가장 긴 진짜 이름은
+# `Naver Cloud Platform`(20자) 쯤이라 넉넉하다.
+MAX_TECH_NAME = 30
+
+
+def clean_techs(value: str) -> str:
+    """모델이 낸 기술 이름 줄을 **수집기와 같은 규칙으로** 다듬는다.
+
+    **이 단계는 기술 이름이 들어오는 다섯 번째 길이다.** 앞의 넷(수집·태그 /
+    수집·산문 / 그림 판독 / 후보 해석)은 차단을 지나는데 여기만 안 지났다 —
+    모델이 낸 글을 그대로 칸에 썼다. 그래서 `풀스택`·`DevOps`·`컨테이너`·`ORM`
+    이 최종본에 되돌아왔다 (2026-09-18 실측: 48행에 26가지·47번).
+
+    셋을 한다.
+    - 쉼표로 가르고 표준 표기로 모은다 (`canonical`)
+    - 차단 목록을 지난다 (`blocked` — 애초에 기술스택이 아닌 이름)
+    - **말이 섞여 든 조각을 버린다.** 모델이 절 머리말을 끼워 넣는 일이 있다.
+    """
+    kept: list[str] = []
+    seen: set[str] = set()
+    for piece in str(value or "").split(","):
+        name = canonical(piece.strip())
+        if not name or len(name) > MAX_TECH_NAME:
+            continue
+        if "[" in name or "]" in name or "/" in name and " " in name:
+            continue                      # 절 머리말이 섞였다
+        if blocked(name):
+            continue
+        low = name.lower()
+        if low not in seen:
+            seen.add(low)
+            kept.append(name)
+    return ", ".join(kept)
+
+
 def apply(row: dict, answer: dict) -> dict:
     """모델이 뽑아 준 것으로 네 칸을 덮어쓴다. **빈 칸은 안 덮는다.**
 
     모델이 한 칸을 못 채웠다고 원래 있던 내용을 지우면, 통합 공고가 아니었을 때
     멀쩡한 칸이 빈다. 못 채운 것은 **모르는 것**이지 *없는 것*이 아니다.
+
+    `기술스택` 은 `clean_techs` 를 지난다 — 여기가 기술 이름이 들어오는 다섯 번째
+    길이라 차단을 지나야 한다.
     """
     out = dict(row)
     for column in OVERWRITE:
         value = str(answer.get(column) or "").strip()
+        if column == TECH_COLUMN:
+            value = clean_techs(value)
         if value:
             out[column] = trim(value)
     return out

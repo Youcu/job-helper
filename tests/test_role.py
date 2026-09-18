@@ -370,3 +370,45 @@ def test_BOUNDARY_web_covers_back_front_and_full_stack():
     assert "웹" in role.build_prompt({"공고명": "가"}, "본문", ["웹"])
     assert "프론트엔드" in role.build_prompt({"공고명": "가"}, "본문", ["웹"]), \
         "프롬프트에 `웹` 의 범위가 안 실렸다"
+
+
+def test_BOUNDARY_the_model_output_passes_the_block_lists():
+    """**이 단계는 기술 이름이 들어오는 다섯 번째 길이다.**
+
+    앞의 넷(수집·태그 / 수집·산문 / 그림 판독 / 후보 해석)은 차단을 지나는데
+    여기만 안 지났다 — 모델이 낸 글을 그대로 칸에 썼다. 실제로 최종본 48행에
+    `풀스택`(8번) · `DevOps`(5) · `컨테이너`(5) · `ORM`(3) 이 되돌아왔다
+    (2026-09-18 실측: 막아야 할 이름 26가지 · 47번).
+    """
+    got = role.clean_techs("Java, 풀스택, Spring, DevOps, ORM, 컨테이너, Redis")
+    assert got == "Java, Spring, Redis", got
+
+
+def test_BOUNDARY_a_section_heading_inside_the_list_is_dropped():
+    """모델이 절 머리말을 기술 이름 사이에 끼워 넣는 일이 있다 — 실측
+    `KAFKA / [공용서비스 개발 및 운영] Java`."""
+    got = role.clean_techs("Kafka / [공용서비스 개발 및 운영] Java, Spring")
+    assert got == "Spring", got
+
+
+def test_BOUNDARY_the_same_name_twice_is_kept_once():
+    assert role.clean_techs("Java, java, JAVA, Spring") == "Java, Spring"
+
+
+def test_BOUNDARY_a_long_real_name_survives():
+    """자르는 규칙이 진짜 이름을 죽이면 안 된다."""
+    assert "Naver Cloud Platform" in role.clean_techs("Naver Cloud Platform, Spring")
+
+
+def test_BOUNDARY_overwriting_runs_the_tech_column_through_the_filter():
+    import tempfile
+    from pathlib import Path
+
+    with tempfile.TemporaryDirectory() as home:
+        home = Path(home)
+        source = home / "in.csv"
+        _csv(source, [_row(공고명="각 부문별 채용")])
+        role._run(source, _bodies(home, {"https://x/1": "본문"}), **_out(home),
+                  ask=lambda *a: {"해당": True, "기술스택": "Java, 풀스택, Spring"},
+                  have_claude=True, assume_yes=True)
+        assert _read(home / "out.csv")[0]["기술스택"] == "Java, Spring"
