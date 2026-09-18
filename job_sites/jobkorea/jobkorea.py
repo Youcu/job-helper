@@ -65,8 +65,8 @@ def _run() -> int:
         print("\n조건에 맞는 공고가 없습니다. .env 조건을 넓혀 보세요.")
         return 0
 
-    rows, stats = _collect_details(client, listings.rows)
-    result = save(rows, OUTPUT)
+    rows, stats, texts = _collect_details(client, listings.rows)
+    result = save(rows, OUTPUT, texts)
     _print_summary(config, result, stats)
     if stats["차단"]:
         print("\n차단돼서 %d건에서 멈췄습니다. 여기까지 모은 것은 저장했습니다."
@@ -90,6 +90,7 @@ def _collect_details(client, listings: list[dict]):
     더 던지지 않는다. 멈춘 사실은 `stats["차단"]` 으로 알린다.
     """
     rows: list[dict] = []
+    texts: dict[str, str] = {}
     stats = {"그림본문": 0, "그림대기": 0, "기술없음": 0, "번호없음": 0,
              "구조화없음": 0, "상세시도": 0, "상세실패": 0, "차단": False}
 
@@ -132,7 +133,8 @@ def _collect_details(client, listings: list[dict]):
             stats["기술없음"] += 1
             continue
         rows.append(row)
-    return rows, stats
+        texts[row["URL"]] = record.body_of(body_html)
+    return rows, stats, texts
 
 
 def _print_conditions(config, conditions: dict) -> None:

@@ -63,6 +63,18 @@ def to_row(posting: dict, detail: dict, *, candidates_file=None) -> dict:
     }
     return {column: row.get(column, "") for column in COLUMNS}
 
+def body_of(detail: dict) -> str:
+    """**자르기 전의 글 전부.** CSV 로는 안 나가고 `*_bodies.jsonl` 로 간다.
+
+    `to_row` 가 만드는 `지원자격`·`우대사항` 은 절로 잘라 낸 조각이라, 여러 부문이
+    든 공고에서는 **첫 부문 것만** 남는다. 직군을 가리는 단계는 원본을 봐야 한다.
+
+    `to_row` 에 얹지 않는 이유는, 그 함수의 계약이 **CSV 한 줄**이기 때문이다 —
+    다섯 사이트의 시험이 그 칸과 순서를 지키고 있다. 본문은 다른 것이므로 따로 낸다.
+    """
+    return skills_module.prose_text(detail)
+
+
 
 def _text(value) -> str:
     if value is None:

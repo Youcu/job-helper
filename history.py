@@ -142,8 +142,16 @@ def dropped_rows(csv_dir: Path, today: str) -> list[dict]:
 
 
 def site_csvs(sites_dir: Path) -> list[Path]:
-    """사이트별 수집본. **이것만 지운다.**"""
-    return sorted(sites_dir.glob("*/csv/*_post.csv"))
+    """사이트별 수집본. **이것만 지운다.**
+
+    본문 파일(`*_bodies.jsonl`)도 같이 지운다. CSV 옆에 같이 생기는 스크래치라
+    **같이 사라져야 한다** — CSV 만 지우면 다음 실행에서 못 걷은 공고의 옛 본문이
+    남아, 직군 단계가 사라진 공고의 글을 읽고 판정할 수 있다.
+
+    모아 둔 것은 `csv/bodies.jsonl` 에 있고 그건 이번 실행 산출물이라 남긴다.
+    """
+    return sorted(list(sites_dir.glob("*/csv/*_post.csv"))
+                  + list(sites_dir.glob("*/csv/*_bodies.jsonl")))
 
 
 def main() -> int:

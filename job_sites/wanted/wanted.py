@@ -14,13 +14,14 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT_DIR.parent))
 
+from _common import bodies
 from _common.outcome import INCOMPLETE
 from _common.runlock import guarded
 from _common.store import merge, merge_lines, read_csv, write_csv
 from lib.client import BlockedError, WantedClient
 from lib.collect import build_listing_params, fetch_details, fetch_listings
 from lib.config import ConfigError, load_config
-from lib.record import to_row
+from lib.record import body_of, to_row
 from lib.filters import LocationError, job_groups, resolve_locations
 
 ROOT = ROOT_DIR
@@ -107,11 +108,16 @@ def _run() -> int:
         return INCOMPLETE
 
     rows, broken = [], 0
+    texts: dict[str, str] = {}
     for job in details.values():
         try:
-            rows.append(to_row(job))
+            row = to_row(job)
         except ValueError:
             broken += 1      # 공고번호가 없어 URL 을 만들 수 없는 것
+            continue
+        rows.append(row)
+        # 본문은 CSV 옆 파일로 간다 — 자르기 전의 글이라야 직군을 가릴 수 있다.
+        texts[row["URL"]] = body_of(job)
 
     # 태그에도 산문에도 기술 이름이 하나도 없는 공고는 뺀다. 개발 공고로 걸렀는데
     # 기술이 안 적힌 것이라 판단할 재료가 없다.
@@ -123,6 +129,8 @@ def _run() -> int:
     # 다만 RETENTION_DAYS 넘게 안 보이면 뺀다.
     result = merge(read_csv(OUTPUT), kept)
     write_csv(OUTPUT, result.rows)
+    bodies.write_map({r["URL"]: texts.get(r["URL"], "") for r in kept},
+                     bodies.path_for(OUTPUT))
 
     # **병합 결과를 찍는 말은 `_common` 이 쥔다.** 여기 사본을 두면 세는 규칙이
     # 바뀌었을 때 넷은 따라가고 이 사이트만 옛말을 찍는다 — 예외도 안 나고 테스트도

@@ -33,6 +33,10 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).resolve().parent
 SITES_DIR = ROOT_DIR / "job_sites"
 OUTPUT = ROOT_DIR / "csv" / "merged.csv"
+
+# 합쳐 둔 공고 본문. CSV 칸에 안 들어가는 긴 글이라 옆 파일로 산다 (`_common/bodies.py`).
+BODIES_NAME = "bodies.jsonl"
+
 # 파이프라인 전체를 덮는 락. 단계별 락(`csv/.<단계>.lock`)과 이름이 안 겹쳐야 한다.
 LOCK = ROOT_DIR / "csv" / ".pipeline.lock"
 
@@ -40,6 +44,7 @@ sys.path.insert(0, str(SITES_DIR))
 
 from tqdm import tqdm                                        # noqa: E402
 
+from _common import bodies                                   # noqa: E402
 from _common import staleness                                # noqa: E402
 from _common.runlock import guarded                          # noqa: E402
 from _common.store import (COLUMNS, FIRST_SEEN, KEY_COLUMN,  # noqa: E402
@@ -477,6 +482,15 @@ def merge_csvs(paths: list[Path], output: Path, history: Path = HISTORY_READ) ->
     write_csv(output, rows)
     if revived:
         print("  이력에서 최초수집일을 되살린 공고: %d행" % revived)
+
+    # **본문도 같이 모은다.** CSV 옆에 따로 사는 자료라 여기서 안 모으면 사이트
+    # 폴더에만 남고, 뒤 단계는 사이트 배치를 알아야 읽을 수 있게 된다.
+    #
+    # 자리를 `output` 에서 끌어낸다 — 전역 상수로 두면 **시험이 갈아 끼울 수 없어
+    # 진짜 `csv/` 에 쓴다.** 실제로 그렇게 만들었다가 시험이 잡았다 (2026-09-18).
+    gathered = output.with_name(BODIES_NAME)
+    kept = bodies.gather([bodies.path_for(path) for path in paths], gathered)
+    print("  본문 %d건을 %s 에 모았습니다" % (kept, gathered.name))
     return len(rows)
 
 
