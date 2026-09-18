@@ -34,7 +34,7 @@ import json
 from datetime import date
 from pathlib import Path
 
-FIELDS = ("기술스택", "자격요건", "우대사항")
+from .reader import BODY, FIELDS
 # 주소에는 공백이 못 들어간다(RFC 3986 — 공백은 `%20` 으로 적힌다). 그래서 이어 붙여도
 # 어디서 끊긴 것인지 헷갈리지 않는다. 해시로 줄일 수도 있지만, 캐시 파일을 열어 보고
 # "어느 공고의 답인가" 를 눈으로 알아볼 수 있는 편이 낫다.
@@ -63,15 +63,26 @@ def save(path: Path, book: dict) -> None:
 
 
 def get(book: dict, urls: list[str]) -> dict | None:
+    """캐시에 든 답. **본문이 없는 옛 항목은 없는 것으로 친다.**
+
+    본문은 나중에 더한 칸이라 그 전에 읽은 항목에는 없다. 그대로 쓰면 그림 공고는
+    영영 본문을 못 갖고, 직군을 가리는 단계가 계속 "본문 없음" 으로 남긴다 —
+    고친 것이 아무 효과가 없다. 한 번 다시 읽고 나면 그 뒤로는 캐시가 듣는다.
+    """
     entry = book.get(key(urls))
     if not isinstance(entry, dict):
         return None
-    return {name: list(entry.get(name) or []) for name in FIELDS}
+    if BODY not in entry:
+        return None
+    got = {name: list(entry.get(name) or []) for name in FIELDS}
+    got[BODY] = str(entry.get(BODY) or "")
+    return got
 
 
 def put(book: dict, urls: list[str], read: dict, model: str) -> None:
     book[key(urls)] = {
         **{name: list(read.get(name) or []) for name in FIELDS},
+        BODY: str(read.get(BODY) or ""),
         "읽은날": date.today().isoformat(),
         "모델": model,
     }

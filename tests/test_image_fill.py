@@ -67,7 +67,7 @@ def test_BOUNDARY_bullet_and_spacing_differences_are_ignored():
 
 
 def test_BOUNDARY_has_anything_needs_only_one_of_three():
-    check(not fill.has_anything({"기술스택": [], "자격요건": [], "우대사항": []}), "셋 다 비면 없다")
+    check(not fill.has_anything({"기술스택": [], "자격요건": [], "우대사항": [], "본문": ""}), "셋 다 비면 없다")
     check(fill.has_anything({"기술스택": ["Java"], "자격요건": [], "우대사항": []}), "기술만 있어도")
     check(fill.has_anything({"기술스택": [], "자격요건": ["3년"], "우대사항": []}), "자격만 있어도")
     check(fill.has_anything({"기술스택": [], "자격요건": [], "우대사항": ["석사"]}), "우대만 있어도")

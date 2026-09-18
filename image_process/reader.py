@@ -21,6 +21,15 @@ import subprocess
 from pathlib import Path
 
 FIELDS = ("기술스택", "자격요건", "우대사항")
+
+# **읽은 글 자체.** 위 셋은 이미 추려 낸 결과라 부문 구조가 없다 — 여러 직군을 한
+# 장에 담은 그림 공고에서 어느 부문이 무엇을 요구하는지가 거기서 사라진다
+# (실측 2026-09-18: 통합 공고 후보 59건 중 12건이 그림 본문이었고, 기술 57개짜리
+# `[안랩] 2026 연구소 집중 채용` 이 거기 있었다).
+#
+# 그래서 **자르기 전의 글**을 따로 받는다. 이것은 `csv/bodies.jsonl` 로 가고,
+# 직군을 가리는 단계가 그것을 읽는다.
+BODY = "본문"
 # 실측: 조각 7장을 --max-turns 14 로 돌렸더니 num_turns 이 정확히 14 로 끝났다 —
 # 자연 종료(stop_reason: end_turn)이긴 했지만 여유가 0 이었다. 조각마다 Read 한 번
 # + 응답 한 번으로 대략 2턴을 쓴다고 보고, 마무리 답변까지 더해 여유 8 을 둔다.
@@ -38,10 +47,14 @@ def build_prompt(paths: list[Path]) -> str:
         "%s\n"
         "위 그림들은 채용공고 하나를 위에서 아래로 자른 조각이다. **전부 읽어라.**\n"
         "그런 다음 아래 JSON 만 출력하고 다른 말은 하지 마라.\n"
-        '{"기술스택":[],"자격요건":[],"우대사항":[]}\n'
+        '{"본문":"","기술스택":[],"자격요건":[],"우대사항":[]}\n'
         "- 그림에서 실제로 읽히는 것만 담아라. 추측하지 마라.\n"
-        "- 기술 이름은 기술스택에, 요구 조건은 자격요건에, 있으면 좋은 것은 우대사항에 담아라.\n"
-        "- 아무것도 못 읽으면 세 칸을 모두 빈 배열로 두어라." % listed
+        "- `본문` 에는 **읽은 글을 위에서 아래 차례 그대로** 옮겨라. 요약하지 말고,\n"
+        "  모집부문·직무 이름 같은 머리말을 빠뜨리지 마라. 한 공고에 여러 자리가\n"
+        "  실려 있으면 **어느 글이 어느 자리 것인지 차례로 드러나야** 한다.\n"
+        "- 나머지 세 칸에는 그 글에서 추린 것을 담아라 — 기술 이름은 기술스택에,\n"
+        "  요구 조건은 자격요건에, 있으면 좋은 것은 우대사항에.\n"
+        "- 아무것도 못 읽으면 본문은 빈 문자열, 세 칸은 모두 빈 배열로 두어라." % listed
     )
 
 
@@ -86,8 +99,10 @@ def parse_output(text: str) -> dict:
     if not isinstance(answer, str):
         raise ReadError("답이 비었습니다: %r" % str(envelope)[:200])
     body = _first_object(answer)
-    return {name: [item for item in (body.get(name) or []) if isinstance(item, str)]
-            for name in FIELDS}
+    got = {name: [item for item in (body.get(name) or []) if isinstance(item, str)]
+           for name in FIELDS}
+    got[BODY] = str(body.get(BODY) or "")
+    return got
 
 
 def read(paths: list[Path], *, model: str, timeout: int, runner=None) -> dict:
