@@ -120,6 +120,59 @@ def blocked(name: str) -> bool:
     return canonical(name).lower() in dictionaries.rejected()
 
 
+def known(name: str) -> str:
+    """corpus 나 별칭에 있는 이름이면 **표준 표기**로, 없으면 빈 문자열.
+
+    `blocked()` 의 반대편이다 — 저쪽은 "이건 아니다" 를 적어 두는 **검은 목록**이고,
+    이쪽은 "이건 맞다" 만 통과시키는 **흰 목록**이다.
+    """
+    standard = canonical(name)
+    low = standard.lower()
+    if low in dictionaries.corpus():
+        return standard
+    resolved = dictionaries.aliases().get(low)
+    return canonical(resolved) if resolved else ""
+
+
+def keep_known(names: list[str]) -> list[str]:
+    """**모델이 낸 기술 이름 목록을 corpus 로 거른다.** 차례와 첫 표기를 지킨다.
+
+    ## 왜 검은 목록으로는 안 되나
+
+    모델은 본문에 있는 말을 잘라 온다. 본문에 없는 말을 지어내지는 않지만,
+    본문에는 기술 이름이 아닌 말이 얼마든지 있다 — 실측(2026-09-18)으로
+    `AI 기반 개발도구` · `OpenAI API 등 LLM API` · `데이터베이스 쿼리` ·
+    `OGC 표준` 이 그렇게 들어왔다. 넷 다 공고 본문에 그대로 적힌 말이다.
+
+    **그런 말은 무한하다.** 하나 볼 때마다 `tech_rejected.txt` 에 한 줄을 더하는
+    것은 끝이 없다 (2026-09-18 사용자). 그리고 그건 **이미 corpus 를 두고 있는
+    이유와 어긋난다** — 산문 경로는 진작부터 corpus 를 그물로 써서 아는 이름만
+    줍는다. 모델이 낸 것도 같은 그물을 지나야 한다.
+
+    ## 모르는 이름은 버리되 기록한다
+
+    corpus 에 없다고 기술이 아닌 것은 아니다. 새 기술은 늘 나온다. 그래서 버리는
+    이름을 `corpus_candidates` 에 쌓아 사람이 보고 올릴 수 있게 한다 —
+    수집기들이 이미 그렇게 한다.
+    """
+    kept: list[str] = []
+    seen: set[str] = set()
+    for name in names:
+        standard = known(name)
+        if not standard:
+            continue
+        low = standard.lower()
+        if low not in seen:
+            seen.add(low)
+            kept.append(standard)
+    return kept
+
+
+def unknown_names(names: list[str]) -> list[str]:
+    """corpus 가 못 알아본 이름들. 후보로 쌓아 사람이 보게 한다."""
+    return [name for name in names if name.strip() and not known(name)]
+
+
 def _searchable(names: list[str], blocked_set: frozenset[str]) -> dict[str, str]:
     """찾을 만한 이름만 걸러 (소문자 → 표준 표기) 로 만든다."""
     keep: dict[str, str] = {}

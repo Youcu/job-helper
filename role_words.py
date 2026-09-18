@@ -45,11 +45,23 @@ TITLE_SIGNALS = (
 )
 TITLE = re.compile("|".join(TITLE_SIGNALS))
 
-# 본문에 이것이 **여러 번** 나오면 후보다. 한 번은 표 머리말이라 아무 공고에나 있다.
-BODY_SIGNAL = re.compile(r"모집\s*부문|모집\s*분야|채용\s*부문")
+# 본문 신호는 **흔한 말과 드문 말을 갈라서** 센다.
+#
+# 실측(2026-09-18, 본문 682건)으로 낱말마다 흔한 정도가 크게 다르다.
+#
+#     모집분야  267건(39%)   모집부문  145건(21%)   ← 표 머리말이라 아무 데나 있다
+#     채용분야   12건         채용부문    8건
+#     모집직무    7건         부문 안내   2건        ← 이 말을 쓰면 대개 진짜 통합 공고다
+#
+# 흔한 말에 1회 기준을 걸면 절반이 후보가 되어 모델 값이 못 쓰게 오른다. 드문 말에
+# 2회 기준을 걸면 **아무것도 안 걸린다** — 위 표의 오른쪽은 2회 이상이 0건이다.
+# 실제로 `[안랩] 2026년 연구소 상시채용`(기술 45개짜리 통합 공고)이 `채용부문` 을
+# 한 번 쓰고 그대로 빠져나갔다.
+COMMON_SIGNAL = re.compile(r"모집\s*부문|모집\s*분야")
+COMMON_MINIMUM = 2
 
-# 몇 번부터 "여럿" 인가. 실측 — 단일 공고는 0~1회, 나라스페이스는 5회.
-BODY_MINIMUM = 2
+RARE_SIGNAL = re.compile(r"채용\s*부문|채용\s*분야|모집\s*직무|부문\s*안내|직군\s*안내")
+RARE_MINIMUM = 1
 
 TITLE_COLUMN = "공고명"
 
@@ -64,9 +76,21 @@ def title_hits(title: str) -> list[str]:
     return found
 
 
-def body_hits(body: str) -> int:
-    """본문에서 부문 낱말이 몇 번 나오나."""
-    return len(BODY_SIGNAL.findall(body or ""))
+def body_hits(body: str) -> list[str]:
+    """본문에서 걸린 근거들. 빈 목록이면 안 걸렸다.
+
+    **흔한 말과 드문 말의 기준이 다르다** — 위 두 상수의 설명을 보라.
+    """
+    body = body or ""
+    found: list[str] = []
+    common = len(COMMON_SIGNAL.findall(body))
+    if common >= COMMON_MINIMUM:
+        found.append("본문에 부문 낱말 %d회" % common)
+    rare = RARE_SIGNAL.findall(body)
+    if len(rare) >= RARE_MINIMUM:
+        found.append("본문에 %s" % " ".join(dict.fromkeys(
+            " ".join(one.split()) for one in rare)))
+    return found
 
 
 def looks_mixed(row: dict, body: str = "") -> list[str]:
@@ -75,8 +99,5 @@ def looks_mixed(row: dict, body: str = "") -> list[str]:
     빈 목록이면 후보가 아니다. 근거를 돌려주는 이유는 리포트에 적기 위해서다 —
     왜 물어봤는지 못 되짚으면 규칙을 고칠 수가 없다.
     """
-    reasons = ["제목: %s" % word for word in title_hits(row.get(TITLE_COLUMN, ""))]
-    count = body_hits(body)
-    if count >= BODY_MINIMUM:
-        reasons.append("본문에 부문 낱말 %d회" % count)
-    return reasons
+    return (["제목: %s" % word for word in title_hits(row.get(TITLE_COLUMN, ""))]
+            + body_hits(body))

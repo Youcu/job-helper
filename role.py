@@ -87,8 +87,8 @@ sys.path.insert(0, str(ROOT_DIR))
 from _common import bodies as bodies_module                        # noqa: E402
 from _common import roles                                          # noqa: E402
 from _common.env import ConfigError, read_env                      # noqa: E402
-from _common.normalize import canonical                            # noqa: E402
-from _common.skills import blocked                                 # noqa: E402
+from _common import corpus_candidates                              # noqa: E402
+from _common.skills import keep_known, unknown_names               # noqa: E402
 from _common.runlock import guarded                                # noqa: E402
 from _common.staleness import confirm, yes_given                   # noqa: E402
 from _common.store import read_csv, trim, write_csv, write_rows    # noqa: E402
@@ -213,40 +213,27 @@ def judge(row: dict, body: str, wanted: list[str], *, model: str = MODEL,
         raise JudgeError("%s: %s" % (type(error).__name__, error)) from error
 
 
-# 기술 이름 하나로 받아들일 최대 길이. 모델이 `KAFKA / [공용서비스 개발 및 운영] Java`
-# 처럼 절 머리말을 끼워 넣은 것을 걸러 낸다 (2026-09-18 실측). 가장 긴 진짜 이름은
-# `Naver Cloud Platform`(20자) 쯤이라 넉넉하다.
-MAX_TECH_NAME = 30
-
-
-def clean_techs(value: str) -> str:
-    """모델이 낸 기술 이름 줄을 **수집기와 같은 규칙으로** 다듬는다.
+def clean_techs(value: str, *, url: str = "") -> str:
+    """모델이 낸 기술 이름 줄을 **corpus 로 거른다.**
 
     **이 단계는 기술 이름이 들어오는 다섯 번째 길이다.** 앞의 넷(수집·태그 /
-    수집·산문 / 그림 판독 / 후보 해석)은 차단을 지나는데 여기만 안 지났다 —
-    모델이 낸 글을 그대로 칸에 썼다. 그래서 `풀스택`·`DevOps`·`컨테이너`·`ORM`
-    이 최종본에 되돌아왔다 (2026-09-18 실측: 48행에 26가지·47번).
+    수집·산문 / 그림 판독 / 후보 해석)은 걸러지는데 여기만 안 걸러졌다 —
+    모델이 낸 글을 그대로 칸에 썼다.
 
-    셋을 한다.
-    - 쉼표로 가르고 표준 표기로 모은다 (`canonical`)
-    - 차단 목록을 지난다 (`blocked` — 애초에 기술스택이 아닌 이름)
-    - **말이 섞여 든 조각을 버린다.** 모델이 절 머리말을 끼워 넣는 일이 있다.
+    처음에는 차단 목록(`blocked`)만 지나게 했다. **그걸로는 안 된다** —
+    모델은 본문에 있는 말을 잘라 오는데, 본문에는 기술 이름이 아닌 말이
+    얼마든지 있다. 실측으로 `AI 기반 개발도구` · `OpenAI API 등 LLM API` ·
+    `데이터베이스 쿼리` · `OGC 표준` 이 그렇게 들어왔고, 그런 말은 **무한하다.**
+    하나 볼 때마다 목록에 한 줄 더하는 것은 끝이 없다 (2026-09-18 사용자).
+
+    그래서 **아는 이름만 통과시킨다** (`skills.keep_known`). 산문 경로가 진작부터
+    그러고 있다. 모르는 이름은 버리되 `corpus_candidates` 에 쌓아 사람이 보게 한다.
     """
-    kept: list[str] = []
-    seen: set[str] = set()
-    for piece in str(value or "").split(","):
-        name = canonical(piece.strip())
-        if not name or len(name) > MAX_TECH_NAME:
-            continue
-        if "[" in name or "]" in name or "/" in name and " " in name:
-            continue                      # 절 머리말이 섞였다
-        if blocked(name):
-            continue
-        low = name.lower()
-        if low not in seen:
-            seen.add(low)
-            kept.append(name)
-    return ", ".join(kept)
+    pieces = [piece.strip() for piece in str(value or "").split(",") if piece.strip()]
+    unknown = unknown_names(pieces)
+    if unknown:
+        corpus_candidates.record(unknown, site="role", source_url=url)
+    return ", ".join(keep_known(pieces))
 
 
 def apply(row: dict, answer: dict) -> dict:
@@ -262,7 +249,7 @@ def apply(row: dict, answer: dict) -> dict:
     for column in OVERWRITE:
         value = str(answer.get(column) or "").strip()
         if column == TECH_COLUMN:
-            value = clean_techs(value)
+            value = clean_techs(value, url=row.get("URL", ""))
         if value:
             out[column] = trim(value)
     return out

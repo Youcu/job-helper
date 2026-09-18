@@ -26,13 +26,29 @@ def test_NORMAL_spacing_does_not_matter():
         assert role_words.looks_mixed(_row(title)), title
 
 
-def test_BOUNDARY_one_body_mention_is_not_enough():
-    """`모집부문` 한 번은 **표의 열 이름**이라 거의 모든 공고에 있다.
-
-    처음에는 본문의 이 낱말을 세려 했는데, 사람인 28건을 실제로 받아 세어 보니
-    통합 공고인 한양이엔지도 1회였고 단일 공고도 1회였다 (2026-09-18 실측).
-    """
+def test_BOUNDARY_one_common_word_is_not_enough():
+    """`모집부문` 한 번은 **표의 열 이름**이라 흔하다 — 실측 682건 중 145건(21%)."""
     assert not role_words.looks_mixed(_row("평범한 공고"), "모집부문 상세내용 백엔드")
+
+
+def test_BOUNDARY_one_rare_word_is_enough():
+    """**드문 말에 2회 기준을 걸면 아무것도 안 걸린다.**
+
+    실측(2026-09-18, 본문 682건) — `채용부문` 은 1회 이상이 8건인데 **2회 이상은
+    0건**이다. `채용분야` 12/0 · `모집직무` 7/3 · `부문 안내` 2/0 도 같다.
+    이 말을 쓰면 대개 진짜 통합 공고다.
+
+    실제로 `[안랩] 2026년 연구소 상시채용`(기술 45개짜리 통합 공고)이 `채용부문`
+    을 한 번 쓰고 그대로 빠져나갔다.
+    """
+    assert role_words.looks_mixed(_row("평범한 공고"), "채용부문 안내 SW 개발(Windows)")
+    assert role_words.looks_mixed(_row("평범한 공고"), "채용분야 서버 개발")
+    assert role_words.looks_mixed(_row("평범한 공고"), "모집직무 백엔드")
+
+
+def test_BOUNDARY_a_common_word_twice_is_still_enough():
+    """흔한 말은 두 번부터 — 실측 682건 중 46건으로 줄어든다."""
+    assert role_words.looks_mixed(_row("평범한 공고"), "모집부문 A 모집부문 B")
 
 
 def test_BOUNDARY_several_body_mentions_are():

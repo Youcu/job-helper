@@ -372,23 +372,54 @@ def test_BOUNDARY_web_covers_back_front_and_full_stack():
         "프롬프트에 `웹` 의 범위가 안 실렸다"
 
 
-def test_BOUNDARY_the_model_output_passes_the_block_lists():
+def test_BOUNDARY_the_model_output_passes_the_corpus():
     """**이 단계는 기술 이름이 들어오는 다섯 번째 길이다.**
 
-    앞의 넷(수집·태그 / 수집·산문 / 그림 판독 / 후보 해석)은 차단을 지나는데
-    여기만 안 지났다 — 모델이 낸 글을 그대로 칸에 썼다. 실제로 최종본 48행에
-    `풀스택`(8번) · `DevOps`(5) · `컨테이너`(5) · `ORM`(3) 이 되돌아왔다
-    (2026-09-18 실측: 막아야 할 이름 26가지 · 47번).
+    앞의 넷(수집·태그 / 수집·산문 / 그림 판독 / 후보 해석)은 걸러지는데 여기만
+    안 걸러졌다 — 모델이 낸 글을 그대로 칸에 썼다. 최종본 48행에 막아야 할 이름이
+    26가지·47번 되돌아왔다 (2026-09-18 실측).
     """
     got = role.clean_techs("Java, 풀스택, Spring, DevOps, ORM, 컨테이너, Redis")
     assert got == "Java, Spring, Redis", got
 
 
-def test_BOUNDARY_a_section_heading_inside_the_list_is_dropped():
-    """모델이 절 머리말을 기술 이름 사이에 끼워 넣는 일이 있다 — 실측
-    `KAFKA / [공용서비스 개발 및 운영] Java`."""
-    got = role.clean_techs("Kafka / [공용서비스 개발 및 운영] Java, Spring")
-    assert got == "Spring", got
+def test_BOUNDARY_a_black_list_is_not_enough():
+    """**모르는 말은 무한하다.** 차단 목록만 지나게 했더니 본문에서 잘라 온 말이
+    그대로 들어왔다 — 넷 다 공고 본문에 실제로 적힌 말이라 "지어냈다" 도 아니다
+    (2026-09-18 실측).
+
+    하나 볼 때마다 목록에 한 줄 더하는 것은 끝이 없다. **아는 이름만 통과시킨다.**
+    """
+    got = role.clean_techs("Java, AI 기반 개발도구, OpenAI API 등 LLM API, "
+                           "데이터베이스 쿼리, OGC 표준, Spring")
+    assert got == "Java, Spring", got
+
+
+def test_BOUNDARY_a_parenthesis_does_not_smuggle_a_blocked_name():
+    """`MSA` 는 막혀 있는데 `MSA(마이크로서비스 아키텍처)` 로 빠져나갔다.
+    흰 목록에서는 이 구멍이 아예 안 생긴다 — 그 표기가 corpus 에 없기 때문이다."""
+    assert role.clean_techs("MSA(마이크로서비스 아키텍처), Spring") == "Spring"
+
+
+def test_BOUNDARY_an_alias_becomes_the_standard_name():
+    """흰 목록은 별칭도 안다 — 버리지 않고 표준 표기로 모은다."""
+    assert role.clean_techs("GCP, Spring") == "Google Cloud, Spring"
+
+
+def test_BOUNDARY_an_unknown_name_is_kept_as_a_candidate():
+    """**corpus 에 없다고 기술이 아닌 것은 아니다.** 새 기술은 늘 나온다.
+    버리되 사람이 보고 올릴 수 있게 쌓아 둔다 — 수집기들이 이미 그렇게 한다."""
+    import tempfile
+    from pathlib import Path
+
+    from _common import corpus_candidates
+
+    with tempfile.TemporaryDirectory() as home:
+        target = Path(home) / "candidates.json"
+        got = corpus_candidates.record(["듣도보도못한DB", "Java"], site="role",
+                                       path=target)
+        assert "듣도보도못한DB" in got, got
+        assert "Java" not in got, "이미 아는 이름은 후보가 아니다"
 
 
 def test_BOUNDARY_the_same_name_twice_is_kept_once():
