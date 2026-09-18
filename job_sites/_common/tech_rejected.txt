@@ -217,3 +217,139 @@ ROI
 KPI
 OKR
 BM
+
+# ── 흰 목록이 걷어 낸 것 (2026-09-18) ──
+#
+# 모델이 낸 이름 중 corpus 가 모르는 299개를 사람이 훑어 가른 결과다. 여기 것들은
+# **기술 이름이 아니다** — 직무·분야·일반 용어·파일 형식·업무 시스템.
+#
+# 흰 목록이 어차피 막으니 적지 않아도 결과는 같다. 그래도 적는 이유는 **후보 파일에
+# 다시 안 올라오게** 하기 위해서다. 안 적으면 사람이 매번 같은 이름을 또 본다.
+Backend
+AI
+API
+AI Agent
+Network
+AI 기반 개발도구
+PCB
+OGC 표준
+데이터베이스 쿼리
+MSA(마이크로서비스 아키텍처)
+DB
+RDB
+마이크로서비스 아키텍처
+Cloud
+EDMS
+ISTQB
+MCP(Model Context Protocol)
+CAN 통신
+CAN/Ethernet
+HWP
+MS오피스(PPT, Excel, Word)
+OGC
+QMS
+Web
+관계형 데이터베이스
+비동기 처리
+클라우드
+Agentic Workflow
+AI (Cursor, Claude)
+AI 개발 프레임
+Android Native
+API 설계 및 개발
+ASW
+AUTOSAR (ASW/BSW)
+Boot
+BSW
+CDD
+CDD 개발
+Cloud 서비스
+CMS/Admin
+Coding Agent(Antigravity)
+Container
+CTD
+D2K
+DB 연동
+DB암호화
+ELN
+ETL/배치 파이프라인
+Front
+GIS
+GIS/Geo Data
+GitOps
+GLP
+GMP
+HPE ProLiant
+ICH 가이드라인
+KISA
+LAS
+Lims
+Linux 서버구축
+LLM & RAG/MCP API
+LLM API 연동
+LLM API(Claude, GPT)
+LMS 시스템
+Low-Code/No-Code
+MVC
+NDK
+Oracle DB 프로시저
+OWASP
+PLM
+POP
+RaspberryPi
+SDK
+SEM
+serial/USB 통신
+SNS광고
+SOP
+SQL Query
+WBS
+Web UI
+Web 인터페이스
+Web/Was
+Workflow 자동화 도구
+그래프 DB
+노션
+더존 ERP
+데이터 웨어하우스/마트
+데이터베이스 설계 및 개발
+디아콘 P8(스마트 인슐린펜)
+멀티스레딩
+메시지큐
+모바일웹 개발
+미들웨어
+바이브 코딩
+반응형 웹
+벡터 DB
+벡터 검색
+분산 시스템
+빅데이터
+시계열DB
+오픈소스 LLM(Llama, Qwen)
+웹 서비스 개발/배포
+웹 애플리케이션/대시보드/어드민 페이지 개발
+웹표준코딩
+이벤트 기반 시스템
+이벤트 기반 아키텍처
+임베딩 모델
+전자정부 표준프레임
+전자정부 프레임워크
+전자정부프레임워크(egovframework)
+정적/동적 SW 테스팅
+캐시
+크롤링/API 연동
+클라우드 기반 서비스
+토큰 효율화
+파인튜닝
+프론트엔드: WPF
+프롬프트 엔지니어링
+Cache DB
+Document DB
+Git/GitHub
+robots.txt
+Schema.org JSON-LD
+sitemap.xml
+Storage
+SVG
+TCP/IP 소켓통신
+오실로스코프

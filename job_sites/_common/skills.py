@@ -213,12 +213,22 @@ def _lookup(standard: str) -> str:
         return canonical(resolved)
 
     packed = "".join(low.split())
-    if packed == low:
-        return ""
-    if packed in dictionaries.corpus():
-        return dictionaries.corpus()[packed]["name"]
-    resolved = dictionaries.aliases().get(packed)
-    return canonical(resolved) if resolved else ""
+    return _packed_index().get(packed, "")
+
+
+@lru_cache(maxsize=1)
+def _packed_index() -> dict[str, str]:
+    """**공백을 뗀 모양** → 표준 이름. 양쪽 다 뗀다.
+
+    한쪽만 떼면 반만 풀린다 — `MY SQL`→`MySQL` 은 되는데 `TailwindCSS`→`Tailwind CSS`
+    는 안 된다. 사전에 `TailwindCSS` 를 한 줄 더하는 대신 사전 쪽도 떼어 둔다.
+    """
+    book: dict[str, str] = {}
+    for low, entry in dictionaries.corpus().items():
+        book.setdefault("".join(low.split()), entry["name"])
+    for alias, standard in dictionaries.aliases().items():
+        book.setdefault("".join(alias.split()), canonical(standard))
+    return book
 
 
 def keep_known(names: list[str]) -> list[str]:
