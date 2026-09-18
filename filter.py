@@ -3,7 +3,7 @@
 
     python3 filter.py
 
-    csv/merged_read.csv  →  csv/merged_filtered.csv   남은 공고
+    csv/merged_role.csv  →  csv/merged_filtered.csv   남은 공고
                             csv/filter_report.csv     **뺀 공고 전량 + 뺀 이유**
 
 수집·병합·그림 판독은 원본을 지키는 일이라 아무것도 안 버린다. 그래서 같은 공고가 사이트
@@ -26,7 +26,7 @@ import sys
 from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parent
-INPUT = ROOT_DIR / "csv" / "merged_read.csv"
+INPUT = ROOT_DIR / "csv" / "merged_role.csv"
 OUTPUT = ROOT_DIR / "csv" / "merged_filtered.csv"
 REPORT = ROOT_DIR / "csv" / "filter_report.csv"
 LOCK = ROOT_DIR / "csv" / ".filter.lock"

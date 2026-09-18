@@ -7,7 +7,7 @@ python3 filter.py
 걷은 공고에서 **버릴 것을 버린다.** 두 가지만 한다 — 같은 공고 묶기, 정해진 낱말 빼기.
 
 ```
-csv/merged_read.csv  ──중복 제거──▶  ──낱말 제외──▶  csv/merged_filtered.csv
+csv/merged_role.csv  ──중복 제거──▶  ──낱말 제외──▶  csv/merged_filtered.csv
       710행                674행           561행     +  csv/filter_report.csv (149행)
 ```
 
@@ -189,10 +189,10 @@ SI      (?<![A-Za-z0-9])SI(?![A-Za-z0-9])   ASCII 경계. 평문이면 Vision·D
 | 코드 | 뜻 |
 |---|---|
 | 0 | 정상 |
-| 1 | `csv/merged_read.csv` 가 없다 — 먼저 수집을 돌려야 한다 |
+| 1 | `csv/merged_role.csv` 가 없다 — 먼저 직군 가리기까지 돌려야 한다 |
 | 3 | 이미 돌고 있다 (`_common/runlock.py` 의 `ALREADY_RUNNING`) |
 
 `2`(부분 실패)와 `4`(건너뜀)는 **이 단계에 없다.** 표에 적어 두면 있지도 않은 일이 화면에 찍힌다.
 
 오케스트레이터는 이 단계를 자식 프로세스로 부르고, **앞 단계가 실패하면 부르지 않는다** —
-앞이 죽었으면 `merged_read.csv` 에 있는 것은 지난 실행이 남긴 것이다.
+앞이 죽었으면 `merged_role.csv` 에 있는 것은 지난 실행이 남긴 것이다.

@@ -93,6 +93,22 @@ IMAGE_EXIT_MEANING = {
 }
 
 
+ROLE_STAGE = ROOT_DIR / "role.py"
+
+# 후보(제목·본문 신호에 걸린 것)만 모델에 태운다. 실측 8% 라 전량보다 훨씬 싸지만,
+# 그래도 모델이므로 넉넉히 준다.
+ROLE_TIMEOUT = 60 * 40
+
+# `1` 에 `claude` 와 `JOB_ROLES` 를 적는다. 이 단계는 그 둘로 판정하므로, 없으면
+# **거르지 않고 통과시키는 대신 멈춘다** — 통과시키면 걸렀다고 믿는데 안 걸린
+# 파일을 받는다.
+ROLE_EXIT_MEANING = {
+    0: ("정상", True),
+    1: ("단계를 못 돌림 — merged_read.csv 가 없거나, claude 명령을 못 찾았거나, "
+        ".env 의 JOB_ROLES 가 비었음", False),
+    3: ("이미 돌고 있음", False),
+}
+
 FILTER_STAGE = ROOT_DIR / "filter.py"
 
 # 거르기 단계는 그물도 모델도 안 탄다 — 파일 하나를 읽고 정규식을 돌릴 뿐이다.
@@ -102,7 +118,7 @@ FILTER_TIMEOUT = 60 * 5
 # 거르기가 내는 코드. **`2` 는 이 단계에 없다** — 부분 실패라는 것이 없다.
 FILTER_EXIT_MEANING = {
     0: ("정상", True),
-    1: ("단계를 못 돌림 — merged_read.csv 가 없음", False),
+    1: ("단계를 못 돌림 — merged_role.csv 가 없음", False),
     3: ("이미 돌고 있음", False),
 }
 
@@ -182,8 +198,10 @@ STAGES = (
     # (스크립트, 이름, 종료 코드 표, 제한 시간, 앞 단계가 남긴 파일)
     (IMAGE_STAGE, "이미지판독", IMAGE_EXIT_MEANING, TIMEOUT_SECONDS,
      "csv/merged.csv"),
-    (FILTER_STAGE, "거르기", FILTER_EXIT_MEANING, FILTER_TIMEOUT,
+    (ROLE_STAGE, "직군 가리기", ROLE_EXIT_MEANING, ROLE_TIMEOUT,
      "csv/merged_read.csv"),
+    (FILTER_STAGE, "거르기", FILTER_EXIT_MEANING, FILTER_TIMEOUT,
+     "csv/merged_role.csv"),
     (RATING_STAGE, "평점 거르기", RATING_EXIT_MEANING, RATING_TIMEOUT,
      "csv/merged_filtered.csv"),
     (CORE_STACK_STAGE, "핵심 기술 거르기", CORE_STACK_EXIT_MEANING, CORE_STACK_TIMEOUT,
