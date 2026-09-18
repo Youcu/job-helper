@@ -174,17 +174,50 @@ def split_names(text: str) -> list[str]:
 _WRAPPED = re.compile(r"^([^()\[\]]+?)\s*[(\[]([^()\[\]]*)[)\]]$")
 
 
+# 이름 뒤에 붙는 **판 번호**. `React 19` · `NestJS 8` · `TypeORM 0.2` · `Delphi XE8 이상`.
+#
+# 판마다 사전에 한 줄씩 더하는 것은 끝이 없다 — `React 18` 이 오면 또 더해야 한다.
+# **판은 이름이 아니라 이름에 붙는 꼬리**이므로 코드가 뗀다 (2026-09-18 사용자 지적).
+#
+# 공백이 앞에 있을 때만 뗀다. `S3` · `Log4j` · `Vue3` 처럼 **붙어 있으면 그게 이름**이다.
+_VERSION = re.compile(r"\s+v?\d+(?:\.\d+)*\s*(?:이상|이후|\+)?$|\s+(?:이상|이후)$")
+
+
 def known(name: str) -> str:
     """corpus 나 별칭에 있는 이름이면 **표준 표기**로, 없으면 빈 문자열.
 
     `blocked()` 의 반대편이다 — 저쪽은 "이건 아니다" 를 적어 두는 **검은 목록**이고,
     이쪽은 "이건 맞다" 만 통과시키는 **흰 목록**이다.
+
+    **판 번호는 떼고 다시 본다** — `React 19` 는 `React` 다.
     """
     standard = canonical(name)
+    found = _lookup(standard)
+    if found:
+        return found
+    trimmed = _VERSION.sub("", standard).strip()
+    return _lookup(trimmed) if trimmed and trimmed != standard else ""
+
+
+def _lookup(standard: str) -> str:
+    """정확히 맞는 것 먼저, 없으면 **공백을 뗀 모양**으로 한 번 더.
+
+    한글 표기는 띄어쓰기가 흔들린다 — 별칭에 `C언어` 가 있는데 공고는 `C 언어` 라고
+    적는다 (2026-09-18 실측). 사전에 띄어쓰기마다 한 줄씩 더하는 것은 끝이 없다.
+    """
     low = standard.lower()
     if low in dictionaries.corpus():
         return standard
     resolved = dictionaries.aliases().get(low)
+    if resolved:
+        return canonical(resolved)
+
+    packed = "".join(low.split())
+    if packed == low:
+        return ""
+    if packed in dictionaries.corpus():
+        return dictionaries.corpus()[packed]["name"]
+    resolved = dictionaries.aliases().get(packed)
     return canonical(resolved) if resolved else ""
 
 

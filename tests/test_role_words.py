@@ -91,3 +91,36 @@ def test_BOUNDARY_a_parenthesised_list_is_not_chopped():
     assert split_names("Python (FastAPI, Django)") == ["Python", "FastAPI", "Django"]
     assert split_names("C#, C++, Node.js") == ["C#", "C++", "Node.js"]
     assert split_names("Opensearch(ElasticSearch)") == ["Opensearch", "ElasticSearch"]
+
+
+def test_BOUNDARY_a_version_number_is_not_part_of_the_name():
+    """**판마다 사전에 한 줄씩 더하는 것은 끝이 없다** — `React 18` 이 오면 또 더해야
+    한다. 판은 이름이 아니라 이름에 붙는 꼬리다 (2026-09-18 사용자 지적).
+
+    붙어 있으면 그게 이름이다 — `S3` · `Vue3` 는 안 건드린다.
+    """
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "job_sites"))
+    from _common.skills import known
+
+    assert known("React 19") == "React"
+    assert known("NestJS 8") == "NestJS"
+    assert known("Java 17") == "Java"
+    assert known("Spring Boot 3") == "Spring Boot"
+    assert known("S3") == "Amazon S3", "붙어 있으면 그게 이름이다"
+
+
+def test_BOUNDARY_korean_spacing_does_not_matter():
+    """별칭에 `C언어` 가 있는데 공고는 `C 언어` 라고 적는다. 띄어쓰기마다 한 줄씩
+    더하는 것도 끝이 없다."""
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "job_sites"))
+    from _common.skills import known
+
+    assert known("C 언어") == "C"
+    assert known("자바") == "Java"
+    assert known("쿠버네티스") == "Kubernetes"
