@@ -218,7 +218,87 @@ def test_BOUNDARY_the_prompt_carries_what_my_roles_mean():
     prompt = role.build_prompt({"공고명": "가"}, "본문", ["백엔드"])
     assert "백엔드" in prompt
     assert "서버" in prompt, "roles.json 의 설명이 안 실렸다"
-    assert "다른 부문의 내용을 섞지 마라" in prompt
+    assert "같은 부문 블록" in prompt, "네 칸이 한 부문에서 나와야 한다는 규칙이 없다"
+
+
+def test_BOUNDARY_the_prompt_forbids_mixing_two_parts():
+    """**실측으로 겪었다** (2026-09-18, rec_idx=55013189).
+
+    모델이 부문은 `백엔드 엔지니어(Node.js/NestJS)` 를 골라 놓고 지원자격은
+    **품질보증 부문 것**(`ISO 9001` · `AS9100` · `품질 보증 경력 3년`)을 가져왔다.
+    근거에 "직무명과 불일치한다" 고 스스로 적고도 그대로 냈다.
+
+    읽는 사람은 그것을 내 직군의 조건으로 믿는다. 그래서 **비는 편이 낫다** 를
+    프롬프트에 못 박는다.
+    """
+    prompt = role.build_prompt({"공고명": "가"}, "본문", ["백엔드"])
+    assert "같은 부문 블록" in prompt
+    assert "빈 문자열로 둬라" in prompt, "못 찾으면 비우라는 지시가 없다"
+    assert "지어내지 마라" in prompt, "경력을 지어내지 말라는 지시가 없다"
+    assert "부문원문" in prompt, "사람이 확인할 자리가 없다"
+
+
+def test_BOUNDARY_a_kept_posting_is_also_in_the_report():
+    """**덮어쓰는 단계라 오판이 조용하다.** 무엇을 어느 부문 것으로 갈아 끼웠는지
+    못 되짚으면 고칠 수가 없다."""
+    with tempfile.TemporaryDirectory() as home:
+        home = Path(home)
+        source = home / "in.csv"
+        _csv(source, [_row(공고명="각 부문별 채용")])
+        role._run(source, _bodies(home, {"https://x/1": "본문"}), **_out(home),
+                  ask=lambda *a: {"해당": True, "기술스택": "Spring",
+                                  "부문": "백엔드 개발자", "부문원문": "기술부문 백엔드 개발자"},
+                  have_claude=True, assume_yes=True)
+        report = _read(home / "report.csv")
+        assert report[0]["판정"] == "남김 · 부문 골라 덮어씀", report
+        assert report[0]["부문원문"] == "기술부문 백엔드 개발자"
+
+
+def test_BOUNDARY_a_part_whose_body_is_missing_is_not_overwritten():
+    """**머리말만 있고 내용이 없는 부문이 있다.**
+
+    실측 `rec_idx=55013189` — 사람인이 `기술 부문 22개 포지션` 이라 적어 놓고
+    본문에는 일부 패널만 싣는다. `NestJS` 가 본문 17,447자 전체에서 **머리말 한
+    곳에만** 나오고, 그 아래 글은 옆 포지션(품질보증)의 것이었다.
+
+    모델은 가진 재료로 답을 냈고 그게 틀렸다 — `품질 보증 경력 3년` 이 백엔드
+    지원자격으로 실렸다. 덮어쓰면 **조용히** 틀린다. 안 덮고 리포트에 적는다.
+    """
+    with tempfile.TemporaryDirectory() as home:
+        home = Path(home)
+        source = home / "in.csv"
+        _csv(source, [_row(공고명="각 부문별 채용", 지원자격="원래 자격",
+                           기술스택="Java, React")])
+        role._run(source, _bodies(home, {"https://x/1": "본문"}), **_out(home),
+                  ask=lambda *a: {"해당": True, "내용확실": False,
+                                  "부문": "백엔드 엔지니어",
+                                  "지원자격": "품질 보증 경력 3년",
+                                  "기술스택": "Node.js"},
+                  have_claude=True, assume_yes=True)
+        got = _read(home / "out.csv")[0]
+        assert got["지원자격"] == "원래 자격", "확실하지 않은데 덮어썼다"
+        assert got["기술스택"] == "Java, React"
+        report = _read(home / "report.csv")
+        assert report[0]["판정"] == "남김 · 부문 내용 없음", report
+
+
+def test_BOUNDARY_certainty_missing_is_treated_as_certain():
+    """옛 캐시나 답이 그 칸을 안 줄 수 있다. **없다고 못 믿을 이유는 없다** —
+    `False` 라고 명시했을 때만 안 덮는다."""
+    with tempfile.TemporaryDirectory() as home:
+        home = Path(home)
+        source = home / "in.csv"
+        _csv(source, [_row(공고명="각 부문별 채용")])
+        role._run(source, _bodies(home, {"https://x/1": "본문"}), **_out(home),
+                  ask=lambda *a: {"해당": True, "기술스택": "Spring"},
+                  have_claude=True, assume_yes=True)
+        assert _read(home / "out.csv")[0]["기술스택"] == "Spring"
+
+
+def test_BOUNDARY_the_prompt_warns_about_headings_without_bodies():
+    prompt = role.build_prompt({"공고명": "가"}, "본문", ["백엔드"])
+    assert "내용확실" in prompt
+    assert "링크 너머" in prompt, "왜 내용이 빌 수 있는지 안 알려 준다"
 
 
 def test_BOUNDARY_the_role_is_not_hardcoded():

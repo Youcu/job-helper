@@ -94,7 +94,7 @@ from _common.store import read_csv, trim, write_csv, write_rows    # noqa: E402
 import role_words                                                  # noqa: E402
 
 REPORT_COLUMNS = ("기업명", "공고명", "사이트명", "URL", "판정", "걸린신호",
-                  "찾은부문", "근거")
+                  "찾은부문", "부문원문", "근거")
 
 MODEL = "sonnet"
 TIMEOUT = 180
@@ -105,7 +105,7 @@ MAX_PROMPT_BODY = 20_000
 # **판정 규칙이 바뀌면 옛 판정을 버린다.** 프롬프트를 고쳐도 이미 판정된 공고가
 # 캐시에서 그대로 나오면 고침이 영영 안 먹는다 — `career.py` 에서 실제로 겪었다.
 # 규칙(프롬프트)이나 `JOB_ROLES` 를 손대면 **이 숫자를 올려라.**
-RULES_VERSION = 1
+RULES_VERSION = 3
 
 # 덮어쓰는 칸. 나머지는 공고 전체의 것이라 그대로 둔다.
 OVERWRITE = ("기술스택", "지원자격", "우대사항", "경력")
@@ -132,8 +132,21 @@ def build_prompt(row: dict, body: str, wanted: list[str]) -> str:
         "할 일\n"
         "1. 이 공고에 **여러 부문(모집 직무)** 이 있는지 본다.\n"
         "2. 내가 찾는 직군에 **해당하는 부문만** 고른다. 여럿이면 다 고른다.\n"
-        "3. 고른 부문의 것만 모아 낸다. **다른 부문의 내용을 섞지 마라** —\n"
-        "   프론트엔드 부문의 React 나 임베디드 부문의 Verilog 가 들어가면 안 된다.\n\n"
+        "3. 고른 부문의 것만 모아 낸다.\n\n"
+        "**가장 중요한 규칙 — 네 칸은 모두 \"같은 부문 블록\" 에서 나와야 한다.**\n"
+        "공고는 부문마다 제 자격요건·우대사항·기술·경력을 따로 적는다. 한 칸이라도\n"
+        "다른 부문 블록에서 가져오면, 읽는 사람은 그것을 내 직군의 조건으로 믿는다.\n"
+        "- 프론트엔드 부문의 React 나 임베디드 부문의 Verilog 가 들어가면 안 된다.\n"
+        "- **고른 부문 블록에 그 칸이 없으면 빈 문자열로 둬라.** 옆 부문에서\n"
+        "  가져오지 마라. 비는 것이 틀린 것보다 낫다.\n"
+        "- `경력` 은 **그 부문이 명시한 것만** 적어라 (`신입`·`경력 3년 이상`).\n"
+        "  안 적혀 있으면 빈 문자열이다. `경력무관` 같은 값을 **지어내지 마라.**\n"
+        "- 고른 부문의 머리말을 `부문원문` 에 **공고에 적힌 그대로** 옮겨라.\n"
+        "  사람이 네 답을 확인할 자리다.\n"
+        "- **머리말만 있고 그 부문의 내용이 본문에 없을 수 있다.** 채용 사이트가\n"
+        "  포지션 목록만 싣고 상세는 링크 너머에 두기 때문이다. 그때 옆 부문의\n"
+        "  글을 끌어다 쓰면 안 된다 — `내용확실=false` 로 하고 네 칸을 비워라.\n"
+        "  고른 부문의 일이라고 **읽어서 납득이 되면** `내용확실=true` 다.\n\n"
         "판정 기준\n"
         "- 부문이 **하나뿐**이고 그것이 내 직군이면 `해당=true` 로 하고, 칸은\n"
         "  공고에 적힌 그대로 낸다.\n"
@@ -142,7 +155,8 @@ def build_prompt(row: dict, body: str, wanted: list[str]) -> str:
         "- **애매하면 `해당=true` 로 두고 내용을 그대로 내라.** 놓치는 것보다\n"
         "  멀쩡한 공고를 지우는 쪽이 나쁘다.\n\n"
         "아래 JSON 만 출력하고 다른 말은 하지 마라. 모르는 칸은 빈 문자열로 둬라.\n"
-        '{"해당": true 또는 false, "부문": "고른 부문 이름들", '
+        '{"해당": true 또는 false, "내용확실": true 또는 false, '
+        '"부문": "고른 부문 이름들", "부문원문": "공고에 적힌 머리말 그대로", '
         '"기술스택": "쉼표로 나열", "지원자격": "", "우대사항": "", '
         '"경력": "", "근거": "한 문장"}'
         % (described, row.get("공고명", ""), body[:MAX_PROMPT_BODY])
@@ -282,7 +296,7 @@ def _run(source: Path | None = None, bodies_path: Path | None = None,
     rows = read_csv(source)
     texts = bodies_module.load(bodies_path)
     book = load_cache(cache_path)
-    asked = failed = bodyless = 0
+    asked = failed = bodyless = unsure = 0
     kept, cut = [], []
 
     print("찾는 직군: %s" % " · ".join(wanted))
@@ -297,7 +311,7 @@ def _run(source: Path | None = None, bodies_path: Path | None = None,
         if not body:
             # **조용히 칸으로 대신하지 않는다.** 칸은 첫 부문 것이라 판정에 못 쓴다.
             bodyless += 1
-            cut.append((row, "남김 · 본문 없음", signals, "",
+            cut.append((row, "남김 · 본문 없음", signals, "", "",
                         "후보인데 본문이 없어 못 물어봤습니다. 남깁니다."))
             kept.append(row)
             continue
@@ -312,7 +326,7 @@ def _run(source: Path | None = None, bodies_path: Path | None = None,
                 # **못 물어본 것을 "내 직군 아님" 으로 읽으면 안 된다.** 남긴다.
                 failed += 1
                 print("  %s 판정 실패: %s" % (url, error), file=sys.stderr)
-                cut.append((row, "남김 · 판정 실패", signals, "", str(error)[:200]))
+                cut.append((row, "남김 · 판정 실패", signals, "", "", str(error)[:200]))
                 kept.append(row)
                 continue
             asked += 1
@@ -321,15 +335,27 @@ def _run(source: Path | None = None, bodies_path: Path | None = None,
             save_cache(cache_path, book)          # 하나 끝날 때마다 — 중간에 죽어도 이어받는다
 
         found = str(answer.get("부문") or "").strip()
+        quoted = str(answer.get("부문원문") or "").strip()[:200]
         why = str(answer.get("근거") or "")[:200]
-        if answer.get("해당"):
-            kept.append(apply(row, answer))
+        if not answer.get("해당"):
+            cut.append((row, "제외 · 내 직군 없음", signals, found, quoted, why))
+        elif answer.get("내용확실") is False:
+            # **머리말만 있고 내용이 없다.** 사이트가 포지션 목록만 싣고 상세는
+            # 링크 너머에 둔 것이다 (실측 rec_idx=55013189 — `NestJS` 가 본문 전체에서
+            # 머리말 한 곳에만 나온다). 옆 부문 글로 덮어쓰면 **품질보증 요건이
+            # 백엔드 요건으로 둔갑한다.** 덮지 말고 드러낸다.
+            unsure += 1
+            kept.append(row)
+            cut.append((row, "남김 · 부문 내용 없음", signals, found, quoted, why))
         else:
-            cut.append((row, "제외 · 내 직군 없음", signals, found, why))
+            kept.append(apply(row, answer))
+            # **고른 것도 전량 남긴다.** 덮어쓰는 단계라 오판이 조용하다 — 무엇을
+            # 어느 부문 것으로 갈아 끼웠는지 못 되짚으면 고칠 수가 없다.
+            cut.append((row, "남김 · 부문 골라 덮어씀", signals, found, quoted, why))
 
     write_csv(output, kept)
     _write_report(report, cut)
-    _print(len(rows), asked, failed, bodyless, kept, cut, wanted,
+    _print(len(rows), asked, failed, bodyless, unsure, kept, cut, wanted,
            source, output, report)
     return 0
 
@@ -343,12 +369,13 @@ def _write_report(path: Path, cut: list) -> None:
         {"기업명": row.get("기업명", ""), "공고명": row.get("공고명", ""),
          "사이트명": row.get("사이트명", ""), "URL": row.get("URL", ""),
          "판정": verdict, "걸린신호": " / ".join(signals),
-         "찾은부문": found, "근거": why}
-        for row, verdict, signals, found, why in cut])
+         "찾은부문": found, "부문원문": quoted, "근거": why}
+        for row, verdict, signals, found, quoted, why in cut])
 
 
-def _print(total: int, asked: int, failed: int, bodyless: int, kept: list,
-           cut: list, wanted: list, source: Path, output: Path, report: Path) -> None:
+def _print(total: int, asked: int, failed: int, bodyless: int, unsure: int,
+           kept: list, cut: list, wanted: list, source: Path, output: Path,
+           report: Path) -> None:
     dropped = [one for one in cut if one[1].startswith("제외")]
     print("\n물어본 공고 %d건 (캐시에서 바로 나온 것은 안 셉니다)" % asked)
     if failed:
@@ -356,6 +383,9 @@ def _print(total: int, asked: int, failed: int, bodyless: int, kept: list,
     if bodyless:
         print("  본문이 없어 못 물어본 공고: %d건 — 남겼습니다. %s 를 보세요"
               % (bodyless, report.name))
+    if unsure:
+        print("  부문은 찾았는데 본문에 그 내용이 없는 공고: %d건 — 안 덮고 남겼습니다"
+              % unsure)
     print("%s — %d행 (%s %d행에서 %d행 뺌)"
           % (output, len(kept), source, total, len(dropped)))
     print("%s — %d행 (뺀 이유와 못 판정한 것 전량)" % (report, len(cut)))
