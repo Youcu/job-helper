@@ -1,5 +1,9 @@
-<title>백엔드 신입 공고 45건</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITLE__</title>
 <style>
 :root{
   --ground:#f6f8fa; --surface:#ffffff; --surface-2:#f0f3f7;
@@ -7,7 +11,6 @@
   --accent:#2f5a80; --accent-soft:#e6eef6; --accent-ink:#1f3f5c;
   --good:#2a6a4b; --good-soft:#e3f1e9;
   --mid:#7d6212; --mid-soft:#f7efd9;
-  --star:#b07c17;
   --r:3px;
 }
 @media (prefers-color-scheme:dark){
@@ -17,7 +20,6 @@
     --accent:#7fadd6; --accent-soft:#1b2a38; --accent-ink:#a9c9e6;
     --good:#6cc094; --good-soft:#17291f;
     --mid:#d6ab4a; --mid-soft:#2a2313;
-    --star:#d8a63c;
   }
 }
 :root[data-theme="dark"]{
@@ -26,26 +28,25 @@
   --accent:#7fadd6; --accent-soft:#1b2a38; --accent-ink:#a9c9e6;
   --good:#6cc094; --good-soft:#17291f;
   --mid:#d6ab4a; --mid-soft:#2a2313;
-  --star:#d8a63c;
 }
 *{box-sizing:border-box}
 body{
   background:var(--ground); color:var(--ink);
-  font-family:"IBM Plex Sans KR",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+  font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Noto Sans KR","맑은 고딕","Malgun Gothic",sans-serif;
   font-size:14px; line-height:1.6; word-break:keep-all;
   -webkit-font-smoothing:antialiased;
 }
 .wrap{max-width:1080px; margin:0 auto; padding-inline:18px; padding-block:0 64px}
-.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace; font-variant-numeric:tabular-nums}
+.mono{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"D2Coding",monospace; font-variant-numeric:tabular-nums}
 
 /* ── 머리 ── */
 header.top{padding-block:34px 20px; border-bottom:2px solid var(--ink)}
-.eyebrow{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.14em;
+.eyebrow{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"D2Coding",monospace; font-size:11px; letter-spacing:.14em;
   text-transform:uppercase; color:var(--dim); margin:0 0 8px}
 h1{margin:0; font-size:27px; font-weight:700; letter-spacing:-.5px; text-wrap:balance; line-height:1.25}
 .lede{margin:9px 0 0; color:var(--ink-2); max-width:62ch}
 .gates{display:flex; flex-wrap:wrap; gap:6px; margin-top:16px;
-  font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--dim)}
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"D2Coding",monospace; font-size:11.5px; color:var(--dim)}
 .gates span{border:1px solid var(--line); border-radius:var(--r); padding:2px 8px; background:var(--surface)}
 .gates span b{color:var(--ink-2); font-weight:600}
 .gates i{font-style:normal; color:var(--line-2); align-self:center}
@@ -75,7 +76,7 @@ h1{margin:0; font-size:27px; font-weight:700; letter-spacing:-.5px; text-wrap:ba
 .seg button:last-child{border-right:0}
 .seg button[aria-pressed="true"]{background:var(--accent-soft); color:var(--accent-ink); font-weight:600}
 .count{margin-left:auto; flex:0 0 auto; padding-left:4px;
-  font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--dim)}
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"D2Coding",monospace; font-size:12px; color:var(--dim)}
 :focus-visible{outline:2px solid var(--accent); outline-offset:2px}
 
 .chipbar{display:none; gap:7px; align-items:center; padding-block:10px; flex-wrap:wrap;
@@ -88,36 +89,31 @@ h1{margin:0; font-size:27px; font-weight:700; letter-spacing:-.5px; text-wrap:ba
 ul.list{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:0}
 li.row{border-bottom:1px solid var(--line); padding-block:15px}
 .rowhead{display:grid; grid-template-columns:1fr auto; gap:5px 14px; align-items:start}
-.co{font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--dim);
+.co{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"D2Coding",monospace; font-size:11.5px; color:var(--dim);
   letter-spacing:.02em; margin:0 0 2px}
 .name{margin:0; font-size:15.5px; font-weight:600; line-height:1.42; letter-spacing:-.2px}
 .name a{color:var(--ink); text-decoration:none; background-image:linear-gradient(var(--line-2),var(--line-2));
   background-size:100% 1px; background-position:0 100%; background-repeat:no-repeat; padding-bottom:1px}
 .name a:hover{color:var(--accent); background-image:linear-gradient(var(--accent),var(--accent))}
-.side{display:flex; align-items:center; gap:7px}
-.rate{font-family:"IBM Plex Mono",monospace; font-size:13px; font-weight:600; padding:2px 8px;
+.rate{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"D2Coding",monospace; font-size:13px; font-weight:600; padding:2px 8px;
   border-radius:var(--r); white-space:nowrap}
 .rate.hi{background:var(--good-soft); color:var(--good)}
 .rate.lo{background:var(--mid-soft); color:var(--mid)}
-.star{border:1px solid var(--line-2); background:var(--surface); color:var(--line-2);
-  width:27px; height:27px; border-radius:var(--r); cursor:pointer; font-size:14px; line-height:1;
-  display:grid; place-items:center; padding:0}
-.star[aria-pressed="true"]{color:var(--star); border-color:var(--star)}
 
 .meta{display:flex; flex-wrap:wrap; gap:3px 13px; margin-top:8px;
-  font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--dim)}
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"D2Coding",monospace; font-size:11.5px; color:var(--dim)}
 .meta span{white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%}
 .meta .due{color:var(--ink-2); font-weight:500}
 
 .chips{display:flex; flex-wrap:wrap; gap:4px; margin-top:9px}
-.chips button{font-family:"IBM Plex Mono",monospace; font-size:11px; padding:2px 7px;
+.chips button{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"D2Coding",monospace; font-size:11px; padding:2px 7px;
   border:1px solid var(--line); background:var(--surface-2); color:var(--ink-2);
   border-radius:var(--r); cursor:pointer; line-height:1.55}
 .chips button:hover{border-color:var(--accent); color:var(--accent)}
 .chips button.hit{border-color:var(--accent); background:var(--accent-soft); color:var(--accent-ink); font-weight:500}
 
 .more{margin-top:10px; font:inherit; font-size:12px; color:var(--accent); background:none;
-  border:0; padding:0; cursor:pointer; font-family:"IBM Plex Mono",monospace}
+  border:0; padding:0; cursor:pointer; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"D2Coding",monospace}
 .more::before{content:"▸ "; }
 .row.open .more::before{content:"▾ "}
 
@@ -125,9 +121,9 @@ li.row{border-bottom:1px solid var(--line); padding-block:15px}
   background:var(--line); border:1px solid var(--line); border-radius:var(--r); overflow:hidden}
 .gate[hidden]{display:none}
 .gate section{background:var(--surface); padding:12px 14px; min-width:0}
-.gate h3{margin:0 0 7px; font-family:"IBM Plex Mono",monospace; font-size:10.5px;
+.gate h3{margin:0 0 7px; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"D2Coding",monospace; font-size:10.5px;
   letter-spacing:.1em; text-transform:uppercase; color:var(--dim); font-weight:600}
-.gate h3 b{display:block; font-family:"IBM Plex Sans KR",sans-serif; font-size:12.5px;
+.gate h3 b{display:block; font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif; font-size:12.5px;
   letter-spacing:0; text-transform:none; color:var(--ink-2); font-weight:600; margin-top:2px}
 .gate p{margin:0; font-size:13px; color:var(--ink-2); white-space:pre-wrap; line-height:1.68;
   max-height:22em; overflow-y:auto}
@@ -135,18 +131,19 @@ li.row{border-bottom:1px solid var(--line); padding-block:15px}
 
 .empty{padding:40px 0; text-align:center; color:var(--dim)}
 footer{margin-top:30px; padding-top:14px; border-top:1px solid var(--line);
-  font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--dim); line-height:1.8}
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"D2Coding",monospace; font-size:11.5px; color:var(--dim); line-height:1.8}
 
 @media (max-width:620px){
   .freq ol{grid-template-columns:1fr}
   .gate{grid-template-columns:1fr}
   .rowhead{grid-template-columns:1fr}
-  .side{justify-content:flex-start}
   .count{margin-left:0; width:100%}
   h1{font-size:22px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important}}
 </style>
+</head>
+<body>
 <div class="wrap">
 <header class="top">
   <p class="eyebrow">__SOURCE__</p>
@@ -182,7 +179,6 @@ footer{margin-top:30px; padding-top:14px; border-top:1px solid var(--line);
 <footer>
   평점은 잡플래닛 기업 평점. 2.9 미만은 앞 단계에서 이미 걸러졌다.<br>
   <b>기본역량</b>은 공고의 지원자격, <b>경쟁력</b>은 우대사항이다. 빈 칸은 공고에 그 절이 없었다는 뜻 — 채워 넣지 않는다.<br>
-  ★ 표시는 이 브라우저에만 남는다.
 </footer>
 </div>
 
@@ -211,7 +207,6 @@ document.getElementById('freq').innerHTML = topTech.map(([name,n]) =>
 /* ── 상태 ── */
 const sites = [...new Set(DATA.map(d=>d.site))].sort();
 let state = {q:'', site:'', sort:'rate', chips:new Set()};
-let picked = load();
 
 document.getElementById('siteSeg').innerHTML =
   [['','전체'], ...sites.map(s=>[s,s])].map(([v,l],i)=>
@@ -239,7 +234,6 @@ function render(){
   const rows = visible();
   const list = document.getElementById('list');
   list.innerHTML = rows.map(d=>{
-    const id = d.url;
     const hi = (+d.rate||0) >= 3.5;
     const meta = [
       d.site, d.career,
@@ -247,17 +241,13 @@ function render(){
       d.loc ? d.loc.split(' ').slice(0,3).join(' ') : '',
       d.pay || ''
     ].filter(Boolean).map(x => x.startsWith('<') ? x : `<span>${esc(x)}</span>`).join('');
-    return `<li class="row" data-id="${esc(id)}">
+    return `<li class="row">
       <div class="rowhead">
         <div>
           <p class="co">${esc(d.co)}</p>
           <h2 class="name"><a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.title)}</a></h2>
         </div>
-        <div class="side">
-          <span class="rate ${hi?'hi':'lo'}">${esc(d.rate)}</span>
-          <button type="button" class="star" data-star="${esc(id)}"
-            aria-pressed="${picked.has(id)}" aria-label="관심 표시">★</button>
-        </div>
+        <span class="rate ${hi?'hi':'lo'}">${esc(d.rate)}</span>
       </div>
       <div class="meta">${meta}</div>
       <div class="chips">${d.tech.map(t=>
@@ -298,20 +288,13 @@ document.getElementById('list').addEventListener('click', e => {
   const chip = e.target.closest('[data-chip]');
   if (chip) { const t = chip.dataset.chip;
     state.chips.has(t) ? state.chips.delete(t) : state.chips.add(t); render(); return; }
-  const star = e.target.closest('[data-star]');
-  if (star) { const id = star.dataset.star;
-    picked.has(id) ? picked.delete(id) : picked.add(id);
-    star.setAttribute('aria-pressed', picked.has(id)); save(); return; }
   const more = e.target.closest('[data-more]');
   if (more) { const row = more.closest('.row'); const gate = row.querySelector('.gate');
     gate.hidden = !gate.hidden; row.classList.toggle('open', !gate.hidden);
     more.textContent = gate.hidden ? '지원 조건 보기' : '지원 조건 접기'; }
 });
 
-/* ── 관심 표시는 이 브라우저에만 ── */
-function load(){ try { return new Set(JSON.parse(localStorage.getItem('picked')||'[]')); }
-                catch(e){ return new Set(); } }
-function save(){ try { localStorage.setItem('picked', JSON.stringify([...picked])); } catch(e){} }
-
 render();
 </script>
+</body>
+</html>

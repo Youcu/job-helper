@@ -156,3 +156,50 @@ def test_BOUNDARY_nothing_of_the_template_is_left_unfilled():
         page = output.read_text(encoding="utf-8")
         left = re.findall(r"__[A-Z]+__", page)
         assert not left, "채우지 않은 자리 표시가 남았습니다: %s" % left
+
+
+def test_BOUNDARY_the_page_is_a_whole_document():
+    """**`<meta charset>` 이 없으면 한글이 전부 깨진다.**
+
+    이 화면을 artifact 로 먼저 만들고 그 본문을 베껴 왔는데, artifact 플랫폼이
+    `doctype`·`charset`·`viewport` 를 알아서 씌워 준다. 거기서는 멀쩡했고 **파일로
+    떨어뜨리는 순간 깨졌다** (2026-09-19 사용자).
+
+    그때 시험은 전부 통과했다 — "자리 표시가 다 채워졌나" 만 봤지 **문서가 온전한지**
+    는 안 봤다. 그래서 여기서 본다.
+    """
+    page = report.TEMPLATE.read_text(encoding="utf-8")
+    head = page[:600].lower()
+    assert head.lstrip().startswith("<!doctype html>"), "doctype 이 없습니다"
+    assert "charset" in head, "charset 이 없습니다 — 한글이 깨집니다"
+    assert "viewport" in head, "viewport 가 없습니다 — 휴대폰에서 깨집니다"
+    assert page.rstrip().endswith("</html>"), "문서를 안 닫았습니다"
+
+
+def test_BOUNDARY_the_page_does_not_need_the_network():
+    """**웹폰트를 안 쓴다.** 망에 못 닿으면 글꼴이 통째로 바뀐다 — 이 파일은 손에
+    쥐고 여는 것이라 망을 전제할 수 없다. 그림·스크립트도 같은 이유로 바깥을 안 본다.
+    """
+    page = report.TEMPLATE.read_text(encoding="utf-8")
+    for outside in ("fonts.googleapis.com", "cdnjs", "jsdelivr", "unpkg",
+                    "<script src=", "<link rel=\"stylesheet\" href=\"http"):
+        assert outside not in page, "바깥을 봅니다: %s" % outside
+
+
+def test_BOUNDARY_the_browser_tab_says_the_real_count():
+    """`<title>` 이 박혀 있었다 — 몇 건이 나오든 탭에는 `45건` 이라고 떴다."""
+    import tempfile
+    from pathlib import Path
+
+    with tempfile.TemporaryDirectory() as home:
+        home = Path(home)
+        (home / "csv").mkdir()
+        source = home / "csv" / "merged_career.csv"
+        _csv(source, [_row(URL="https://x/1"), _row(URL="https://x/2"),
+                      _row(URL="https://x/3")])
+        output = home / "csv" / "out.html"
+        report._run(source, report.TEMPLATE, output)
+        page = output.read_text(encoding="utf-8")
+        found = re.search(r"<title>(.*?)</title>", page)
+        assert found, "title 이 없습니다"
+        assert "3건" in found.group(1), "탭 제목이 실제 건수와 다릅니다: %r" % found.group(1)
