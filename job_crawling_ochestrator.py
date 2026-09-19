@@ -33,6 +33,10 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).resolve().parent
 SITES_DIR = ROOT_DIR / "job_sites"
 OUTPUT = ROOT_DIR / "csv" / "merged.csv"
+
+# 합쳐 둔 공고 본문. CSV 칸에 안 들어가는 긴 글이라 옆 파일로 산다 (`_common/bodies.py`).
+BODIES_NAME = "bodies.jsonl"
+
 # 파이프라인 전체를 덮는 락. 단계별 락(`csv/.<단계>.lock`)과 이름이 안 겹쳐야 한다.
 LOCK = ROOT_DIR / "csv" / ".pipeline.lock"
 
@@ -40,6 +44,7 @@ sys.path.insert(0, str(SITES_DIR))
 
 from tqdm import tqdm                                        # noqa: E402
 
+from _common import bodies                                   # noqa: E402
 from _common import staleness                                # noqa: E402
 from _common.runlock import guarded                          # noqa: E402
 from _common.store import (COLUMNS, FIRST_SEEN, KEY_COLUMN,  # noqa: E402
@@ -88,6 +93,22 @@ IMAGE_EXIT_MEANING = {
 }
 
 
+ROLE_STAGE = ROOT_DIR / "role.py"
+
+# 후보(제목·본문 신호에 걸린 것)만 모델에 태운다. 실측 8% 라 전량보다 훨씬 싸지만,
+# 그래도 모델이므로 넉넉히 준다.
+ROLE_TIMEOUT = 60 * 40
+
+# `1` 에 `claude` 와 `JOB_ROLES` 를 적는다. 이 단계는 그 둘로 판정하므로, 없으면
+# **거르지 않고 통과시키는 대신 멈춘다** — 통과시키면 걸렀다고 믿는데 안 걸린
+# 파일을 받는다.
+ROLE_EXIT_MEANING = {
+    0: ("정상", True),
+    1: ("단계를 못 돌림 — merged_read.csv 가 없거나, claude 명령을 못 찾았거나, "
+        ".env 의 JOB_ROLES 가 비었음", False),
+    3: ("이미 돌고 있음", False),
+}
+
 FILTER_STAGE = ROOT_DIR / "filter.py"
 
 # 거르기 단계는 그물도 모델도 안 탄다 — 파일 하나를 읽고 정규식을 돌릴 뿐이다.
@@ -97,7 +118,7 @@ FILTER_TIMEOUT = 60 * 5
 # 거르기가 내는 코드. **`2` 는 이 단계에 없다** — 부분 실패라는 것이 없다.
 FILTER_EXIT_MEANING = {
     0: ("정상", True),
-    1: ("단계를 못 돌림 — merged_read.csv 가 없음", False),
+    1: ("단계를 못 돌림 — merged_role.csv 가 없음", False),
     3: ("이미 돌고 있음", False),
 }
 
@@ -147,6 +168,11 @@ CAREER_EXIT_MEANING = {
     3: ("이미 돌고 있음", False),
 }
 
+REPORT_SCRIPT = ROOT_DIR / "report.py"
+
+# 파일 하나를 읽어 파일 하나를 쓴다. 이만큼 걸릴 일이 없지만, 걸리면 멈춰야 한다.
+REPORT_TIMEOUT = 60
+
 HISTORY_STAGE = ROOT_DIR / "history.py"
 
 # 파일 몇 개를 병합해 쓰고 사이트 CSV 를 지운다. 그물도 모델도 안 탄다.
@@ -177,8 +203,10 @@ STAGES = (
     # (스크립트, 이름, 종료 코드 표, 제한 시간, 앞 단계가 남긴 파일)
     (IMAGE_STAGE, "이미지판독", IMAGE_EXIT_MEANING, TIMEOUT_SECONDS,
      "csv/merged.csv"),
-    (FILTER_STAGE, "거르기", FILTER_EXIT_MEANING, FILTER_TIMEOUT,
+    (ROLE_STAGE, "직군 가리기", ROLE_EXIT_MEANING, ROLE_TIMEOUT,
      "csv/merged_read.csv"),
+    (FILTER_STAGE, "거르기", FILTER_EXIT_MEANING, FILTER_TIMEOUT,
+     "csv/merged_role.csv"),
     (RATING_STAGE, "평점 거르기", RATING_EXIT_MEANING, RATING_TIMEOUT,
      "csv/merged_filtered.csv"),
     (CORE_STACK_STAGE, "핵심 기술 거르기", CORE_STACK_EXIT_MEANING, CORE_STACK_TIMEOUT,
@@ -257,11 +285,31 @@ def _main() -> int:
     _print_report(results, merged, elapsed)
 
     stages = _run_chain()
+    _draw_report()
 
     failed = [r for r in results if not r.ok]
     if failed:
         _print_failures(failed)
     return 1 if (failed or any(not st.ok for st in stages)) else 0
+
+
+def _draw_report() -> None:
+    """최종본을 사람이 읽는 화면으로 그린다.
+
+    **단계가 아니다** (D-25) — 그물도 모델도 안 타고 0.1초면 끝난다. 그래서
+    `STAGES` 표에 없고, **실패해도 파이프라인을 실패로 만들지 않는다.** 자료는
+    이미 다 나와 있고 못 그린 것은 `python3 report.py` 로 다시 그리면 된다.
+    화면 하나 때문에 두 시간짜리 실행을 실패로 보고하면 자동화가 오판한다.
+    """
+    done = subprocess.run([sys.executable, str(REPORT_SCRIPT)],
+                          capture_output=True, text=True, timeout=REPORT_TIMEOUT)
+    if done.returncode == 0:
+        print("\n%s" % done.stdout.strip())
+    else:
+        print("\n화면을 못 그렸습니다 — 자료는 csv/ 에 그대로 있습니다.", file=sys.stderr)
+        print("   python3 report.py 로 다시 그릴 수 있습니다.", file=sys.stderr)
+        for line in _clean_lines(done.stderr)[:3]:
+            print("   %s" % line, file=sys.stderr)
 
 
 def _print_failures(failed: list[Result]) -> None:
@@ -477,6 +525,15 @@ def merge_csvs(paths: list[Path], output: Path, history: Path = HISTORY_READ) ->
     write_csv(output, rows)
     if revived:
         print("  이력에서 최초수집일을 되살린 공고: %d행" % revived)
+
+    # **본문도 같이 모은다.** CSV 옆에 따로 사는 자료라 여기서 안 모으면 사이트
+    # 폴더에만 남고, 뒤 단계는 사이트 배치를 알아야 읽을 수 있게 된다.
+    #
+    # 자리를 `output` 에서 끌어낸다 — 전역 상수로 두면 **시험이 갈아 끼울 수 없어
+    # 진짜 `csv/` 에 쓴다.** 실제로 그렇게 만들었다가 시험이 잡았다 (2026-09-18).
+    gathered = output.with_name(BODIES_NAME)
+    kept = bodies.gather([bodies.path_for(path) for path in paths], gathered)
+    print("  본문 %d건을 %s 에 모았습니다" % (kept, gathered.name))
     return len(rows)
 
 

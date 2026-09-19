@@ -107,7 +107,7 @@ def test_BOUNDARY_empty_read_is_cached_too():
     # "셋 다 비었다" 는 **결과이지 실패가 아니다.** 캐시에 안 넣으면 쓰레기 이미지를
     # 30일 동안 매 실행 다시 읽는다.
     book = {}
-    empty = {"기술스택": [], "자격요건": [], "우대사항": []}
+    empty = {"기술스택": [], "자격요건": [], "우대사항": [], "본문": ""}
     cache.put(book, ["https://a/blank.png"], empty, "sonnet")
     got = cache.get(book, ["https://a/blank.png"])
     check_equal(got, empty, "빈 결과도 기억한다")
@@ -116,5 +116,5 @@ def test_BOUNDARY_empty_read_is_cached_too():
 
 def test_BOUNDARY_save_creates_missing_directories():
     home = temp_dir() / "없는" / "깊은" / "경로" / "cache.json"
-    cache.save(home, {"https://a/1.png": {"기술스택": [], "자격요건": [], "우대사항": []}})
+    cache.save(home, {"https://a/1.png": {"기술스택": [], "자격요건": [], "우대사항": [], "본문": ""}})
     check(home.exists(), "디렉터리를 만들어야 한다")

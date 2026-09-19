@@ -56,7 +56,7 @@ def _run(env_text=NARROW_ENV, listings=None, details=None, blocked_at=None):
             raise answer
         return answer
 
-    def fake_save(rows, output):
+    def fake_save(rows, output, texts=None):
         saved["rows"] = rows
         saved["output"] = output
 

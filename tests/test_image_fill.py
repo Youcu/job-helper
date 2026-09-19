@@ -67,7 +67,7 @@ def test_BOUNDARY_bullet_and_spacing_differences_are_ignored():
 
 
 def test_BOUNDARY_has_anything_needs_only_one_of_three():
-    check(not fill.has_anything({"기술스택": [], "자격요건": [], "우대사항": []}), "셋 다 비면 없다")
+    check(not fill.has_anything({"기술스택": [], "자격요건": [], "우대사항": [], "본문": ""}), "셋 다 비면 없다")
     check(fill.has_anything({"기술스택": ["Java"], "자격요건": [], "우대사항": []}), "기술만 있어도")
     check(fill.has_anything({"기술스택": [], "자격요건": ["3년"], "우대사항": []}), "자격만 있어도")
     check(fill.has_anything({"기술스택": [], "자격요건": [], "우대사항": ["석사"]}), "우대만 있어도")
@@ -190,3 +190,31 @@ def test_BOUNDARY_the_row_keeps_its_own_blocked_names():
     row = {"기술스택": "Java, ORM", "지원자격": "", "우대사항": ""}
     got = fill.apply(row, {"기술스택": ["Docker"], "자격요건": [], "우대사항": []})["기술스택"]
     check("ORM" in got, "행에 있던 것은 그대로: %r" % got)
+
+
+def test_BOUNDARY_what_the_model_read_passes_the_corpus():
+    """**그림 판독도 모델이 낸 이름이다.** 차단 목록만으로는 모자랐다 —
+    `AI 기반 개발도구` 가 그렇게 최종본까지 들어왔다 (2026-09-18 실측,
+    `(주)유비즈` 공고). 공고 본문에 실제로 적힌 말이라 "지어냈다" 도 아니다.
+
+    그런 말은 무한해서 목록으로는 못 따라간다. 아는 이름만 통과시킨다.
+    """
+    row = {"기술스택": "Java, Spring", "URL": "https://x/1"}
+    read = {"기술스택": ["Redis", "AI 기반 개발도구", "ORM", "GCP"],
+            "자격요건": [], "우대사항": []}
+    got = fill.apply(row, read)["기술스택"]
+    check_equal(got, "Java, Spring, Redis, Google Cloud",
+                "corpus 가 아는 것만 더해야 한다 (GCP 는 표준 표기로)")
+
+
+def test_BOUNDARY_what_the_collector_already_had_is_not_re_filtered():
+    """**수집기가 넣어 둔 것은 손대지 않는다.** 여기서 하는 일은 *더하는* 것이고,
+    이미 있는 값은 그 경로가 제 규칙으로 걸러 놓은 것이다. 여기서 또 거르면
+    이 함수가 두 가지 일을 하게 된다.
+
+    그림 주소는 빠진다 — 그건 "아직 안 읽었다" 는 표시였고 방금 읽었기 때문이다.
+    """
+    row = {"기술스택": "https://img/1.png, 듣도보도못한DB", "URL": "https://x/1"}
+    got = fill.apply(row, {"기술스택": [], "자격요건": [], "우대사항": []})["기술스택"]
+    check_equal(got, "듣도보도못한DB",
+                "이미 있던 값은 그대로 두고, 읽은 뒤의 그림 주소만 뺀다")

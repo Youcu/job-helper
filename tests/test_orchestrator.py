@@ -45,8 +45,8 @@ def _fakes_with_csvs():
     return fakes
 
 
-def _main_with(fake_results, image, filtered=None, rated=None, cored=None,
-               careered=None, historied=None):
+def _main_with(fake_results, image, roled=None, filtered=None, rated=None,
+               cored=None, careered=None, historied=None):
     """`main()` 을 **통째로** 돌린다. 자식 프로세스는 하나도 안 띄운다.
 
     스크래퍼(`_run_one`)와 수집 뒤 단계(`_run_stage`)만 가짜로 바꾸고 **합치기는
@@ -61,6 +61,7 @@ def _main_with(fake_results, image, filtered=None, rated=None, cored=None,
     events = []
     real_merge = orch.merge_csvs
     stages = {orch.IMAGE_STAGE.name: ("이미지", image),
+              orch.ROLE_STAGE.name: ("직군", roled or _stage("직군", code=0)),
               orch.FILTER_STAGE.name: ("거르기", filtered or _stage("거르기", code=0)),
               orch.RATING_STAGE.name: ("평점", rated or _stage("평점", code=0)),
               orch.CORE_STACK_STAGE.name: ("핵심기술",
@@ -297,7 +298,7 @@ def test_NORMAL_stages_run_in_order_after_merging():
     통과하거나 `ValueError` 로 터진다 — 실패가 아니라 오류로. 그래서 진짜로 돌린다.
     """
     code, events, merged, _ = _main_with(_fakes_with_csvs(), _image(code=0))
-    check_equal(events, ["합치기", "이미지", "거르기", "평점", "핵심기술", "경력", "이력"],
+    check_equal(events, ["합치기", "이미지", "직군", "거르기", "평점", "핵심기술", "경력", "이력"],
                 "차례가 이것이다: %r" % events)
     check_equal(code, 0, "일곱 다 멀쩡하면 0")
     check_equal(len(read_csv(merged)), len(orch.SITES), "합본에 여섯 행이 들어 있다")
@@ -316,12 +317,12 @@ def test_EXCEPTION_filter_is_not_called_when_the_image_stage_died():
 
 def test_EXCEPTION_filter_failure_alone_gives_exit_one():
     code, events, merged, screen = _main_with(
-        _fakes_with_csvs(), _image(code=0), _stage("거르기", code=1))
-    check_equal(events, ["합치기", "이미지", "거르기"], "거기까지는 부른다")
+        _fakes_with_csvs(), _image(code=0), None, _stage("거르기", code=1))
+    check_equal(events, ["합치기", "이미지", "직군", "거르기"], "거기까지는 부른다")
     check("평점" not in events, "**거르기가 죽으면 평점도 안 부른다**: %r" % events)
     check_equal(code, 1, "거르기만 실패해도 1 이어야 자동화가 성공으로 안 읽는다")
     check(merged.exists(), "**걷은 것은 남아 있어야 한다**")
-    check("csv/merged_read.csv 는 그대로 있습니다" in screen,
+    check("csv/merged_role.csv 는 그대로 있습니다" in screen,
           "무엇이 안 지워졌는지 말해 준다: %r" % screen[-300:])
 
 
@@ -337,7 +338,7 @@ def test_BOUNDARY_filter_stage_has_no_partial_failure_code():
 
 
 def test_BOUNDARY_filter_stage_does_not_borrow_another_stages_wording():
-    check_equal(orch.FILTER_EXIT_MEANING[1][0], "단계를 못 돌림 — merged_read.csv 가 없음",
+    check_equal(orch.FILTER_EXIT_MEANING[1][0], "단계를 못 돌림 — merged_role.csv 가 없음",
                 "이 단계가 읽는 파일을 말해야 한다")
     check("claude" not in orch.FILTER_EXIT_MEANING[1][0],
           "거르기는 모델을 안 부른다")
@@ -439,7 +440,7 @@ def test_EXCEPTION_rating_is_not_called_when_filtering_died():
     아니라, **어제 공고 목록으로 오늘 평점을 걷어** 결과가 맞는 것처럼 보인다.
     """
     code, events, _merged, _ = _main_with(_fakes_with_csvs(), _image(code=0),
-                                          _stage("거르기", code=1))
+                                          None, _stage("거르기", code=1))
     check("평점" not in events, "부르면 안 된다: %r" % events)
     check_equal(code, 1, "그래도 1 로 끝난다")
 
@@ -448,7 +449,7 @@ def test_EXCEPTION_partly_collected_rating_is_not_counted_as_success():
     # `2` 는 "걷은 것은 저장됐다" 는 뜻이지만, 덜 걷힌 평점으로 거른 결과를 온전한
     # 것으로 읽으면 안 된다. 종료 코드는 1 이어야 한다.
     code, events, _merged, screen = _main_with(_fakes_with_csvs(), _image(code=0),
-                                               None, _stage("평점", code=2))
+                                               None, None, _stage("평점", code=2))
     check("핵심기술" not in events, "평점이 덜 걷혔으면 핵심 기술도 안 부른다: %r" % events)
     check_equal(code, 1, "덜 걷었으면 성공이 아니다")
     check("csv/merged_filtered.csv 는 그대로 있습니다" in screen,

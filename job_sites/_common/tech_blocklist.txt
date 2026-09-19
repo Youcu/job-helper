@@ -10,7 +10,6 @@ Policy
 Edge
 Flow
 Spine
-Storage
 Problem Solving
 Data Analysis
 FAR
@@ -23,7 +22,6 @@ TPM         # 직무 이름(Technical Program Manager). "PM, TPM, Software Engin
 
 
 # --- 너무 흔해 변별력이 없다 ---
-API
 UI
 UX
 HCI

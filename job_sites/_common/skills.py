@@ -120,6 +120,156 @@ def blocked(name: str) -> bool:
     return canonical(name).lower() in dictionaries.rejected()
 
 
+def split_names(text: str) -> list[str]:
+    """기술 이름 줄을 낱낱으로 가른다. **괄호를 존중한다.**
+
+    쉼표로만 가르면 괄호 안의 쉼표까지 갈라 조각이 난다 — 실측(2026-09-18)으로
+    후보 파일에 이런 것들이 쌓였다.
+
+        AWS(ECS, Cognito)          →  `AWS(ECS`  ·  `Cognito)`
+        Python (FastAPI, Django)   →  `Python (FastAPI`  ·  `Django)`
+        AI 에이전트(Claude Code, Codex 등)
+
+    결과가 더러워지지는 않았다(흰 목록이 어차피 버린다). 문제는 **진짜 이름을
+    놓친다**는 것이다 — 위 첫 줄은 `AWS`·`ECS`·`Cognito` 셋이어야 한다.
+
+    그래서 괄호 **밖의** 쉼표로만 가르고, `이름(속엣것)` 모양이면 **둘 다** 낸다.
+    속은 회사가 풀어 쓴 자리라 거기도 목록일 수 있다.
+    """
+    pieces: list[str] = []
+    depth = 0
+    buffer: list[str] = []
+    for letter in str(text or ""):
+        if letter in "([":
+            depth += 1
+        elif letter in ")]":
+            depth = max(0, depth - 1)
+        if letter == "," and depth == 0:
+            pieces.append("".join(buffer))
+            buffer = []
+        else:
+            buffer.append(letter)
+    pieces.append("".join(buffer))
+
+    out: list[str] = []
+    for piece in pieces:
+        piece = piece.strip()
+        if not piece:
+            continue
+        found = _WRAPPED.match(piece)
+        if not found:
+            out.append(piece)
+            continue
+        # `이름(속엣것)` — 바깥 이름과 속엣것을 다 낸다.
+        out.append(found.group(1).strip())
+        for inner in re.split(r"[,/·]", found.group(2)):
+            inner = inner.strip()
+            if inner:
+                out.append(inner)
+    return [one for one in out if one]
+
+
+# `Node.js(NestJS, Express)` 처럼 **이름 뒤에 괄호가 붙은** 모양만 본다.
+# `C#`·`C++` 은 안 걸리고, `(주)어쩌고` 처럼 괄호로 시작하는 것도 안 걸린다.
+_WRAPPED = re.compile(r"^([^()\[\]]+?)\s*[(\[]([^()\[\]]*)[)\]]$")
+
+
+# 이름 뒤에 붙는 **판 번호**. `React 19` · `NestJS 8` · `TypeORM 0.2` · `Delphi XE8 이상`.
+#
+# 판마다 사전에 한 줄씩 더하는 것은 끝이 없다 — `React 18` 이 오면 또 더해야 한다.
+# **판은 이름이 아니라 이름에 붙는 꼬리**이므로 코드가 뗀다 (2026-09-18 사용자 지적).
+#
+# 공백이 앞에 있을 때만 뗀다. `S3` · `Log4j` · `Vue3` 처럼 **붙어 있으면 그게 이름**이다.
+_VERSION = re.compile(r"\s+v?\d+(?:\.\d+)*\s*(?:이상|이후|\+)?$|\s+(?:이상|이후)$")
+
+
+def known(name: str) -> str:
+    """corpus 나 별칭에 있는 이름이면 **표준 표기**로, 없으면 빈 문자열.
+
+    `blocked()` 의 반대편이다 — 저쪽은 "이건 아니다" 를 적어 두는 **검은 목록**이고,
+    이쪽은 "이건 맞다" 만 통과시키는 **흰 목록**이다.
+
+    **판 번호는 떼고 다시 본다** — `React 19` 는 `React` 다.
+    """
+    standard = canonical(name)
+    found = _lookup(standard)
+    if found:
+        return found
+    trimmed = _VERSION.sub("", standard).strip()
+    return _lookup(trimmed) if trimmed and trimmed != standard else ""
+
+
+def _lookup(standard: str) -> str:
+    """정확히 맞는 것 먼저, 없으면 **공백을 뗀 모양**으로 한 번 더.
+
+    한글 표기는 띄어쓰기가 흔들린다 — 별칭에 `C언어` 가 있는데 공고는 `C 언어` 라고
+    적는다 (2026-09-18 실측). 사전에 띄어쓰기마다 한 줄씩 더하는 것은 끝이 없다.
+    """
+    low = standard.lower()
+    if low in dictionaries.corpus():
+        return standard
+    resolved = dictionaries.aliases().get(low)
+    if resolved:
+        return canonical(resolved)
+
+    packed = "".join(low.split())
+    return _packed_index().get(packed, "")
+
+
+@lru_cache(maxsize=1)
+def _packed_index() -> dict[str, str]:
+    """**공백을 뗀 모양** → 표준 이름. 양쪽 다 뗀다.
+
+    한쪽만 떼면 반만 풀린다 — `MY SQL`→`MySQL` 은 되는데 `TailwindCSS`→`Tailwind CSS`
+    는 안 된다. 사전에 `TailwindCSS` 를 한 줄 더하는 대신 사전 쪽도 떼어 둔다.
+    """
+    book: dict[str, str] = {}
+    for low, entry in dictionaries.corpus().items():
+        book.setdefault("".join(low.split()), entry["name"])
+    for alias, standard in dictionaries.aliases().items():
+        book.setdefault("".join(alias.split()), canonical(standard))
+    return book
+
+
+def keep_known(names: list[str]) -> list[str]:
+    """**모델이 낸 기술 이름 목록을 corpus 로 거른다.** 차례와 첫 표기를 지킨다.
+
+    ## 왜 검은 목록으로는 안 되나
+
+    모델은 본문에 있는 말을 잘라 온다. 본문에 없는 말을 지어내지는 않지만,
+    본문에는 기술 이름이 아닌 말이 얼마든지 있다 — 실측(2026-09-18)으로
+    `AI 기반 개발도구` · `OpenAI API 등 LLM API` · `데이터베이스 쿼리` ·
+    `OGC 표준` 이 그렇게 들어왔다. 넷 다 공고 본문에 그대로 적힌 말이다.
+
+    **그런 말은 무한하다.** 하나 볼 때마다 `tech_rejected.txt` 에 한 줄을 더하는
+    것은 끝이 없다 (2026-09-18 사용자). 그리고 그건 **이미 corpus 를 두고 있는
+    이유와 어긋난다** — 산문 경로는 진작부터 corpus 를 그물로 써서 아는 이름만
+    줍는다. 모델이 낸 것도 같은 그물을 지나야 한다.
+
+    ## 모르는 이름은 버리되 기록한다
+
+    corpus 에 없다고 기술이 아닌 것은 아니다. 새 기술은 늘 나온다. 그래서 버리는
+    이름을 `corpus_candidates` 에 쌓아 사람이 보고 올릴 수 있게 한다 —
+    수집기들이 이미 그렇게 한다.
+    """
+    kept: list[str] = []
+    seen: set[str] = set()
+    for name in names:
+        standard = known(name)
+        if not standard:
+            continue
+        low = standard.lower()
+        if low not in seen:
+            seen.add(low)
+            kept.append(standard)
+    return kept
+
+
+def unknown_names(names: list[str]) -> list[str]:
+    """corpus 가 못 알아본 이름들. 후보로 쌓아 사람이 보게 한다."""
+    return [name for name in names if name.strip() and not known(name)]
+
+
 def _searchable(names: list[str], blocked_set: frozenset[str]) -> dict[str, str]:
     """찾을 만한 이름만 걸러 (소문자 → 표준 표기) 로 만든다."""
     keep: dict[str, str] = {}

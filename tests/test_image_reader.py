@@ -13,7 +13,7 @@ from image_process import reader
 
 from .helpers import check, check_equal
 
-ANSWER = {"기술스택": ["Java", "Spring"], "자격요건": ["3년 이상"], "우대사항": []}
+ANSWER = {"기술스택": ["Java", "Spring"], "자격요건": ["3년 이상"], "우대사항": [], "본문": ""}
 
 
 def _envelope(result_text: str) -> str:
@@ -92,7 +92,7 @@ def test_BOUNDARY_missing_fields_are_filled_with_empty_lists():
 def test_BOUNDARY_all_empty_is_a_valid_answer_not_an_error():
     # "셋 다 비었다" 는 **결과다.** 예외로 만들면 버림 판정을 못 한다.
     got = reader.parse_output(_envelope('{"기술스택":[],"자격요건":[],"우대사항":[]}'))
-    check_equal(got, {"기술스택": [], "자격요건": [], "우대사항": []}, "빈 결과도 답이다")
+    check_equal(got, {"기술스택": [], "자격요건": [], "우대사항": [], "본문": ""}, "빈 결과도 답이다")
 
 
 def test_BOUNDARY_non_string_items_are_dropped():

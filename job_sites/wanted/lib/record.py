@@ -109,6 +109,11 @@ def extract_skills(job: dict) -> list[str]:
     return skills
 
 
+# 상세 응답에서 글이 든 칸. `skill_body_text` 의 셋보다 넓다 — 위 `full_body_text` 참고.
+BODY_FIELDS = ("intro", "main_tasks", "requirements", "preferred_points",
+               "benefits", "hire_rounds")
+
+
 def to_row(job: dict) -> dict:
     """공고 하나를 CSV 한 줄로. 공고번호가 없으면 만들지 않는다.
 
@@ -136,3 +141,17 @@ def to_row(job: dict) -> dict:
         "근무지": format_workplace(job.get("address")),
         "사이트명": SITE_NAME,
     }
+
+
+def body_of(job: dict) -> str:
+    """**자르기 전의 글 전부.** CSV 로는 안 나가고 `*_bodies.jsonl` 로 간다.
+
+    `skill_body_text` 보다 넓다.
+
+    기술 이름을 찾을 때는 **회사가 직접 쓴 세 항목**만 봤다 — 복지·소개에 섞인
+    남의 기술 이름을 안 주우려고. 직군을 가릴 때는 반대다. **어느 부문이 무엇을
+    맡는가**가 소개와 복지 사이에 적혀 있을 수 있어, 있는 글을 다 넘긴다.
+    """
+    detail = job.get("detail") or {}
+    return "\n".join(str(detail.get(field) or "").strip()
+                      for field in BODY_FIELDS).strip()

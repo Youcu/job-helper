@@ -24,7 +24,7 @@ from .helpers import check, check_equal, read_csv, temp_dir, write_csv
 
 CONFIG = cfg.Config(model="sonnet", workers=1, timeout=60)
 FULL = {"기술스택": ["Java"], "자격요건": ["3년 이상"], "우대사항": []}
-EMPTY = {"기술스택": [], "자격요건": [], "우대사항": []}
+EMPTY = {"기술스택": [], "자격요건": [], "우대사항": [], "본문": ""}
 
 
 def _row(tech="https://img/1.png", **fields) -> dict:
@@ -610,3 +610,64 @@ def test_BOUNDARY_run_needs_no_module_global_to_work():
     check_equal(code, 0, "인자만으로 돌아야 한다: %s" % noise.getvalue())
     check(output.exists(), "**넘긴 자리에 써야 한다**")
     check(not nowhere.exists(), "전역이 가리키던 곳은 건드리면 안 된다")
+
+
+def test_BOUNDARY_what_the_model_read_reaches_the_body_file():
+    """**그림 공고는 수집기가 본문을 못 남긴다** — 글이 그림 안에 있다.
+
+    실측(2026-09-18) 714행 중 129건이 그랬고, 그중 **12건이 여러 직군을 한 장에
+    담은 공고**였다 (기술 57개짜리 `[안랩] 2026 연구소 집중 채용` 포함).
+    직군을 가리는 단계가 그것들을 "본문 없음" 으로 남기고 있었다.
+
+    판독이 읽은 글을 `bodies.jsonl` 에 더해야 그 12건이 가려진다.
+    """
+    from _common import bodies
+
+    home = temp_dir()
+    source, output = home / "in.csv", home / "out.csv"
+    write_csv(source, [_row(tech="https://img/1.png", URL="https://x/1")], stage.COLUMNS)
+    body_path = home / "bodies.jsonl"
+    answer = {"기술스택": ["Java"], "자격요건": ["3년"], "우대사항": [],
+              "본문": "모집부문 백엔드 … 모집부문 프론트 …"}
+
+    noise = io.StringIO()
+    with contextlib.redirect_stdout(noise), contextlib.redirect_stderr(noise):
+        stage._run(source, output, home / "cache.json", body_path, cfg=CONFIG,
+                   download=_download_by_url({}),
+                   read=lambda paths, **kw: answer,
+                   have_claude=True, assume_yes=True)
+
+    got = bodies.load(body_path)
+    check_equal(got.get("https://x/1"), answer["본문"], "읽은 글이 본문 파일에 닿아야 한다")
+
+
+def test_BOUNDARY_the_collectors_body_is_not_overwritten():
+    """수집기가 남긴 것은 원래 HTML 에서 온 글이라 더 정확하다. **비어 있던 자리만 채운다.**"""
+    from _common import bodies
+
+    home = temp_dir()
+    source, output = home / "in.csv", home / "out.csv"
+    write_csv(source, [_row(tech="https://img/1.png", URL="https://x/1")], stage.COLUMNS)
+    body_path = home / "bodies.jsonl"
+    bodies.write(body_path, {"https://x/1": "수집기가 남긴 글"})
+
+    noise = io.StringIO()
+    with contextlib.redirect_stdout(noise), contextlib.redirect_stderr(noise):
+        stage._run(source, output, home / "cache.json", body_path, cfg=CONFIG,
+                   download=_download_by_url({}),
+                   read=lambda paths, **kw: {"기술스택": ["Java"], "자격요건": [],
+                                             "우대사항": [], "본문": "그림에서 읽은 글"},
+                   have_claude=True, assume_yes=True)
+
+    check_equal(bodies.load(body_path)["https://x/1"], "수집기가 남긴 글",
+                "수집기가 남긴 본문을 덮으면 안 된다")
+
+
+def test_BOUNDARY_an_old_cache_entry_without_a_body_is_read_again():
+    """본문은 나중에 더한 칸이라 그 전 항목에는 없다. 그대로 쓰면 그림 공고가
+    **영영 본문을 못 갖고** 고친 것이 아무 효과가 없다."""
+    from image_process import cache as cache_module
+
+    old = {"기술스택": ["Java"], "자격요건": [], "우대사항": []}
+    check_equal(cache_module.get({cache_module.key(["u"]): old}, ["u"]), None,
+                "본문 없는 옛 항목은 없는 것으로 쳐야 한다")
