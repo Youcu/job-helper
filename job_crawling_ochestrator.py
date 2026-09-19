@@ -168,6 +168,11 @@ CAREER_EXIT_MEANING = {
     3: ("이미 돌고 있음", False),
 }
 
+REPORT_SCRIPT = ROOT_DIR / "report.py"
+
+# 파일 하나를 읽어 파일 하나를 쓴다. 이만큼 걸릴 일이 없지만, 걸리면 멈춰야 한다.
+REPORT_TIMEOUT = 60
+
 HISTORY_STAGE = ROOT_DIR / "history.py"
 
 # 파일 몇 개를 병합해 쓰고 사이트 CSV 를 지운다. 그물도 모델도 안 탄다.
@@ -280,11 +285,31 @@ def _main() -> int:
     _print_report(results, merged, elapsed)
 
     stages = _run_chain()
+    _draw_report()
 
     failed = [r for r in results if not r.ok]
     if failed:
         _print_failures(failed)
     return 1 if (failed or any(not st.ok for st in stages)) else 0
+
+
+def _draw_report() -> None:
+    """최종본을 사람이 읽는 화면으로 그린다.
+
+    **단계가 아니다** (D-25) — 그물도 모델도 안 타고 0.1초면 끝난다. 그래서
+    `STAGES` 표에 없고, **실패해도 파이프라인을 실패로 만들지 않는다.** 자료는
+    이미 다 나와 있고 못 그린 것은 `python3 report.py` 로 다시 그리면 된다.
+    화면 하나 때문에 두 시간짜리 실행을 실패로 보고하면 자동화가 오판한다.
+    """
+    done = subprocess.run([sys.executable, str(REPORT_SCRIPT)],
+                          capture_output=True, text=True, timeout=REPORT_TIMEOUT)
+    if done.returncode == 0:
+        print("\n%s" % done.stdout.strip())
+    else:
+        print("\n화면을 못 그렸습니다 — 자료는 csv/ 에 그대로 있습니다.", file=sys.stderr)
+        print("   python3 report.py 로 다시 그릴 수 있습니다.", file=sys.stderr)
+        for line in _clean_lines(done.stderr)[:3]:
+            print("   %s" % line, file=sys.stderr)
 
 
 def _print_failures(failed: list[Result]) -> None:

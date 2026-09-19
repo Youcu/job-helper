@@ -52,6 +52,12 @@ csv/merged.csv  ─그림 판독─▶  csv/merged_read.csv  ─거르기─▶ 
 수집본을 지운다. `./csv` 에는 **이번 실행의 산출물만** 남는다 — 사람이 보고 싶은 것은
 지금 돌린 결과이기 때문이다. [HISTORY.md](HISTORY.md).
 
+**화면 그리기** — 마지막으로 최종본을 `csv/report.html` 로 그린다. **CSV 는 분석용이고,
+지원할지 말지는 공고를 하나씩 읽어 정하는 일이라** 읽는 화면이 따로 필요하다. 검색·정렬·
+기술 거르기·지원 조건 펼치기가 된다. **단계가 아니다** — 그물도 모델도 안 타므로
+(D-25), 실패해도 파이프라인을 실패로 만들지 않고 `python3 report.py` 로 다시 그린다.
+[REPORT.md](REPORT.md).
+
 **앞 단계의 파일은 손대지 않는다.** 네 단계 다 행을 없애므로, 제자리에서 고치면 없어진
 행의 원본이 사라진다. 뺀 것은 단계마다 `*_report.csv` 에 이유와 함께 남는다.
 
@@ -206,6 +212,7 @@ cd job_sites/<사이트> && ../../.venv/bin/python3 tests/run.py   # 사이트 �
 | [CORE_STACK.md](CORE_STACK.md) | ⑤ 핵심 기술 거르기 |
 | [CAREER.md](CAREER.md) | ⑥ 경력 거르기 — 신입이라 적고 경력을 요구하는 공고 |
 | [HISTORY.md](HISTORY.md) | ⑦ 이력 쌓기와 뒷정리 |
+| [REPORT.md](REPORT.md) | 최종본을 읽는 화면으로 그리기 — **단계가 아니다** |
 | [docs/convention/](docs/convention/) | **수집 규약.** 새 사이트를 붙일 때 여기부터 읽는다 |
 | [docs/convention/03-adding-a-site.md](docs/convention/03-adding-a-site.md) | 새 사이트 체크리스트 |
 | [docs/convention/06-decisions.md](docs/convention/06-decisions.md) | 결정과 실측 근거 — **새 단계를 만들 기준은 D-25** |
