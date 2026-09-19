@@ -41,6 +41,9 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).resolve().parent
 INPUT = ROOT_DIR / "csv" / "merged.csv"
 OUTPUT = ROOT_DIR / "csv" / "merged_read.csv"
+
+# 공고 본문. 수집기가 쓴 것 옆에 그림에서 읽은 글을 더한다 (`_common/bodies.py`).
+BODIES = ROOT_DIR / "csv" / "bodies.jsonl"
 LOCK = ROOT_DIR / "csv" / ".image_process.lock"
 RETRY_PAUSE = 5      # 다시 걸기 전에 쉬는 시간(초)
 
@@ -52,6 +55,7 @@ from tqdm import tqdm                                              # noqa: E402
 from _common.env import ConfigError                                # noqa: E402
 from _common.runlock import guarded                                # noqa: E402
 from _common.staleness import confirm, yes_given                       # noqa: E402
+from _common import bodies                                        # noqa: E402
 from _common.store import COLUMNS, read_csv, write_csv             # noqa: E402
 from image_process import cache, config, fetch, fill, reader, slicing   # noqa: E402
 
@@ -61,6 +65,10 @@ class Outcome:
     kind: str                 # 채움 · 캐시 · 버림 · 껍데기 · 못읽음
     row: dict | None
     note: str = ""
+    # **그림에서 읽은 글 그대로.** 위 `row` 의 세 칸은 이미 추려 낸 것이라 부문
+    # 구조가 없다 — 여러 자리를 한 장에 담은 그림 공고에서 어느 글이 어느 자리
+    # 것인지가 거기서 사라진다. 직군을 가리는 단계가 이것을 읽는다.
+    body: str = ""
 
 
 _현재 = threading.local()
@@ -158,7 +166,7 @@ def process_one(row: dict, *, cfg, book: dict, work_dir: Path,
     if cached is not None:
         if not fill.has_anything(cached):
             return Outcome("버림", None, "캐시: 쓸 게 없음")
-        return Outcome("캐시", fill.apply(row, cached))
+        return Outcome("캐시", fill.apply(row, cached), body=cached.get(reader.BODY, ""))
 
     work = Path(work_dir) / "그림"
     work.mkdir(parents=True, exist_ok=True)
@@ -204,7 +212,7 @@ def process_one(row: dict, *, cfg, book: dict, work_dir: Path,
     cache.put(book, urls, got, cfg.model)
     if not fill.has_anything(got):
         return Outcome("버림", None, "읽었는데 쓸 게 없음")
-    return Outcome("채움", fill.apply(row, got))
+    return Outcome("채움", fill.apply(row, got), body=got.get(reader.BODY, ""))
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -213,7 +221,8 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _run(source: Path | None = None, output: Path | None = None,
-         cache_path: Path | None = None, *, cfg=None, download=None, read=None,
+         cache_path: Path | None = None, bodies_path: Path | None = None, *,
+         cfg=None, download=None, read=None,
          have_claude: bool | None = None, assume_yes: bool = False) -> int:
     """**바깥과 닿는 것을 전부 인자로 받는다.** 안 넘기면 진짜를 쓴다.
 
@@ -221,6 +230,7 @@ def _run(source: Path | None = None, output: Path | None = None,
     |---|---|---|
     | `source` · `output` | `INPUT` · `OUTPUT` | 진짜 `csv/` |
     | `cache_path` | `cache.CACHE_PATH` | 진짜 캐시 |
+    | `bodies_path` | `BODIES` | 진짜 `csv/bodies.jsonl` |
     | `cfg` | `config.load_config()` | 진짜 `.env` |
     | `download` · `read` | `fetch.download` · `reader.read` | 그물과 모델 |
     | `have_claude` | `shutil.which("claude")` | 이 컴퓨터의 PATH |
@@ -232,6 +242,7 @@ def _run(source: Path | None = None, output: Path | None = None,
     source = source if source is not None else INPUT
     output = output if output is not None else OUTPUT
     cache_path = cache_path if cache_path is not None else cache.CACHE_PATH
+    bodies_path = bodies_path if bodies_path is not None else BODIES
     if cfg is None:
         try:
             cfg = config.load_config()
@@ -258,6 +269,7 @@ def _run(source: Path | None = None, output: Path | None = None,
     book = cache.load(cache_path)
     stats = {"채움": 0, "캐시": 0, "버림": 0, "껍데기": 0, "못읽음": 0}
     kept: dict[int, dict | None] = {}
+    texts: dict[str, str] = {}
     work_root = Path(tempfile.mkdtemp(prefix="image_process_"))
     try:
       # 경고를 막대 위로 올려 둔 채로 돈다 — 안 그러면 막대가 덮어써 사라진다.
@@ -280,6 +292,8 @@ def _run(source: Path | None = None, output: Path | None = None,
                                       "%s: %s" % (type(error).__name__, error))
                 stats[outcome.kind] += 1
                 kept[index] = outcome.row
+                if outcome.body:
+                    texts[rows[index].get("URL", "")] = outcome.body
                 if outcome.kind == "못읽음":
                     tqdm.write("  %s 못 읽음: %s" % (rows[index].get("URL"), outcome.note))
     finally:
@@ -304,6 +318,7 @@ def _run(source: Path | None = None, output: Path | None = None,
     # 남아 다음 실행에 다시 걷히고 다시 시도된다.
     out = [row for row in out if not image_urls(row)]
     write_csv(output, out)
+    _keep_bodies(bodies_path, texts)
     _report(stats, len(rows), len(out), source, output)
 
     # **`2` 는 "아무것도 못 해냈다" 는 뜻이다.** 캐시 적중도 해낸 것이다 — 안 그러면
@@ -315,6 +330,27 @@ def _run(source: Path | None = None, output: Path | None = None,
               % stats["못읽음"], file=sys.stderr)
         return 2
     return 0
+
+
+def _keep_bodies(path: Path, texts: dict[str, str]) -> None:
+    """읽어 낸 글을 **수집기가 쓴 것 옆에 더한다.**
+
+    글 본문 공고는 수집기가 본문을 못 남긴다 — 글이 그림 안에 있어 `visible_body`
+    가 빈 값을 낸다. 실측(2026-09-18) 714행 중 129건이 그랬고, 그중 12건이 여러
+    직군을 한 장에 담은 공고였다(기술 57개짜리 `[안랩] 2026 연구소 집중 채용` 포함).
+
+    **덮지 않고 더한다** — 수집기가 남긴 것은 원래 HTML 에서 온 글이라 더 정확하다.
+    여기서 채우는 것은 **비어 있던 자리**다.
+    """
+    if not texts:
+        return
+    kept = bodies.load(path)
+    added = {url: text for url, text in texts.items() if url and url not in kept}
+    if not added:
+        return
+    kept.update(added)
+    bodies.write(path, kept)
+    print("  그림에서 읽은 글 %d건을 %s 에 더했습니다" % (len(added), path.name))
 
 
 def _report(stats: dict, before: int, after: int,

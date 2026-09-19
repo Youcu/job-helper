@@ -12,6 +12,9 @@ from __future__ import annotations
 
 import re
 
+from _common import corpus_candidates                              # noqa: E402
+from _common.skills import keep_known, split_names, unknown_names  # noqa: E402
+
 from .reader import FIELDS
 
 # 그림에서 읽은 셋을 CSV 의 어느 칸에 넣는가
@@ -93,10 +96,24 @@ def apply(row: dict, read: dict) -> dict:
     # **기술 이름은 `normalize` 로 견주면 안 된다.** 그 함수는 문장부호를 지우므로
     # `C` · `C#` · `C++` 이 전부 `c` 가 된다 — 문장에는 안전한 규칙이 여기서는 서로 다른
     # 언어를 하나로 뭉갠다. 대소문자만 맞춰 보고 그대로 견준다.
+    # **그림에서 읽은 이름은 corpus 를 지난다.** 오래 아무것도 안 지났고
+    # (`ORM` 이 그림을 타고 최종본까지 들어왔다, 2026-09-14), 그 다음에는 차단
+    # 목록만 지났다. **그것으로도 모자랐다** — 모델은 공고에 적힌 말을 그대로
+    # 읽으므로 `AI 기반 개발도구` 같은 것이 그대로 온다 (2026-09-18 실측).
+    #
+    # 그런 말은 무한해서 목록으로는 못 따라간다. **아는 이름만 통과시킨다** —
+    # 산문 경로가 진작부터 그러고 있다. 모르는 이름은 후보로 쌓아 사람이 본다.
     kept = [one for one in _clean(row.get("기술스택", "").split(","))
             if not one.startswith("http")]
     seen = {one.casefold() for one in kept}
-    for one in _clean(read.get("기술스택")):
+    # **괄호를 존중해 가른다.** 모델이 `AWS(ECS, Cognito)` 처럼 한 항목에 여럿을
+    # 묶어 낼 때가 있다 — 쉼표로만 가르면 조각이 나고 진짜 이름을 놓친다.
+    read_names = _clean([one for item in (read.get("기술스택") or [])
+                         for one in split_names(item)])
+    strange = unknown_names(read_names)
+    if strange:
+        corpus_candidates.record(strange, site="image", source_url=row.get("URL", ""))
+    for one in keep_known(read_names):
         if one.casefold() not in seen:
             kept.append(one)
             seen.add(one.casefold())

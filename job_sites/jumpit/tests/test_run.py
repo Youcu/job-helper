@@ -51,7 +51,7 @@ def _run(env_text=NARROW_ENV, listings=None, blocked_at=None, fail_ids=()):
                 "location": "서울 강남구", "techStacks": [{"stack": "java"}],
                 "newcomer": True}
 
-    def fake_save(rows, output):
+    def fake_save(rows, output, texts=None):
         saved["rows"] = rows
         saved["output"] = output
 

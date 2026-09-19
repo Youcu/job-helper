@@ -67,7 +67,7 @@ def test_BOUNDARY_bullet_and_spacing_differences_are_ignored():
 
 
 def test_BOUNDARY_has_anything_needs_only_one_of_three():
-    check(not fill.has_anything({"기술스택": [], "자격요건": [], "우대사항": []}), "셋 다 비면 없다")
+    check(not fill.has_anything({"기술스택": [], "자격요건": [], "우대사항": [], "본문": ""}), "셋 다 비면 없다")
     check(fill.has_anything({"기술스택": ["Java"], "자격요건": [], "우대사항": []}), "기술만 있어도")
     check(fill.has_anything({"기술스택": [], "자격요건": ["3년"], "우대사항": []}), "자격만 있어도")
     check(fill.has_anything({"기술스택": [], "자격요건": [], "우대사항": ["석사"]}), "우대만 있어도")
@@ -164,3 +164,57 @@ def test_BOUNDARY_bullet_only_item_normalizes_to_empty():
     # `_clean` 이 이것으로 "내용이 아닌 것" 을 걸러 낸다.
     for junk in ("•", "-", "· ·", "   "):
         check_equal(fill.normalize(junk), "", "%r 은 내용이 아니다" % junk)
+
+
+def test_BOUNDARY_blocked_names_from_the_image_never_enter():
+    """**그림에서 읽은 이름도 차단을 지난다.**
+
+    오래 안 지났다 — 수집기의 두 경로(태그·산문)는 `tech_blocklist.txt` 를 보는데
+    여기만 안 봤다. 실측으로 `ORM` 이 그림을 타고 최종본까지 들어왔다
+    (2026-09-14, `(주)엔디소프트`). 모델은 공고에 적힌 말을 그대로 읽으므로,
+    거기 `ORM`·`풀스택` 이 쓰여 있으면 그대로 가져온다.
+    """
+    row = {"기술스택": "Java", "지원자격": "", "우대사항": ""}
+    got = fill.apply(row, {"기술스택": ["ORM", "Docker", "풀스택", "컨테이너", "JPA"],
+                           "자격요건": [], "우대사항": []})["기술스택"]
+    names = [one.strip() for one in got.split(",")]
+    check_equal(names, ["Java", "Docker", "JPA"], "기술만 남아야 한다: %r" % got)
+
+
+def test_BOUNDARY_the_row_keeps_its_own_blocked_names():
+    """**이미 행에 있던 것은 안 건드린다.** 이 함수의 일은 그림을 더하는 것이다.
+
+    행에 든 것을 여기서 지우면 "무엇이 언제 빠졌나" 를 되짚을 수 없다. 수집기 쪽에서
+    이미 막았으므로 새 실행에서는 애초에 안 들어온다.
+    """
+    row = {"기술스택": "Java, ORM", "지원자격": "", "우대사항": ""}
+    got = fill.apply(row, {"기술스택": ["Docker"], "자격요건": [], "우대사항": []})["기술스택"]
+    check("ORM" in got, "행에 있던 것은 그대로: %r" % got)
+
+
+def test_BOUNDARY_what_the_model_read_passes_the_corpus():
+    """**그림 판독도 모델이 낸 이름이다.** 차단 목록만으로는 모자랐다 —
+    `AI 기반 개발도구` 가 그렇게 최종본까지 들어왔다 (2026-09-18 실측,
+    `(주)유비즈` 공고). 공고 본문에 실제로 적힌 말이라 "지어냈다" 도 아니다.
+
+    그런 말은 무한해서 목록으로는 못 따라간다. 아는 이름만 통과시킨다.
+    """
+    row = {"기술스택": "Java, Spring", "URL": "https://x/1"}
+    read = {"기술스택": ["Redis", "AI 기반 개발도구", "ORM", "GCP"],
+            "자격요건": [], "우대사항": []}
+    got = fill.apply(row, read)["기술스택"]
+    check_equal(got, "Java, Spring, Redis, Google Cloud",
+                "corpus 가 아는 것만 더해야 한다 (GCP 는 표준 표기로)")
+
+
+def test_BOUNDARY_what_the_collector_already_had_is_not_re_filtered():
+    """**수집기가 넣어 둔 것은 손대지 않는다.** 여기서 하는 일은 *더하는* 것이고,
+    이미 있는 값은 그 경로가 제 규칙으로 걸러 놓은 것이다. 여기서 또 거르면
+    이 함수가 두 가지 일을 하게 된다.
+
+    그림 주소는 빠진다 — 그건 "아직 안 읽었다" 는 표시였고 방금 읽었기 때문이다.
+    """
+    row = {"기술스택": "https://img/1.png, 듣도보도못한DB", "URL": "https://x/1"}
+    got = fill.apply(row, {"기술스택": [], "자격요건": [], "우대사항": []})["기술스택"]
+    check_equal(got, "듣도보도못한DB",
+                "이미 있던 값은 그대로 두고, 읽은 뒤의 그림 주소만 뺀다")

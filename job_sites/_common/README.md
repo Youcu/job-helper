@@ -13,9 +13,10 @@
 
 | 파일 | 무엇 |
 |---|---|
-| `tech_corpus.json` | **표준 이름 + 분류.** 349개. `name` `kind` `devtypes` `source` |
+| `tech_corpus.json` | **표준 이름 + 분류.** 몇 개인지는 파일 안 `_counts` 에 있다 (시험이 실제 항목 수와 맞춘다). `name` `kind` `devtypes` `source` |
 | `tech_aliases.json` | 별칭 → 표준 이름 (`GCP`→`Google Cloud`) |
-| `tech_blocklist.txt` | 산문 매칭에서 걸러 낼 말 (`IR` `SaaS` `Spa` `TPM`) |
+| `tech_blocklist.txt` | **진짜 기술인데 산문에서 오탐**이 되는 이름 (`Lambda` `S3` `Storm`). **산문만** 막는다 |
+| `tech_rejected.txt` | **애초에 기술스택이 아닌** 이름 (`SaaS` `풀스택` `CI/CD`). **산문과 태그를 다** 막는다 |
 | `tech_ko_allowlist.txt` | 산문에서 찾을 한글 기술어 |
 | `dictionaries.py` | **사전 파일을 읽는 유일한 곳.** 형식을 아는 데가 여기 하나여야 사이트를 붙일 때 파싱이 복제되지 않는다 |
 | `normalize.py` | `canonical()` `kind_of()` — 이름을 표준 표기로 |
@@ -113,7 +114,7 @@ CSV 스키마는 14컬럼이다. 앞 11개는 공고에서 나오고, `평점` �
 
 ## corpus 는 어디서 왔나
 
-`tech_corpus.json` 의 349개는 두 갈래가 합쳐진 것이다. **이미 합쳐져 파일에 들어 있고,
+`tech_corpus.json` 은 두 갈래가 합쳐진 것이다. **이미 합쳐져 파일에 들어 있고,
 다시 만들 일은 없다.** 이 저장소만 클론하면 그대로 돈다 — 바깥 경로를 보는 코드는 없다.
 
 | 출처 | 개수 | 무엇 |
@@ -205,6 +206,9 @@ DevSkill 에서 문제가 안 되는 이유는 입력이 다르기 때문이다.
 ## 고칠 일이 생기면
 
 - **같은 기술이 두 이름으로 나온다** → `tech_aliases.json` 에 한 줄
-- **기술이 아닌 말이 잡힌다** → `tech_blocklist.txt` 에 한 줄
+- **기술이 아닌 말이 잡힌다** → **어느 파일인지 가려라.**
+  - 진짜 기술인데 산문에서만 오탐이다 (`Lambda` · `S3`) → `tech_blocklist.txt`
+  - 애초에 기술스택이 아니다 (`SaaS` · `풀스택`) → `tech_rejected.txt`.
+    **태그로도 들어오므로** 여기 적어야 막힌다
 - **한글 기술어를 놓친다** → `tech_ko_allowlist.txt` 에 한 줄
 - **새 기술을 넣고 싶다** → `tech_corpus.json` 에 한 항목 추가 (위 "기술을 하나 더 넣으려면")

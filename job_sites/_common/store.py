@@ -18,6 +18,8 @@
 """
 from __future__ import annotations
 
+from _common import bodies
+
 import csv
 import os
 from dataclasses import dataclass
@@ -168,7 +170,7 @@ def merge(
     )
 
 
-def save(rows: list[dict], output: Path):
+def save(rows: list[dict], output: Path, texts: dict[str, str] | None = None):
     """걷은 행을 기존 CSV 와 병합해 쓴다.
 
     **이 파일은 더 이상 누적 저장소가 아니다.** 파이프라인이 끝나면 `history.py` 가
@@ -178,7 +180,18 @@ def save(rows: list[dict], output: Path):
 
     `최초수집일` 을 되살리는 일은 오케스트레이터가 합칠 때 이력을 보고 한다
     (`job_crawling_ochestrator._seed_first_seen`).
+
+    **본문은 CSV 옆 파일로 따로 나간다.** `texts` 로 (URL → 글) 을 받으면
+    `<이름>_bodies.jsonl` 에 적는다. 칸이 아니라 파일인 이유는 `_common/bodies.py` 에
+    적어 뒀다 — 요약하면 본문이 CSV 칸 상한(4,000자)보다 길고, 중간 산출물 여섯 개가
+    그것을 실어 나를 이유가 없다.
+
+    **행에 얹지 않고 따로 받는 이유**는 `to_row` 의 계약이 *CSV 한 줄* 이기 때문이다.
+    다섯 사이트의 시험이 그 칸과 순서를 지키고 있어, 행에 한 칸을 더하면 그 다섯이
+    전부 깨진다. 실제로 깨뜨려 보고 알았다 (2026-09-18).
     """
+    if texts:
+        bodies.write_map(texts, bodies.path_for(output))
     result = merge(read_csv(output), rows)
     write_csv(output, result.rows)
     return result

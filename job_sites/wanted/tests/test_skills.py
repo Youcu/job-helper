@@ -116,17 +116,27 @@ def test_NORMAL_tag_normalized_by_id():
 # ----------------------------------------------------------------------
 
 
+def _ends(text, term):
+    """`term` 이 `text` 안에서 **낱말로 끝나는가**. 규칙만 본다 — 사전과 무관하다."""
+    from _common.skills import _korean_word_ends_here
+    at = text.index(term) + len(term)
+    return _korean_word_ends_here(text, at)
+
+
 def test_EXCEPTION_korean_term_inside_a_longer_word():
-    """결함이었던 것: '가상화폐 거래소' 에서 '가상화' 가 잡혔다.
+    """결함이었던 것: `가상화폐 거래소` 에서 `가상화` 가 잡혔다.
 
     전에는 충돌하는 복합어를 파일에 적어 막았다. 그건 **열린 집합**이라 관측한 것만
     막고 다음 것은 그대로 통과시킨다. 지금은 뒤에 오는 것이 조사·접미사인지로 판정한다.
+
+    **사전이 아니라 규칙을 시험한다.** 예시로 쓰는 말이 사전에서 빠져도 규칙은 그대로다 —
+    실제로 2026-09-14 에 `가상화`·`컨테이너` 가 기술이 아니라는 이유로 빠졌는데,
+    그때 이 시험이 함께 깨졌다. 엉켜 있었던 것이다.
     """
-    assert find_skills_in_text("가상화폐 거래소 백엔드") == []
-    assert find_skills_in_text("컨테이너선 화물 관리") == []
-    # 진짜 기술어는 그대로 잡혀야 한다
-    assert "가상화" in find_skills_in_text("서버 가상화 운영")
-    assert "컨테이너" in find_skills_in_text("컨테이너 오케스트레이션 경험")
+    assert not _ends("가상화폐 거래소 백엔드", "가상화"), "폐 는 조사가 아니다"
+    assert not _ends("컨테이너선 화물 관리", "컨테이너"), "선 은 조사가 아니다"
+    assert _ends("서버 가상화 운영", "가상화"), "뒤가 공백이면 낱말이 끝났다"
+    assert _ends("컨테이너 오케스트레이션 경험", "컨테이너")
 
 
 def test_BOUNDARY_korean_rule_generalizes_to_unlisted_collisions():
@@ -134,35 +144,45 @@ def test_BOUNDARY_korean_rule_generalizes_to_unlisted_collisions():
 
     목록 방식이었다면 전부 통과시켰을 것들이다 — 그게 이 규칙을 도입한 이유다.
     """
-    never_listed = [
-        ("가상화학 실험실 소프트웨어", "가상화"),      # 가상화 + 학
-        ("컨테이너박스 재고 관리", "컨테이너"),        # 컨테이너 + 박스
-        ("임베디드형 장비", "임베디드"),               # '형' 은 접미사라 통과하지만
-        ("머신러닝머신 판매", "머신러닝"),             # 머신러닝 + 머신
-        ("딥러닝쿠키 브랜드", "딥러닝"),               # 딥러닝 + 쿠키
-    ]
-    rejected = [text for text, term in never_listed if term not in find_skills_in_text(text)]
-    # '임베디드형' 은 접미사 '형' 이라 통과가 맞다. 나머지 넷은 다른 낱말이므로 거부돼야 한다
-    assert len(rejected) == 4, f"거부된 것: {rejected}"
-    assert "임베디드" in find_skills_in_text("임베디드형 장비")
+    blocked_cases = [("가상화학 실험실 소프트웨어", "가상화"),      # 가상화 + 학
+                     ("컨테이너박스 재고 관리", "컨테이너"),        # 컨테이너 + 박스
+                     ("머신러닝머신 판매", "머신러닝"),             # 머신러닝 + 머신
+                     ("딥러닝쿠키 브랜드", "딥러닝")]               # 딥러닝 + 쿠키
+    passed = [t for t, term in blocked_cases if _ends(t, term)]
+    assert passed == [], "낱말이 안 끝났는데 통과시켰다: %s" % passed
+    # `형` 은 접미사라 통과가 맞다 — 규칙이 **놓치는 쪽으로** 틀린다는 증거다
+    assert _ends("임베디드형 장비", "임베디드")
 
 
 def test_BOUNDARY_korean_particles_and_suffixes_pass():
-    """조사·어미·접미사 뒤는 낱말이 끝난 것이다. 문법이 정한 닫힌 부류다."""
-    for sentence in (
-        "컨테이너를 쓴다", "컨테이너가 뜬다", "컨테이너에 담는다", "컨테이너와 함께",
-        "컨테이너로 배포", "컨테이너의 수명", "컨테이너화 경험", "컨테이너 기반",
-    ):
-        assert "컨테이너" in find_skills_in_text(sentence), sentence
+    """조사·어미·접미사 뒤는 낱말이 끝난 것이다. 문법이 정한 **닫힌 부류**다."""
+    for sentence in ("컨테이너를 쓴다", "컨테이너가 뜬다", "컨테이너에 담는다",
+                     "컨테이너와 함께", "컨테이너로 배포", "컨테이너의 수명",
+                     "컨테이너화 경험", "컨테이너 기반"):
+        assert _ends(sentence, "컨테이너"), sentence
 
 
 def test_BOUNDARY_korean_term_at_the_very_end():
     """글 끝에서 끝나면 낱말도 끝난 것이다."""
-    assert "컨테이너" in find_skills_in_text("우리가 쓰는 것은 컨테이너")
-    assert "마이크로서비스" in find_skills_in_text("전환 대상: 마이크로서비스")
+    assert _ends("우리가 쓰는 것은 컨테이너", "컨테이너")
+    assert _ends("전환 대상: 마이크로서비스", "마이크로서비스")
 
 
 def test_BOUNDARY_korean_term_followed_by_punctuation_or_ascii():
-    assert "컨테이너" in find_skills_in_text("컨테이너, 쿠버네티스")
-    assert "컨테이너" in find_skills_in_text("컨테이너(Docker)")
-    assert "딥러닝" in find_skills_in_text("딥러닝 PyTorch 경험")
+    assert _ends("컨테이너, 쿠버네티스", "컨테이너")
+    assert _ends("컨테이너(Docker)", "컨테이너")
+    assert _ends("딥러닝 PyTorch 경험", "딥러닝")
+
+
+def test_BOUNDARY_the_korean_dictionary_is_almost_empty_now():
+    """**한글 기술어가 셋만 남았다** (2026-09-14).
+
+    기술이 아닌 말을 걷어 내고 나니 `부하 테스트` · `정적 분석` · `이상 탐지` 뿐이고,
+    셋 다 띄어 쓴 말이다. 위의 조사 규칙은 **지금 거의 쓰이지 않는다.**
+
+    지우지 않는 이유는 한글 기술어가 다시 늘 수 있어서다. 다만 **비었다는 사실을
+    적어 두지 않으면**, 다음 사람이 "한글도 잘 잡히는구나" 라고 잘못 읽는다.
+    """
+    from _common import dictionaries
+    terms = dictionaries.korean_terms()
+    assert len(terms) <= 5, "늘었으면 이 시험의 설명을 고쳐라: %s" % sorted(terms)

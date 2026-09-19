@@ -91,7 +91,12 @@ def is_unresolved(name: str) -> bool:
 
 
 def is_rejected(name: str) -> bool:
-    """기술스택이 아니라고 판단해 둔 이름인가 (`tech_rejected.txt`)."""
+    """기술스택이 아니라고 판단해 둔 이름인가 (`tech_rejected.txt`).
+
+    **`tech_blocklist.txt` 는 안 본다.** 둘은 뜻이 다르다 — 그 파일은 `Lambda`·`S3`
+    처럼 **진짜 기술인데 산문에서 오탐**이 되는 이름이라, 태그로 온 것까지 막으면
+    멀쩡한 기술이 사라진다.
+    """
     return (name or "").strip().lower() in dictionaries.rejected()
 
 

@@ -63,8 +63,8 @@ def _run() -> int:
         print("\n조건에 맞는 **자체 공고**가 없습니다. 조건을 넓혀 보세요.")
         return 0
 
-    rows, stats = _collect_details(client, listings.rows, config)
-    result = save(rows, OUTPUT)
+    rows, stats, texts = _collect_details(client, listings.rows, config)
+    result = save(rows, OUTPUT, texts)
     _print_summary(config, result, stats, listings)
     if stats["차단"]:
         print("\n차단돼서 %d건에서 멈췄습니다. 여기까지 모은 것은 저장했습니다."
@@ -88,6 +88,7 @@ def _collect_details(client, postings: list[dict], config):
     더 던지지 않는다. 멈춘 사실은 `stats["차단"]` 으로 알린다.
     """
     rows: list[dict] = []
+    texts: dict[str, str] = {}
     stats = {"기술없음": 0, "번호없음": 0, "근무지밖": 0, "본문없음": 0,
              "상세시도": 0, "상세실패": 0, "차단": False}
 
@@ -120,7 +121,8 @@ def _collect_details(client, postings: list[dict], config):
             stats["기술없음"] += 1
             continue
         rows.append(row)
-    return rows, stats
+        texts[row["URL"]] = record.body_of(detail)
+    return rows, stats, texts
 
 
 def _print_skip_notice(listings) -> None:

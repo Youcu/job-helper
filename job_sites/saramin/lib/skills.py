@@ -44,7 +44,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from _common.normalize import canonical
-from _common.skills import build_matcher
+from _common.skills import blocked, build_matcher
 
 from .body import visible_body
 
@@ -81,7 +81,10 @@ def structured_skills(page: str) -> list[str]:
     found = []
     for code, _label in CATEGORY_TAG.findall(page or ""):
         if code in codes:
-            found.append(canonical(codes[code]))
+            name = codes[code]
+            # **태그로 와도 차단은 지난다.** `풀스택` 이 여기로 들어왔다.
+            if not blocked(name):
+                found.append(canonical(name))
     return _unique(found)
 
 

@@ -63,11 +63,11 @@ def _run() -> int:
         print("\n조건에 맞는 공고가 없습니다. .env 조건을 넓혀 보세요.")
         return 0
 
-    rows, stats = _collect_details(client, listings.rows)
+    rows, stats, texts = _collect_details(client, listings.rows)
 
     # 차단됐어도 **여기까지 모은 것은 쓴다.** 300번째에서 막혔다고 앞의 299건을 버리면
     # 다시 처음부터 받아야 하고, 그건 차단을 더 부른다. 목록 쪽도 같은 규칙이다.
-    result = save(rows, OUTPUT)
+    result = save(rows, OUTPUT, texts)
 
     _print_summary(config, result, stats)
     if stats["차단"]:
@@ -93,6 +93,7 @@ def _collect_details(client, listings: list[dict]):
     막혀서 적게 모은 것은 다르다.
     """
     rows: list[dict] = []
+    texts: dict[str, str] = {}
     stats = {"이미지본문": 0, "그림대기": 0, "기술없음": 0, "번호없음": 0,
              "상세시도": 0, "상세실패": 0, "차단": False}
 
@@ -141,7 +142,8 @@ def _collect_details(client, listings: list[dict]):
             stats["기술없음"] += 1
             continue
         rows.append(row)
-    return rows, stats
+        texts[row["URL"]] = record.body_of(page)
+    return rows, stats, texts
 
 
 def _print_conditions(config, params: dict) -> None:

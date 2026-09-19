@@ -29,6 +29,12 @@ csv/merged.csv  ─그림 판독─▶  csv/merged_read.csv  ─거르기─▶ 
 남는다(수집은 순수 HTTP 만 하기 때문이다). 그 그림을 읽어 채운 결과가 `merged_read.csv` 다.
 [image_process/README.md](image_process/README.md).
 
+**직군 가리기** — 회사가 여러 자리를 한 공고에 담으면 기술스택은 **전 부문의 합집합**이
+되고 지원자격은 **첫 부문 것만** 남는다(나라스페이스 실측: 기술 53개, 자격은 PM 부문 것).
+제목·본문 낱말로 그런 공고를 기계가 고르고(실측 8%), 그것만 `claude` 에게 물어 `.env` 의
+`JOB_ROLES` 에 맞는 부문만 남긴다. 회사가 공고를 어떻게 쓸지 모르므로 기계로는 못 가른다.
+[ROLE.md](ROLE.md).
+
 **거르기** — 같은 공고를 한 행으로 묶고, 정해진 낱말(SI · SM · 병역특례 · 고객사 · 파견 …)이
 든 공고를 뺀다. **뺀 것은 전량 `csv/filter_report.csv` 에 이유와 함께 남는다** — 낱말
 규칙은 반드시 오탐을 내므로 무엇을 잃었는지 되짚을 수 있어야 한다.
@@ -45,6 +51,12 @@ csv/merged.csv  ─그림 판독─▶  csv/merged_read.csv  ─거르기─▶ 
 `csv/merged_career.csv`(최종본), 그리고 리포트를 `history/` 에 **누적**하고 사이트별
 수집본을 지운다. `./csv` 에는 **이번 실행의 산출물만** 남는다 — 사람이 보고 싶은 것은
 지금 돌린 결과이기 때문이다. [HISTORY.md](HISTORY.md).
+
+**화면 그리기** — 마지막으로 최종본을 `csv/report.html` 로 그린다. **CSV 는 분석용이고,
+지원할지 말지는 공고를 하나씩 읽어 정하는 일이라** 읽는 화면이 따로 필요하다. 검색·정렬·
+기술 거르기·지원 조건 펼치기가 된다. **단계가 아니다** — 그물도 모델도 안 타므로
+(D-25), 실패해도 파이프라인을 실패로 만들지 않고 `python3 report.py` 로 다시 그린다.
+[REPORT.md](REPORT.md).
 
 **앞 단계의 파일은 손대지 않는다.** 네 단계 다 행을 없애므로, 제자리에서 고치면 없어진
 행의 원본이 사라진다. 뺀 것은 단계마다 `*_report.csv` 에 이유와 함께 남는다.
@@ -161,6 +173,7 @@ HOPE_ANNUAL_SALARY=               # 아직 안 건다
 ```bash
 IMAGE_MODEL=                      # 기본 sonnet
 IMAGE_CLAUDE_WORKER=              # 기본 4. 동시에 띄울 claude 개수
+                                  # 하나가 300~600MB 다 — 코어가 아니라 남은 메모리로 정한다
 IMAGE_TIMEOUT=                    # 기본 300초
 ```
 
@@ -193,11 +206,13 @@ cd job_sites/<사이트> && ../../.venv/bin/python3 tests/run.py   # 사이트 �
 |---|---|
 | [ORCHESTRATOR.md](ORCHESTRATOR.md) | 다섯을 병렬로 돌리고 합치는 일 · **종료 코드 계약** |
 | [image_process/README.md](image_process/README.md) | ① 그림 본문을 읽어 채우는 단계 |
-| [FILTER.md](FILTER.md) | ② 중복 제거 · 낱말 제외 |
-| [RATING.md](RATING.md) | ③ 잡플래닛 평점 게이트 · **차단을 다루는 법** |
-| [CORE_STACK.md](CORE_STACK.md) | ④ 핵심 기술 거르기 |
-| [CAREER.md](CAREER.md) | ⑤ 경력 거르기 — 신입이라 적고 경력을 요구하는 공고 |
-| [HISTORY.md](HISTORY.md) | ⑥ 이력 쌓기와 뒷정리 |
+| [ROLE.md](ROLE.md) | ② 직군 가리기 — 여러 직군이 섞인 공고에서 내 부문만 |
+| [FILTER.md](FILTER.md) | ③ 중복 제거 · 낱말 제외 |
+| [RATING.md](RATING.md) | ④ 잡플래닛 평점 게이트 · **차단을 다루는 법** |
+| [CORE_STACK.md](CORE_STACK.md) | ⑤ 핵심 기술 거르기 |
+| [CAREER.md](CAREER.md) | ⑥ 경력 거르기 — 신입이라 적고 경력을 요구하는 공고 |
+| [HISTORY.md](HISTORY.md) | ⑦ 이력 쌓기와 뒷정리 |
+| [REPORT.md](REPORT.md) | 최종본을 읽는 화면으로 그리기 — **단계가 아니다** |
 | [docs/convention/](docs/convention/) | **수집 규약.** 새 사이트를 붙일 때 여기부터 읽는다 |
 | [docs/convention/03-adding-a-site.md](docs/convention/03-adding-a-site.md) | 새 사이트 체크리스트 |
 | [docs/convention/06-decisions.md](docs/convention/06-decisions.md) | 결정과 실측 근거 — **새 단계를 만들 기준은 D-25** |
