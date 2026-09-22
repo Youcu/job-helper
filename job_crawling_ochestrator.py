@@ -3,8 +3,11 @@
 
     python3 job_crawling_ochestrator.py
 
-Wanted · 사람인 · 잡코리아 · 잡플래닛 · 점핏 을 **병렬로** 돌리고,
-끝나면 각 사이트 CSV 를 그대로 이어 붙여 `csv/merged.csv` 를 만든다.
+Wanted · 잡코리아 · 잡플래닛 · 점핏 을 **함께** 돌리고, 그것이 끝나면 **사람인을 혼자**
+돌린다(`SOLO`). 끝나면 각 사이트 CSV 를 그대로 이어 붙여 `csv/merged.csv` 를 만든다.
+
+**다섯을 한꺼번에 던지면 사람인이 막힌다** — 실측으로 동시 0행 · 단독 399행이었다.
+자세한 것은 `SOLO` 의 주석에 있다.
 
 **사이트별 CSV 는 그대로 둔다.** 합친 파일은 사본이지 대체물이 아니다 — 어느 사이트에서
 온 행인지는 `사이트명` 칸에 남아 있고, 한 사이트만 다시 돌리고 싶을 때는 그 사이트
@@ -53,6 +56,28 @@ from _common.store import (COLUMNS, FIRST_SEEN, KEY_COLUMN,  # noqa: E402
 # 돌릴 사이트. **순서가 곧 화면에 뜨는 순서**이고, 합칠 때도 이 차례를 지킨다 —
 # 실행마다 행 순서가 뒤바뀌면 `merged.csv` 를 눈으로 견주기 어렵다.
 SITES = ("wanted", "saramin", "jobkorea", "jobplanet", "jumpit")
+
+# **혼자 돌려야 하는 사이트.** 다른 곳이 다 끝난 뒤에 저 혼자 돈다.
+#
+# ## 왜 — 다섯을 한꺼번에 던지면 사람인이 막힌다
+#
+# 실측(2026-09-22): 사람인이 어제 368행이었는데 동시 실행에서 **0행**으로 돌아왔다.
+# 같은 코드로 **단독 실행하니 399행**이 나왔다.
+#
+#     동시(5개)   127초 · 0행     ← 목록 단계에서 이미 빈 결과를 받았다
+#     단독         9분 · 399행    ← 상세 조회에만 8분 49초
+#
+# 그날 잡코리아·원티드는 거꾸로 5행 → 154행, 1행 → 108행으로 늘었다. **한 곳이 잘
+# 되면 다른 곳이 안 되는 모양**이라, 우리 쪽에서 한꺼번에 던지는 것이 원인으로 보인다.
+#
+# ## 왜 차례로 전부 돌리지 않나
+#
+# 나머지 넷은 동시에 돌려도 멀쩡하고, 합쳐서 7분 안에 끝난다. 전부를 차례로 돌리면
+# 그 7분이 그대로 늘어난다. **막히는 곳만 떼어 내는 것이 가장 싸다** (2026-09-22 사용자).
+#
+# 여기 이름을 더하면 그 사이트도 마지막에 혼자 돈다. 두 곳이 되면 그 둘은 **서로도
+# 같이 안 돈다** — 차례로 하나씩이다.
+SOLO = ("saramin",)
 
 # 한 사이트가 이보다 오래 걸리면 끊는다. 사람인이 8분대라 넉넉히 잡았다.
 TIMEOUT_SECONDS = 60 * 30
@@ -254,6 +279,34 @@ class Result:
         """
         return not self.ok and self.rows > 0
 
+    @property
+    def silent(self) -> bool:
+        """**정상이라면서 한 행도 안 걷었나.**
+
+        이 상태는 거의 언제나 차단이다. 실측(2026-09-22): 사람인이 어제 368행이었는데
+        오늘 `정상 · 0행` 으로 돌아왔다. 같은 코드로 **단독 실행하니 399행**이 나왔다 —
+        다섯을 동시에 돌릴 때만 막힌다. 127초를 쓰고 0행이었으니 목록 단계에서 이미
+        빈 결과를 받은 것이다.
+
+        **그런데 종료 코드가 0이라 실패로 안 잡혔다.** 파이프라인은 그대로 끝까지 돌아
+        21행짜리 최종본을 냈고, 화면에는 `✓ saramin 127.2초 · 정상 · 0행` 이라고만
+        찍혔다. 사용자는 오늘 공고가 적은 줄 안다 — **조용히 실패하는 알림은 없는 것보다
+        나쁘다.**
+
+        계약에는 `2`(차단)가 이미 있다. 수집기가 그것을 내면 가장 좋지만, 수집기는
+        "검색 결과가 없다" 와 "막혔다" 를 구별 못 할 때가 있다. 그래서 **오케스트레이터가
+        마지막 그물을 친다** — 사이트가 다섯이라 여기 한 번 치면 전부에 걸린다.
+
+        **막지는 않는다.** 0행이 진짜일 수도 있고(조건을 좁게 잡은 날), 여기서 파이프라인을
+        멈추면 나머지 네 사이트의 결과까지 잃는다. 드러내기만 한다.
+        """
+        return self.ok and self.rows == 0 and self.code != SKIPPED_CODE
+
+
+# 잡플래닛이 "조건이 넓어 이번엔 건너뛴다" 고 말하는 신호. 그때 0행은 정상이라
+# 조용한 실패로 치면 안 된다.
+SKIPPED_CODE = 4
+
 
 def main() -> int:
     """**실행 락을 쥐고 돈다.**
@@ -276,7 +329,7 @@ def _main() -> int:
         print("  job_sites/<사이트>/<사이트>.py 가 있어야 합니다.", file=sys.stderr)
         return 1
 
-    print("%d개 사이트를 병렬로 돌립니다 — %s\n" % (len(SITES), " · ".join(SITES)))
+    _announce(scrapers)
     started = time.monotonic()
     results = _run_all(scrapers)
     elapsed = time.monotonic() - started
@@ -364,24 +417,52 @@ def _find_scrapers() -> dict[str, Path]:
             for site in SITES if (SITES_DIR / site / ("%s.py" % site)).exists()}
 
 
-def _run_all(scrapers: dict[str, Path]) -> list[Result]:
-    """전부를 동시에 돌린다. **각자 다른 프로세스**라 서로를 못 건드린다.
+def waves(scrapers: dict[str, Path]) -> list[dict[str, Path]]:
+    """어느 묶음을 어느 차례에 돌릴까. **첫 묶음은 함께, `SOLO` 는 하나씩 뒤에.**
 
-    자식의 출력은 붙잡아 둔다 — 여럿이 동시에 tqdm 을 그리면 화면이 엉킨다. 대신 여기서
-    막대 하나로 진행을 보이고, 끝난 사이트부터 한 줄씩 알린다.
+    `SOLO` 가 비면 묶음이 하나라 예전과 똑같이 돈다.
+    """
+    together = {site: path for site, path in scrapers.items() if site not in SOLO}
+    alone = [{site: scrapers[site]} for site in SOLO if site in scrapers]
+    return ([together] if together else []) + alone
+
+
+def _announce(scrapers: dict[str, Path]) -> None:
+    groups = waves(scrapers)
+    first = [site for site in SITES if site in groups[0]] if groups else []
+    print("%d개 사이트를 돌립니다" % len(scrapers))
+    if first:
+        print("  함께 : %s" % " · ".join(first))
+    for group in groups[1:]:
+        # **왜 혼자 도는지 한 줄로 밝힌다.** 안 적으면 다음 사람이 "왜 느리지" 라고만 본다.
+        print("  혼자 : %s  (같이 돌리면 막힌다 — 실측 동시 0행 · 단독 399행)"
+              % " · ".join(group))
+    print()
+
+
+def _run_all(scrapers: dict[str, Path]) -> list[Result]:
+    """묶음 차례로 돌린다. 한 묶음 안에서는 동시다.
+
+    **각자 다른 프로세스**라 서로를 못 건드린다. 자식의 출력은 붙잡아 둔다 — 여럿이
+    동시에 tqdm 을 그리면 화면이 엉킨다. 대신 여기서 막대 하나로 진행을 보이고,
+    끝난 사이트부터 한 줄씩 알린다.
+
+    **막대는 묶음마다 새로 만들지 않는다.** 그러면 화면에 막대가 둘 남아 어느 것이
+    지금인지 헷갈린다. 하나로 전체를 센다.
     """
     results: dict[str, Result] = {}
-    with ThreadPoolExecutor(max_workers=len(scrapers)) as pool:
-        pending = {pool.submit(_run_one, site, path): site
-                   for site, path in scrapers.items()}
-        with tqdm(total=len(pending), desc="사이트", unit="곳") as bar:
-            for future in as_completed(pending):
-                result = future.result()
-                results[result.site] = result
-                bar.update(1)
-                tqdm.write("  %s %-10s %6.1f초 · %s"
-                           % ("✓" if result.ok else "✗", result.site,
-                              result.seconds, _tail(result)))
+    with tqdm(total=len(scrapers), desc="사이트", unit="곳") as bar:
+        for group in waves(scrapers):
+            with ThreadPoolExecutor(max_workers=len(group)) as pool:
+                pending = {pool.submit(_run_one, site, path): site
+                           for site, path in group.items()}
+                for future in as_completed(pending):
+                    result = future.result()
+                    results[result.site] = result
+                    bar.update(1)
+                    tqdm.write("  %s %-10s %6.1f초 · %s"
+                               % ("✓" if result.ok else "✗", result.site,
+                                  result.seconds, _tail(result)))
     return [results[site] for site in SITES if site in results]
 
 
@@ -553,6 +634,9 @@ def _tail(result: Result) -> str:
     """
     if result.code is None:
         return result.error or "알 수 없는 실패"
+    if result.silent:
+        return ("%s 라는데 **0행** — 차단일 수 있습니다. 단독으로 돌려 보세요"
+                % result.meaning)
     if result.ok:
         return "%s · %d행" % (result.meaning, result.rows)
     if result.stale:
@@ -573,6 +657,20 @@ def _print_report(results: list[Result], merged: int, elapsed: float) -> None:
           % ("합계", "", elapsed, sum(r.rows for r in results),
              "가장 오래 걸린 곳: %s (병렬이라 합이 아니다)"
              % max(results, key=lambda r: r.seconds).site))
+
+    # **표 안의 한 줄은 묻힌다.** 실측으로 `✓ saramin 127.2초 · 정상 · 0행` 이 다섯 줄
+    # 사이에 섞여 있었고, 그날 최종본이 21행으로 줄어든 이유를 아무도 못 알아봤다.
+    # 그래서 표 밖에 따로 낸다.
+    silent = [r.site for r in results if r.silent]
+    if silent:
+        print("\n%s" % ("!" * 62))
+        print("정상이라는데 한 행도 못 걷은 곳: %s" % " · ".join(silent))
+        print("  **거의 언제나 차단입니다.** 다섯을 동시에 돌리면 막히는 곳이 있습니다.")
+        print("  단독으로 돌려 보세요 — 실측으로 사람인이 동시 실행 0행 · 단독 399행이었습니다.")
+        for site in silent:
+            print("    cd job_sites/%s && python3 %s.py" % (site, site))
+        print("  이번 결과는 그 사이트 몫만큼 **적습니다.** 목록이 짧다고 공고가 없는 것이 아닙니다.")
+        print("%s" % ("!" * 62))
 
     print("\n%s — %d행" % (OUTPUT.relative_to(ROOT_DIR), merged))
     print("  사이트별 CSV 는 그대로 두었습니다. 어느 사이트에서 왔는지는 `사이트명` 칸에 있습니다.")

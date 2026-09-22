@@ -564,3 +564,113 @@ def test_BOUNDARY_each_stage_names_the_file_that_did_not_change():
     """
     for _script, name, _meanings, _timeout, kept in orch.STAGES:
         check(kept.strip(), "%s 에 앞 단계 산출물이 적혀 있어야 한다" % name)
+
+
+# ── 조용한 실패: 정상이라면서 0행 ────────────────────────────────────────
+#
+# 실측(2026-09-22) — 사람인이 어제 368행이었는데 오늘 `정상 · 0행` 으로 돌아왔다.
+# 같은 코드로 **단독 실행하니 399행**이 나왔다. 다섯을 동시에 돌릴 때만 막힌다.
+#
+# **종료 코드가 0이라 실패로 안 잡혔다.** 파이프라인은 끝까지 돌아 21행짜리 최종본을
+# 냈고, 화면에는 다섯 줄 사이에 `✓ saramin 127.2초 · 정상 · 0행` 이라고만 찍혔다.
+# 조용히 실패하는 알림은 없는 것보다 나쁘다 — 걸렀다고 믿게 만든다.
+
+def test_NORMAL_zero_rows_with_a_normal_exit_is_flagged():
+    check(_result("saramin", code=0, rows=0).silent, "정상 0행은 수상하다")
+    check(not _result("wanted", code=0, rows=108).silent, "행을 걷었으면 수상하지 않다")
+
+
+def test_EXCEPTION_a_deliberate_skip_with_zero_rows_is_not_silent():
+    """**잡플래닛의 `4` 는 "조건이 넓어 건너뛴다" 는 신호다.**
+
+    그때 0행은 약속된 결과지 실패가 아니다. 여기가 뚫리면 멀쩡한 건너뜀마다
+    차단 경고가 떠서, 진짜 차단이 왔을 때 사람이 그 경고를 안 읽는다.
+    """
+    check(not _result("jobplanet", code=orch.SKIPPED_CODE, rows=0).silent,
+          "건너뛴 것은 조용한 실패가 아니다")
+
+
+def test_EXCEPTION_an_already_failed_site_is_not_double_reported():
+    """이미 실패(차단 `2`)로 잡힌 것은 제 이유를 말한다 — 여기서 또 말할 게 없다."""
+    check(not _result("saramin", code=2, rows=0).silent, "실패는 이미 드러나 있다")
+
+
+def test_BOUNDARY_the_summary_line_says_zero_and_tells_what_to_do():
+    """**한 줄만 보고도 무엇을 할지 알아야 한다.** 숫자만 적으면 표에 묻힌다."""
+    line = orch._tail(_result("saramin", code=0, rows=0))
+    check("0행" in line, "0행이라고 말한다: %r" % line)
+    check("단독" in line, "무엇을 할지 말한다: %r" % line)
+
+
+def test_BOUNDARY_the_report_shouts_outside_the_table():
+    """표 안의 한 줄은 다섯 줄 사이에 묻힌다 — 실제로 그랬다. 표 밖에 따로 낸다."""
+    buffer = io.StringIO()
+    with contextlib.redirect_stdout(buffer):
+        orch._print_report([_result("saramin", code=0, rows=0),
+                            _result("wanted", code=0, rows=108)], merged=108, elapsed=9.0)
+    printed = buffer.getvalue()
+    check("정상이라는데 한 행도 못 걷은 곳: saramin" in printed,
+          "표 밖에서 이름을 부른다")
+    check("cd job_sites/saramin" in printed, "단독으로 돌리는 명령까지 적어 준다")
+    check("wanted" not in printed.split("!!!")[1], "멀쩡한 곳은 경고에 안 넣는다")
+
+
+# ── 막히는 사이트는 혼자 돌린다 ──────────────────────────────────────────
+#
+# 실측(2026-09-22) — 다섯을 한꺼번에 던지면 사람인이 0행으로 돌아온다. 같은 코드로
+# 단독 실행하면 399행이다. 그날 잡코리아·원티드는 거꾸로 늘었다(5→154, 1→108) —
+# **한 곳이 잘 되면 다른 곳이 안 되는 모양**이라 우리가 한꺼번에 던지는 것이 원인이다.
+#
+# 나머지 넷은 동시에 돌려도 멀쩡하므로 **막히는 곳만 떼어 낸다** (2026-09-22 사용자).
+
+def _scrapers(*sites):
+    return {site: orch.SITES_DIR / site / ("%s.py" % site) for site in sites}
+
+
+def test_NORMAL_the_blocked_site_runs_after_the_others():
+    groups = orch.waves(_scrapers(*orch.SITES))
+    check_equal(len(groups), 2, "묶음이 둘이다: %r" % [sorted(g) for g in groups])
+    check("saramin" not in groups[0], "첫 묶음에 사람인이 없다")
+    check_equal(sorted(groups[-1]), ["saramin"], "마지막에 혼자 돈다")
+
+
+def test_NORMAL_every_site_still_runs_exactly_once():
+    """**떼어 내다가 빠뜨리면 그 사이트가 조용히 안 돈다.** 합이 원래와 같아야 한다."""
+    ran = [site for group in orch.waves(_scrapers(*orch.SITES)) for site in group]
+    check_equal(sorted(ran), sorted(orch.SITES), "다섯이 한 번씩: %r" % sorted(ran))
+
+
+def test_EXCEPTION_an_empty_solo_list_keeps_one_wave():
+    """`SOLO` 가 비면 예전과 똑같이 한 묶음으로 돈다 — 되돌리기가 한 줄이어야 한다."""
+    saved = orch.SOLO
+    try:
+        orch.SOLO = ()
+        groups = orch.waves(_scrapers(*orch.SITES))
+        check_equal(len(groups), 1, "묶음 하나")
+        check_equal(sorted(groups[0]), sorted(orch.SITES), "전부 함께")
+    finally:
+        orch.SOLO = saved
+
+
+def test_EXCEPTION_a_missing_solo_scraper_does_not_make_an_empty_wave():
+    """스크래퍼가 없는 사이트로 **빈 묶음**을 만들면 `max_workers=0` 으로 터진다."""
+    groups = orch.waves(_scrapers("wanted", "jobkorea"))
+    check_equal(len(groups), 1, "사람인이 없으니 묶음 하나")
+    check(all(group for group in groups), "빈 묶음이 없다")
+
+
+def test_BOUNDARY_only_the_solo_site_means_no_empty_first_wave():
+    """혼자 도는 사이트 하나만 남아도 앞에 빈 묶음이 생기면 안 된다."""
+    groups = orch.waves(_scrapers("saramin"))
+    check_equal(len(groups), 1, "묶음 하나")
+    check_equal(sorted(groups[0]), ["saramin"], "그 하나가 사람인")
+
+
+def test_BOUNDARY_the_announcement_says_why_it_runs_alone():
+    """**왜 느린지 화면에 적어 둔다.** 안 적으면 다음 사람이 고장으로 읽는다."""
+    buffer = io.StringIO()
+    with contextlib.redirect_stdout(buffer):
+        orch._announce(_scrapers(*orch.SITES))
+    printed = buffer.getvalue()
+    check("혼자 : saramin" in printed, "혼자 도는 곳을 말한다: %r" % printed)
+    check("막힌다" in printed, "왜인지 말한다: %r" % printed)
