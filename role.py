@@ -90,6 +90,7 @@ from _common.env import ConfigError, read_env                      # noqa: E402
 from _common import corpus_candidates                              # noqa: E402
 from _common.skills import keep_known, split_names, unknown_names  # noqa: E402
 from _common.runlock import guarded                                # noqa: E402
+from _common.sections import VALUES_HEADING                        # noqa: E402
 from _common.staleness import confirm, yes_given                   # noqa: E402
 from _common.store import read_csv, trim, write_csv, write_rows    # noqa: E402
 
@@ -146,6 +147,9 @@ def build_prompt(row: dict, body: str, wanted: list[str]) -> str:
         "  가져오지 마라. 비는 것이 틀린 것보다 낫다.\n"
         "- `경력` 은 **그 부문이 명시한 것만** 적어라 (`신입`·`경력 3년 이상`).\n"
         "  안 적혀 있으면 빈 문자열이다. `경력무관` 같은 값을 **지어내지 마라.**\n"
+        "- 앞 단계가 `지원자격` 에 `%s` 머리말과 그 아래 줄들을 넣어 두었을 수 있다.\n"
+        "  그것은 회사가 바라는 **사람됨**이라 부문을 안 가린다. 고른 부문의\n"
+        "  자격요건 뒤에 **머리말째 그대로 옮겨라.** 부문별로 고르지도, 지우지도 마라.\n"
         "- 고른 부문의 머리말을 `부문원문` 에 **공고에 적힌 그대로** 옮겨라.\n"
         "  사람이 네 답을 확인할 자리다.\n"
         "- **머리말만 있고 그 부문의 내용이 본문에 없을 수 있다.** 채용 사이트가\n"
@@ -164,7 +168,8 @@ def build_prompt(row: dict, body: str, wanted: list[str]) -> str:
         '"부문": "고른 부문 이름들", "부문원문": "공고에 적힌 머리말 그대로", '
         '"기술스택": "쉼표로 나열", "지원자격": "", "우대사항": "", '
         '"경력": "", "근거": "한 문장"}'
-        % (described, row.get("공고명", ""), body[:MAX_PROMPT_BODY])
+        % (described, row.get("공고명", ""), body[:MAX_PROMPT_BODY],
+           VALUES_HEADING)
     )
 
 
@@ -244,6 +249,10 @@ def apply(row: dict, answer: dict) -> dict:
 
     `기술스택` 은 `clean_techs` 를 지난다 — 여기가 기술 이름이 들어오는 다섯 번째
     길이라 차단을 지나야 한다.
+
+    **인재상은 코드가 되붙인다.** 프롬프트에도 지키라고 적었지만 실측으로 안 지켜졌다
+    (2026-09-22, 274행 중 10행에서 표기가 사라졌다). 그중 둘은 내용까지 잃었고
+    나머지는 머리말만 없이 요건에 섞였다 — 그러면 무엇이 요구인지 다시 흐려진다.
     """
     out = dict(row)
     for column in OVERWRITE:
@@ -252,7 +261,25 @@ def apply(row: dict, answer: dict) -> dict:
             value = clean_techs(value, url=row.get("URL", ""))
         if value:
             out[column] = trim(value)
+    out["지원자격"] = _keep_values(row.get("지원자격"), out.get("지원자격"))
     return out
+
+
+def _keep_values(before: str | None, after: str | None) -> str:
+    """덮어쓰기 전에 있던 인재상 대목을 **그대로 되돌려 놓는다.**
+
+    **부문을 안 가리므로 코드로 옮겨도 맞다.** 인재상은 회사가 바라는 사람됨이라
+    부문마다 다르지 않다 — 그래서 애초에 별도 표기로 떼어 둔 것이고, 그래서 모델의
+    부문 고르기를 거칠 이유가 없다.
+
+    모델이 머리말 없이 요건에 섞어 놓았을 수 있다. 그때도 **머리말째 다시 붙인다** —
+    같은 줄이 두 번 보이는 것이 무엇이 요구인지 모르는 것보다 낫다.
+    """
+    before, after = before or "", after or ""
+    if VALUES_HEADING not in before or VALUES_HEADING in after:
+        return after
+    block = VALUES_HEADING + before.split(VALUES_HEADING, 1)[1].rstrip()
+    return (after.rstrip() + "\n" + block) if after.strip() else block
 
 
 # ── 캐시 ────────────────────────────────────────────────────────────────

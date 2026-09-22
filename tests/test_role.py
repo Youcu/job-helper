@@ -11,6 +11,7 @@ import tempfile
 from pathlib import Path
 
 import role
+from _common.sections import VALUES_HEADING
 
 COLUMNS = ["기업명", "공고명", "마감일", "지원자격", "우대사항", "경력", "URL",
            "연봉", "기술스택", "근무지", "사이트명", "평점", "최초수집일", "최종확인일"]
@@ -443,3 +444,40 @@ def test_BOUNDARY_overwriting_runs_the_tech_column_through_the_filter():
                   ask=lambda *a: {"해당": True, "기술스택": "Java, 풀스택, Spring"},
                   have_claude=True, assume_yes=True)
         assert _read(home / "out.csv")[0]["기술스택"] == "Java, Spring"
+
+
+# ── 인재상 표기를 지킨다 ─────────────────────────────────────────────────
+#
+# 이 단계는 `지원자격` 을 통째로 덮어쓴다. 그림 판독이 붙여 둔 인재상 대목이 거기
+# 들어 있어서, 그냥 두면 **바로 앞 단계가 한 일을 여기서 지운다.**
+#
+# 프롬프트에도 지키라고 적었지만 실측으로 안 지켜졌다 (2026-09-22, 274행 중 10행).
+# 둘은 내용까지 잃었고 나머지는 머리말 없이 요건에 섞였다. **그래서 코드가 되붙인다** —
+# 인재상은 부문을 안 가리므로 모델의 부문 고르기를 거칠 이유가 없다.
+
+def test_NORMAL_the_values_block_comes_back_after_an_overwrite():
+    before = "• 고졸 이상\n• 경력 무관\n%s\n• 도전을 좋아하시는 분" % VALUES_HEADING
+    got = role.apply(_row(지원자격=before), {"지원자격": "고졸 이상, 경력 무관"})
+    assert VALUES_HEADING in got["지원자격"], "머리말이 돌아와야 한다"
+    assert "도전을 좋아하시는 분" in got["지원자격"], "내용도 돌아와야 한다"
+    assert got["지원자격"].startswith("고졸 이상, 경력 무관"), \
+        "모델이 고른 부문의 자격요건이 앞에 와야 한다"
+
+
+def test_NORMAL_a_block_the_model_kept_is_not_doubled():
+    before = "• 고졸 이상\n%s\n• 도전을 좋아하시는 분" % VALUES_HEADING
+    got = role.apply(_row(지원자격=before), {"지원자격": before})
+    assert got["지원자격"].count(VALUES_HEADING) == 1, "머리말은 한 번뿐이어야 한다"
+
+
+def test_EXCEPTION_no_values_before_means_nothing_is_added():
+    """**없던 것을 만들지 않는다.** 그림 공고가 아닌 행이 대부분이다."""
+    got = role.apply(_row(지원자격="• 고졸 이상"), {"지원자격": "고졸 이상"})
+    assert VALUES_HEADING not in got["지원자격"], "머리말이 생기면 안 된다"
+
+
+def test_BOUNDARY_an_empty_answer_does_not_lose_the_values():
+    """모델이 `지원자격` 을 못 채우면 원래 칸이 그대로 남는다 — 그때도 인재상이 산다."""
+    before = "• 고졸 이상\n%s\n• 도전을 좋아하시는 분" % VALUES_HEADING
+    got = role.apply(_row(지원자격=before), {"지원자격": ""})
+    assert got["지원자격"] == before, "아무것도 안 바뀌어야 한다"
