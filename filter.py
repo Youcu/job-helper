@@ -34,6 +34,7 @@ LOCK = ROOT_DIR / "csv" / ".filter.lock"
 sys.path.insert(0, str(ROOT_DIR / "job_sites"))
 sys.path.insert(0, str(ROOT_DIR))
 
+import career_words                                                # noqa: E402
 import filter_words                                                # noqa: E402
 from _common.env import ConfigError, csv_list, read_env             # noqa: E402
 from _common.runlock import guarded                                # noqa: E402
@@ -47,6 +48,14 @@ from _common.store import (COLUMNS, FIRST_SEEN, LAST_SEEN, read_csv,
 BODY_COLUMNS = ("지원자격", "우대사항", "기술스택")
 
 REPORT_COLUMNS = ("기업명", "공고명", "사이트명", "URL", "판정", "걸린낱말", "근거")
+
+# 경력 칸이 대놓고 경력직이라고 말하는 공고. 말 규칙은 `career_words` 에 있다 —
+# 경력을 읽는 규칙이 두 군데로 갈리면 한쪽만 고치는 일이 생긴다.
+#
+# **여기서 빼는 이유는 순서다.** 이 단계는 `role.py` 바로 다음이고 평점·핵심 기술
+# 앞이다. 경력직을 여기서 빼면 잡플래닛에 물어볼 회사와 모델에 물어볼 공고가 그만큼
+# 준다. 실측(2026-09-22): `csv/merged_role.csv` 588행에서 23행.
+CAREER_VERDICT = "제외 · 경력직"
 
 # `.env` 항목 이름. `CORE_TECH_STACKS`(남길 것)의 반대다.
 EXCLUDE_SETTING = "EXCLUDE_TECH_STACKS"
@@ -122,12 +131,13 @@ def screen(rows: list[dict], excluded: list | None = None
            ) -> tuple[list[dict], list[tuple[dict, list]]]:
     """(남긴 행, [(뺀 행, 걸린 낱말들)]).
 
-    두 가지로 뺀다. **보는 칸이 다르다.**
+    세 가지로 뺀다. **보는 칸이 저마다 다르다.**
 
     | 무엇 | 보는 칸 | 정하는 곳 |
     |---|---|---|
     | 낱말 | `공고명`·`지원자격`·`우대사항` | `filter_words.BANNED` (코드) |
     | 기술 | `기술스택` | `.env` 의 `EXCLUDE_TECH_STACKS` |
+    | 경력 | `경력` | `career_words.closed_to_newbie` (코드) |
 
     기술을 산문에서 보면 "PHP 경험 있으면 좋지만 필수 아님" 같은 문장에도 걸린다.
     낱말표를 `.env` 로 못 옮기는 이유는 `filter_words` 의 주석을 보라 — 낱말마다
@@ -140,6 +150,11 @@ def screen(rows: list[dict], excluded: list | None = None
         techs = filter_words.excluded_techs(row, excluded)
         if techs:
             hits = hits + [(name, "기술스택") for name in techs]
+        # **경력은 낱말과 같은 자루에 담되 이름을 달리 적는다.** 보고 CSV 에서
+        # "낱말에 걸린 것" 과 "경력직이라 빠진 것" 이 눈으로 갈려야 한다.
+        closed = career_words.closed_to_newbie(row.get("경력"))
+        if closed:
+            hits = hits + [("경력직", closed)]
         if hits:
             dropped.append((row, hits))
         else:
@@ -189,8 +204,12 @@ def _write_report(path: Path, duplicated: list, banned: list) -> None:
         lines.append(_report_row(row, "제외 · 중복", "",
                                  "남긴 행: %s" % (survivor.get("URL") or "")))
     for row, hits in banned:
+        # **판정을 갈라 적는다.** 경력직으로 빠진 것과 낱말에 걸린 것은 되짚는 방법이
+        # 다르다 — 낱말은 오탐을 의심하며 보고, 경력직은 경력 칸을 보면 끝난다.
+        verdict = (CAREER_VERDICT if any(name == "경력직" for name, _ in hits)
+                   else "제외 · 낱말")
         lines.append(_report_row(
-            row, "제외 · 낱말", ", ".join(name for name, _ in hits),
+            row, verdict, ", ".join(name for name, _ in hits),
             " / ".join("%s «%s»" % (name, where) for name, where in hits)))
 
     write_rows(path, REPORT_COLUMNS, lines)
@@ -208,8 +227,12 @@ def _print(before: int, duplicated: int, banned: list, after: int,
     for _, hits in banned:
         for name, _ in hits:
             counts[name] = counts.get(name, 0) + 1
+    # **경력직은 따로 센다.** 낱말과 한 줄에 묶으면 규칙을 고쳤을 때 무엇이 움직였는지
+    # 화면만 보고는 알 수 없다.
+    by_career = sum(1 for _, hits in banned if any(n == "경력직" for n, _ in hits))
     print("  중복으로 뺌 : %d행" % duplicated)
-    print("  낱말·기술로 뺌 : %d행" % len(banned))
+    print("  낱말·기술로 뺌 : %d행" % (len(banned) - by_career))
+    print("  경력직이라 뺌 : %d행" % by_career)
     if excluded:
         print("    기술 제외 기준: %s" % ", ".join(name for name, _ in excluded))
     else:

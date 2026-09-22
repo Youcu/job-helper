@@ -231,3 +231,47 @@ def test_BOUNDARY_tests_never_read_the_real_env():
     import inspect
     source = inspect.getsource(flt._run)
     check("env_path" in source, "`_run` 이 경로를 인자로 받아야 한다")
+
+
+# ── 경력직 제외 ──────────────────────────────────────────────────────────
+#
+# 말 규칙은 `tests/test_career_words.py` 에 있다. 여기는 그것이 **이 단계에 실제로
+# 꽂혀 있고 보고에 갈라 적히는가** 를 본다. 규칙을 만들어 놓고 안 부르면 화면에는
+# "경력직이라 뺌 0행" 만 찍히는데, 그것과 "정말 없다" 는 구별이 안 된다.
+
+def test_NORMAL_a_career_only_posting_is_dropped_here():
+    rows = [_row(경력="경력 3년이상", URL="https://example.com/경력"),
+            _row(경력="신입·경력", URL="https://example.com/신입")]
+    kept, dropped = flt.screen(rows)
+    check_equal([r["URL"] for r in kept], ["https://example.com/신입"], "신입 쪽만 남는다")
+    check_equal(len(dropped), 1, "경력직 한 행이 빠진다")
+
+
+def test_NORMAL_the_report_tells_career_apart_from_banned_words():
+    home = temp_dir()
+    source = home / "csv" / "merged_role.csv"
+    write_csv(source, [
+        _row(경력="경력 3년이상", URL="https://example.com/경력"),
+        _row(공고명="SI 개발자", URL="https://example.com/낱말"),
+        _row(경력="신입", URL="https://example.com/남김"),
+    ], list(COLUMNS))
+    out, report = home / "csv" / "out.csv", home / "csv" / "report.csv"
+    check_equal(flt._run(source, out, report, env_path=_env(home), assume_yes=True),
+                0, "정상 종료")
+    verdicts = {r["URL"]: r["판정"] for r in read_csv(report)}
+    check_equal(verdicts.get("https://example.com/경력"), "제외 · 경력직",
+                "경력직은 그렇게 적힌다")
+    check_equal(verdicts.get("https://example.com/낱말"), "제외 · 낱말",
+                "낱말은 그대로다")
+    check_equal([r["URL"] for r in read_csv(out)], ["https://example.com/남김"],
+                "신입 공고만 남는다")
+
+
+def test_EXCEPTION_a_blank_career_column_is_not_dropped():
+    """**빈 경력 칸으로는 아무도 안 뺀다.** 실측 20행이 이 상태다.
+
+    수집이 본문을 못 가져온 것과 회사가 경력직이라고 말한 것은 다른 일이다.
+    """
+    kept, dropped = flt.screen([_row(경력=""), _row(경력="   ")])
+    check_equal(len(kept), 2, "둘 다 남는다")
+    check_equal(dropped, [], "뺀 것이 없다")
