@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """합본에서 **본문이 그림인 공고**만 골라 그림을 읽는다.
 
-    python3 job_image_process.py
+    python3 src/job_image_process.py
 
 `csv/merged.csv` 를 읽어 `csv/merged_read.csv` 를 낸다. **원본은 고치지 않는다** — 이
 단계는 행을 없애기 때문에, 제자리에서 고치면 없어진 공고의 원본이 어디에도 안 남는다.
@@ -21,7 +21,7 @@
 ## 캐시는 공고 하나에 열쇠 하나다
 
 한 공고의 그림들을 합쳐 한 번 읽으므로, 그 답은 **주소 목록 전체**의 답이다. 낱장 주소를
-열쇠로 쓰면 같은 그림을 쓰는 다른 공고가 남의 답을 받아 간다(`image_process/cache.py`).
+열쇠로 쓰면 같은 그림을 쓰는 다른 공고가 남의 답을 받아 간다(`src/image_process/cache.py`).
 그래서 옛 캐시 파일의 낱장 열쇠는 **전부 빗나가고**, 첫 실행에서 공고 단위로 다시 채워진다.
 캐시는 편의지 진실이 아니므로 그래도 된다.
 """
@@ -38,17 +38,20 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 
-ROOT_DIR = Path(__file__).resolve().parent
-INPUT = ROOT_DIR / "csv" / "merged.csv"
-OUTPUT = ROOT_DIR / "csv" / "merged_read.csv"
+SRC_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SRC_DIR / "job_sites"))
+sys.path.insert(0, str(SRC_DIR))
+
+from paths import CACHE as CACHE_DIR, CSV, HISTORY as HISTORY_DIR  # noqa: E402
+from paths import ROOT, SITES                                      # noqa: E402
+INPUT = CSV / "merged.csv"
+OUTPUT = CSV / "merged_read.csv"
 
 # 공고 본문. 수집기가 쓴 것 옆에 그림에서 읽은 글을 더한다 (`_common/bodies.py`).
-BODIES = ROOT_DIR / "csv" / "bodies.jsonl"
-LOCK = ROOT_DIR / "csv" / ".image_process.lock"
+BODIES = CSV / "bodies.jsonl"
+LOCK = CSV / ".image_process.lock"
 RETRY_PAUSE = 5      # 다시 걸기 전에 쉬는 시간(초)
 
-sys.path.insert(0, str(ROOT_DIR / "job_sites"))
-sys.path.insert(0, str(ROOT_DIR))
 
 from tqdm import tqdm                                              # noqa: E402
 
@@ -171,7 +174,7 @@ def process_one(row: dict, *, cfg, book: dict, work_dir: Path,
 
     # **그림을 다시 읽기 전에 글이 남아 있는지 본다.** 추리는 규칙만 바뀐 것이라면
     # 이미 읽어 둔 본문에서 다시 추리면 된다 — 내려받기도 조각내기도 필요 없다
-    # (`image_process/cache.py` 의 `RULES_VERSION`).
+    # (`src/image_process/cache.py` 의 `RULES_VERSION`).
     text = cache.body(book, urls)
     if text:
         try:
@@ -394,7 +397,7 @@ def _shown(path: Path) -> str:
     요약을 찍다가 터진다.
     """
     try:
-        return str(path.relative_to(ROOT_DIR))
+        return str(path.relative_to(ROOT))
     except ValueError:
         return str(path)
 

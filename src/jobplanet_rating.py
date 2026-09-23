@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """회사 **평점**으로 거른다. 잡플래닛에서 걷어 오고, 2.9 미만·평점 없음·검색 안 됨을 뺀다.
 
-    python3 jobplanet_rating.py
+    python3 src/jobplanet_rating.py
 
-    csv/merged_filtered.csv  →  csv/merged_rated.csv    남은 공고
+    csv/merged_nuance.csv  →  csv/merged_rated.csv    남은 공고
                                 csv/rating_report.csv   **뺀 공고 전량 + 뺀 이유**
                                 csv/same_names.csv      같은 이름이 여럿인 회사의 후보 전부
                                 cache/company_rating.json   걷은 평점 (이어받기용)
@@ -91,17 +91,20 @@ import urllib.request
 from datetime import date
 from pathlib import Path
 
-ROOT_DIR = Path(__file__).resolve().parent
-INPUT = ROOT_DIR / "csv" / "merged_filtered.csv"
-OUTPUT = ROOT_DIR / "csv" / "merged_rated.csv"
-REPORT = ROOT_DIR / "csv" / "rating_report.csv"
-SAME_NAMES = ROOT_DIR / "csv" / "same_names.csv"
-CACHE = ROOT_DIR / "cache" / "company_rating.json"
-REQUEST_LOG = ROOT_DIR / "cache" / "company_rating.log.jsonl"
-LOCK = ROOT_DIR / "csv" / ".jobplanet_rating.lock"
+SRC_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SRC_DIR / "job_sites"))
+sys.path.insert(0, str(SRC_DIR))
 
-sys.path.insert(0, str(ROOT_DIR / "job_sites"))
-sys.path.insert(0, str(ROOT_DIR))
+from paths import CACHE as CACHE_DIR, CSV, HISTORY as HISTORY_DIR  # noqa: E402
+from paths import ROOT, SITES                                      # noqa: E402
+INPUT = CSV / "merged_nuance.csv"
+OUTPUT = CSV / "merged_rated.csv"
+REPORT = CSV / "rating_report.csv"
+SAME_NAMES = CSV / "same_names.csv"
+CACHE = CACHE_DIR / "company_rating.json"
+REQUEST_LOG = CACHE_DIR / "company_rating.log.jsonl"
+LOCK = CSV / ".jobplanet_rating.lock"
+
 
 import filter_words                                                # noqa: E402
 from _common.runlock import guarded                                # noqa: E402
@@ -527,7 +530,7 @@ def _print(before: int, cut: list, after: int, ambiguous: int, net: Searcher,
 
 def _shown(path: Path) -> str:
     try:
-        return str(path.relative_to(ROOT_DIR))
+        return str(path.relative_to(ROOT))
     except ValueError:
         return str(path)
 

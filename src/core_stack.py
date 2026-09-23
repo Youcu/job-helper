@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """**내가 쓸 기술**이 적힌 공고만 남긴다. `.env` 의 `CORE_TECH_STACKS` 가 기준이다.
 
-    python3 core_stack.py
+    python3 src/core_stack.py
 
     csv/merged_rated.csv  →  csv/merged_core.csv        남은 공고
                              csv/core_stack_report.csv  **뺀 공고 전량 + 뺀 이유**
@@ -53,14 +53,17 @@ import re
 import sys
 from pathlib import Path
 
-ROOT_DIR = Path(__file__).resolve().parent
-INPUT = ROOT_DIR / "csv" / "merged_rated.csv"
-OUTPUT = ROOT_DIR / "csv" / "merged_core.csv"
-REPORT = ROOT_DIR / "csv" / "core_stack_report.csv"
-LOCK = ROOT_DIR / "csv" / ".core_stack.lock"
+SRC_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SRC_DIR / "job_sites"))
+sys.path.insert(0, str(SRC_DIR))
 
-sys.path.insert(0, str(ROOT_DIR / "job_sites"))
-sys.path.insert(0, str(ROOT_DIR))
+from paths import CACHE as CACHE_DIR, CSV, HISTORY as HISTORY_DIR  # noqa: E402
+from paths import ROOT, SITES                                      # noqa: E402
+INPUT = CSV / "merged_rated.csv"
+OUTPUT = CSV / "merged_core.csv"
+REPORT = CSV / "core_stack_report.csv"
+LOCK = CSV / ".core_stack.lock"
+
 
 from _common.env import ConfigError, csv_list, read_env                 # noqa: E402
 from _common.runlock import guarded                                    # noqa: E402
@@ -201,7 +204,7 @@ def _print(wanted: list, rules: list, kept: list, cut: list,
 
 def _shown(path: Path) -> str:
     try:
-        return str(path.relative_to(ROOT_DIR))
+        return str(path.relative_to(ROOT))
     except ValueError:
         return str(path)
 

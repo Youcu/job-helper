@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """걷은 공고에서 **버릴 것을 버린다.** 중복 제거 → 낱말 제외.
 
-    python3 filter.py
+    python3 src/filter.py
 
     csv/merged_role.csv  →  csv/merged_filtered.csv   남은 공고
                             csv/filter_report.csv     **뺀 공고 전량 + 뺀 이유**
@@ -12,7 +12,7 @@
 **제자리에서 고치지 않는다.** 이 단계는 행을 없애므로, 입력을 덮어쓰면 없어진 행의 원본이
 사라져 왜 없어졌는지 되짚을 수 없다.
 
-**뺀 것은 전량 보고 CSV 로 나간다.** 낱말 규칙은 반드시 오탐을 낸다(`filter_words.py` 의
+**뺀 것은 전량 보고 CSV 로 나간다.** 낱말 규칙은 반드시 오탐을 낸다(`src/filter_words.py` 의
 "이 표가 잡지 못하는 것"). 뺀 이유를 안 남기면 사람은 무엇을 잃었는지 영영 모른다.
 
 종료 코드
@@ -25,14 +25,17 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-ROOT_DIR = Path(__file__).resolve().parent
-INPUT = ROOT_DIR / "csv" / "merged_role.csv"
-OUTPUT = ROOT_DIR / "csv" / "merged_filtered.csv"
-REPORT = ROOT_DIR / "csv" / "filter_report.csv"
-LOCK = ROOT_DIR / "csv" / ".filter.lock"
+SRC_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SRC_DIR / "job_sites"))
+sys.path.insert(0, str(SRC_DIR))
 
-sys.path.insert(0, str(ROOT_DIR / "job_sites"))
-sys.path.insert(0, str(ROOT_DIR))
+from paths import CACHE as CACHE_DIR, CSV, HISTORY as HISTORY_DIR  # noqa: E402
+from paths import ROOT, SITES                                      # noqa: E402
+INPUT = CSV / "merged_role.csv"
+OUTPUT = CSV / "merged_filtered.csv"
+REPORT = CSV / "filter_report.csv"
+LOCK = CSV / ".filter.lock"
+
 
 import career_words                                                # noqa: E402
 import filter_words                                                # noqa: E402
@@ -52,7 +55,7 @@ REPORT_COLUMNS = ("기업명", "공고명", "사이트명", "URL", "판정", "�
 # 경력 칸이 대놓고 경력직이라고 말하는 공고. 말 규칙은 `career_words` 에 있다 —
 # 경력을 읽는 규칙이 두 군데로 갈리면 한쪽만 고치는 일이 생긴다.
 #
-# **여기서 빼는 이유는 순서다.** 이 단계는 `role.py` 바로 다음이고 평점·핵심 기술
+# **여기서 빼는 이유는 순서다.** 이 단계는 `src/role.py` 바로 다음이고 평점·핵심 기술
 # 앞이다. 경력직을 여기서 빼면 잡플래닛에 물어볼 회사와 모델에 물어볼 공고가 그만큼
 # 준다. 실측(2026-09-22): `csv/merged_role.csv` 588행에서 23행.
 CAREER_VERDICT = "제외 · 경력직"
@@ -146,7 +149,11 @@ def screen(rows: list[dict], excluded: list | None = None
     excluded = excluded or []
     kept, dropped = [], []
     for row in rows:
-        hits = filter_words.banned_words(filter_words.text_of(row))
+        # **낱말은 여기서 안 자른다.** 같은 낱말이 정반대를 뜻한다 —
+        # `단순 SI가 아닌` · `2,000개 이상의 고객사를 유치` · `보충역 지원 가능합니다`.
+        # 탐지는 여기 규칙이 하고 **판정은 `src/nuance.py` 가 모델에게 묻는다**
+        # (2026-09-22 사용자). 여기서 자르면 그 오탐이 조용히 삭제가 된다.
+        hits = []
         techs = filter_words.excluded_techs(row, excluded)
         if techs:
             hits = hits + [(name, "기술스택") for name in techs]
@@ -173,7 +180,7 @@ def _run(source: Path = INPUT, output: Path = OUTPUT, report: Path = REPORT,
     if not source.exists():
         print("%s 가 없습니다. 먼저 그림 판독까지 돌리세요." % source, file=sys.stderr)
         print("  python3 job_crawling_ochestrator.py    # 수집부터 전부", file=sys.stderr)
-        print("  python3 job_image_process.py           # 그림 판독만", file=sys.stderr)
+        print("  python3 src/job_image_process.py           # 그림 판독만", file=sys.stderr)
         return 1
     if not confirm(source, assume_yes=assume_yes):
         print("멈췄습니다 — 아무것도 안 바꿨습니다.", file=sys.stderr)
@@ -249,7 +256,7 @@ def _print(before: int, duplicated: int, banned: list, after: int,
 
 def _shown(path: Path) -> str:
     try:
-        return str(path.relative_to(ROOT_DIR))
+        return str(path.relative_to(ROOT))
     except ValueError:
         return str(path)
 

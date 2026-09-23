@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """파이프라인이 끝난 뒤 **이력을 쌓고 중간 부산물을 치운다.** 마지막 단계다.
 
-    python3 history.py
+    python3 src/history.py
 
     csv/merged_read.csv       ──누적──▶  history/history_read.csv        전처리 이전
     csv/merged_core.csv       ──누적──▶  history/history_core.csv        최종본
@@ -57,14 +57,17 @@ import sys
 from datetime import date
 from pathlib import Path
 
-ROOT_DIR = Path(__file__).resolve().parent
-CSV_DIR = ROOT_DIR / "csv"
-HISTORY_DIR = ROOT_DIR / "history"
-SITES_DIR = ROOT_DIR / "job_sites"
+SRC_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SRC_DIR / "job_sites"))
+sys.path.insert(0, str(SRC_DIR))
+
+from paths import CACHE as CACHE_DIR, CSV, HISTORY as HISTORY_DIR  # noqa: E402
+from paths import ROOT, SITES                                      # noqa: E402
+CSV_DIR = CSV
+HISTORY_DIR = HISTORY_DIR
+SITES_DIR = SITES
 LOCK = CSV_DIR / ".history.lock"
 
-sys.path.insert(0, str(SITES_DIR))
-sys.path.insert(0, str(ROOT_DIR))
 
 from _common.runlock import guarded                                # noqa: E402
 from _common.store import (COLUMNS, FIRST_SEEN, KEY_COLUMN,        # noqa: E402
@@ -212,8 +215,8 @@ def _run(csv_dir: Path = CSV_DIR, history_dir: Path = HISTORY_DIR,
     for line in lines:
         print(line)
     print("\n사이트별 수집본 %d개를 지웠습니다 — 이력은 위에 쌓였습니다." % len(swept))
-    print("%s 는 이번 실행 산출물 그대로 둡니다." % csv_dir.relative_to(ROOT_DIR)
-          if csv_dir.is_relative_to(ROOT_DIR) else str(csv_dir))
+    print("%s 는 이번 실행 산출물 그대로 둡니다." % csv_dir.relative_to(ROOT)
+          if csv_dir.is_relative_to(ROOT) else str(csv_dir))
     return 0
 
 

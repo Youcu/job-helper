@@ -141,7 +141,7 @@ def test_BOUNDARY_the_real_template_has_every_placeholder():
     그 자리가 **글자 그대로** 화면에 남는다 — 오류는 안 난다."""
     page = report.TEMPLATE.read_text(encoding="utf-8")
     for mark in ("__TITLE__", "__LEDE__", "__SOURCE__", "__FUNNEL__", "__DATA__"):
-        assert mark in page, "report_template.html 에 %s 가 없습니다" % mark
+        assert mark in page, "src/templates/report_template.html 에 %s 가 없습니다" % mark
 
 
 def test_BOUNDARY_nothing_of_the_template_is_left_unfilled():

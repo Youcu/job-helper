@@ -1,7 +1,7 @@
 # 핵심 기술 거르기
 
 ```bash
-python3 core_stack.py
+python3 src/core_stack.py
 ```
 
 `.env` 의 `CORE_TECH_STACKS` 가 적힌 공고만 남긴다. 뒤에 경력 거르기가 하나 더 있다
@@ -43,7 +43,7 @@ csv/merged_rated.csv  ──▶  csv/merged_core.csv        남은 공고
 
 수집기에 걸면 위의 "검색에 안 잡히는 공고" 를 **아예 안 걷게 되고**, 나중에 기준을 바꿔도
 다시 걷기 전에는 알 수 없다. 걷어 두고 마지막에 거르면 `.env` 한 줄을 고치고
-`python3 core_stack.py` 만 다시 돌리면 된다 — 실측 1초다.
+`python3 src/core_stack.py` 만 다시 돌리면 된다 — 실측 1초다.
 
 같은 이유로 `.env` 에 이미 있던 **`TECH_STACKS` 와는 다른 항목**이다. 앞은 수집기가 걷을
 때 쓰라고 둔 자리이고(아직 아무 사이트도 안 건다), 이것은 다 걷어 온 뒤의 기준이다.

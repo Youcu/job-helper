@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """최종본을 **사람이 보고 판단하는 화면**으로 그린다.
 
-    python3 report.py
+    python3 src/report.py
 
     csv/merged_career.csv  →  csv/report.html
 
@@ -36,7 +36,7 @@ D-25 의 기준은 **그물이나 모델을 타거나 · 분 단위로 걸리거
 **웹폰트도 안 쓴다.** 시스템 한글 폰트 스택만 쓴다 — 망에 못 닿으면 그 자리가 통째로
 바뀌고, 이 파일은 손에 쥐고 여는 것이라 망을 전제할 수 없다.
 
-## 모양은 `report_template.html` 에 있다
+## 모양은 `src/templates/report_template.html` 에 있다
 
 파이썬 안에 HTML 을 넣지 않는다. 디자인을 고치려고 파이썬을 열게 되면, 고치는
 사람이 자료 읽는 코드까지 지나가야 한다. 템플릿은 자리 표시 다섯 개를 받는다.
@@ -71,11 +71,16 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / "job_sites"))
 
 from _common.runlock import guarded            # noqa: E402
 
-ROOT_DIR = Path(__file__).resolve().parent
-INPUT = ROOT_DIR / "csv" / "merged_career.csv"
-TEMPLATE = ROOT_DIR / "report_template.html"
-OUTPUT = ROOT_DIR / "csv" / "report.html"
-LOCK = ROOT_DIR / "csv" / ".report.lock"
+SRC_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SRC_DIR / "job_sites"))
+sys.path.insert(0, str(SRC_DIR))
+
+from paths import CACHE as CACHE_DIR, CSV, HISTORY as HISTORY_DIR  # noqa: E402
+from paths import ROOT, SITES, TEMPLATES                          # noqa: E402
+INPUT = CSV / "merged_career.csv"
+TEMPLATE = TEMPLATES / "report_template.html"
+OUTPUT = CSV / "report.html"
+LOCK = CSV / ".report.lock"
 
 TITLE = "백엔드 신입 공고 %d건"
 LEDE = "일곱 단계를 지나고 남은 것. 다섯 사이트에서 걷은 %s건이 여기까지 왔다."

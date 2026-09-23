@@ -22,13 +22,13 @@
 
 ```bash
 python3 job_crawling_ochestrator.py   # 수집부터 이미지 판독까지 한 번에
-python3 job_image_process.py          # 이미 있는 csv/merged.csv 의 그림만 다시 처리
+python3 src/job_image_process.py          # 이미 있는 csv/merged.csv 의 그림만 다시 처리
 ```
 
 수집이 8~10분인데 이미지 쪽만 다시 돌려 보고 싶을 때가 반드시 온다 — 프롬프트를 고쳤을 때,
 모델을 바꿔 볼 때, 캐시를 지우고 다시 읽을 때. 그때마다 다섯 사이트를 다시 긁을 이유가 없다.
 
-`job_image_process.py` 는 **혼자서도 도는 엔트리포인트**다. 오케스트레이터는 이것을 **자식
+`src/job_image_process.py` 는 **혼자서도 도는 엔트리포인트**다. 오케스트레이터는 이것을 **자식
 프로세스로** 부른다 — 불러들이지(import) 않는다. 각 스크래퍼를 프로세스로 나눠 부르는 이유와
 같다(`sys.path` 오염, `ORCHESTRATOR.md` 의 "왜 프로세스를 나누나"). 불러들이면 같은 함정을
 새로 만든다.
@@ -295,7 +295,7 @@ Visual Basic · MS-SQL 같은 구체적인 자격요건이 그림 안에 온전�
 30일 동안 계속 대상에 잡힌다 — 한 달이면 같은 그림을 서른 번 읽는다.
 
 ```
-job_sites/_common/cache/image_reads.json
+src/job_sites/_common/cache/image_reads.json
   { "https://…/ahnlab_0903_01.jpg https://…/ahnlab_0903_02.jpg": {
       "기술스택": [...], "자격요건": [...], "우대사항": [...],
       "읽은날": "2026-09-07", "모델": "sonnet" } }
@@ -342,7 +342,7 @@ job_sites/_common/cache/image_reads.json
 ## 종료 코드
 
 오케스트레이터가 자식으로 부르므로 다섯 스크래퍼와 **같은 계약**을 물려받는다.
-실행 자물쇠도 같은 것을 쓴다 — `job_sites/_common/runlock.py` 의 `guarded()`. 자물쇠는
+실행 자물쇠도 같은 것을 쓴다 — `src/job_sites/_common/runlock.py` 의 `guarded()`. 자물쇠는
 `csv/.image_process.lock` 에 둔다.
 
 | 코드 | 뜻 | 성패 |
@@ -379,7 +379,7 @@ image_process/
 
 `slicing.py` 다 — `slice.py` 는 파이썬 내장 이름이라 피했다.
 
-`image_process/` 는 `job_sites/_common/` 에 넣지 않는다. `_common` 은 **사이트들이 나눠
+`src/image_process/` 는 `src/job_sites/_common/` 에 넣지 않는다. `_common` 은 **사이트들이 나눠
 쓰는 계층**이고, 이 단계는 사이트를 모르고 사이트도 이 단계를 모른다
 (`docs/convention/01-architecture.md` 의 import 방향). 다만 `_common` 을 **쓰기는 한다** —
 `store.COLUMNS`(스키마)와 `runlock.guarded()`, `env` 읽기. 오케스트레이터도 이미 그렇게
@@ -548,7 +548,7 @@ process_one(row, *, cfg, book, work_dir, reader_fn, download_fn)
 ```
 
 머리말 글자는 `_common/sections.py` 의 `VALUES_HEADING` 하나뿐이다 — 이것을 아는
-곳이 셋이라(붙이는 `fill`, 지켜야 하는 `role.py`, 보여 주는 리포트) 각자 적으면 한
+곳이 셋이라(붙이는 `fill`, 지켜야 하는 `src/role.py`, 보여 주는 리포트) 각자 적으면 한
 곳만 고치는 일이 생긴다.
 
 **금칙어 검사는 이 대목을 따로 안 뺀다.** 실측으로 인재상 줄만 넣었을 때 새로 빠지는

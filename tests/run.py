@@ -13,10 +13,12 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+# **코드는 `src/` 에 산다.** 루트에는 오케스트레이터와 README 뿐이다 (`src/paths.py`).
 sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT / "job_sites"))
+sys.path.insert(0, str(ROOT / "src"))
+sys.path.insert(0, str(ROOT / "src" / "job_sites"))
 
-MODULES = ["tests.test_merge", "tests.test_bodies", "tests.test_orchestrator", "tests.test_image_config", "tests.test_image_cache", "tests.test_image_fetch", "tests.test_image_slicing", "tests.test_image_reader", "tests.test_image_fill", "tests.test_image_process", "tests.test_filter", "tests.test_filter_words", "tests.test_jobplanet_rating", "tests.test_core_stack", "tests.test_history", "tests.test_career_words", "tests.test_career", "tests.test_role_words", "tests.test_role", "tests.test_report"]
+MODULES = ["tests.test_merge", "tests.test_bodies", "tests.test_orchestrator", "tests.test_image_config", "tests.test_image_cache", "tests.test_image_fetch", "tests.test_image_slicing", "tests.test_image_reader", "tests.test_image_fill", "tests.test_image_process", "tests.test_filter", "tests.test_filter_words", "tests.test_nuance", "tests.test_jobplanet_rating", "tests.test_core_stack", "tests.test_history", "tests.test_career_words", "tests.test_career", "tests.test_role_words", "tests.test_role", "tests.test_report"]
 KIND_LABEL = {"NORMAL": "일반", "EXCEPTION": "예외", "BOUNDARY": "경계"}
 
 

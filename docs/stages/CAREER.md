@@ -1,7 +1,7 @@
 # 경력 거르기
 
 ```bash
-python3 career.py
+python3 src/career.py
 ```
 
 **신입이라 적어 놓고 경력을 요구하는 공고**를 뺀다. 파이프라인의 마지막 거르기다.
@@ -33,7 +33,7 @@ csv/merged_core.csv  ──▶  csv/merged_career.csv    남은 공고
 경력 거르기   경력 칸은 "신입" 인데 자격이 3년이다 → 모델이 판정한다
 ```
 
-**말 규칙은 둘 다 `career_words.py` 에 있다.** 경력을 읽는 규칙이 두 파일로 갈리면
+**말 규칙은 둘 다 `src/career_words.py` 에 있다.** 경력을 읽는 규칙이 두 파일로 갈리면
 한쪽만 고치는 일이 생긴다.
 
 ---
@@ -65,7 +65,7 @@ csv/merged_core.csv  ──▶  csv/merged_career.csv    남은 공고
 
 ## 2. 코드가 좁히는 규칙 셋
 
-`career_words.py` 에 있다. 셋 다 실측에서 나왔다.
+`src/career_words.py` 에 있다. 셋 다 실측에서 나왔다.
 
 | 규칙 | 왜 | 효과 |
 |---|---|---|

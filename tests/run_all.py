@@ -41,11 +41,11 @@ ROOT = Path(__file__).resolve().parent.parent
 # 무엇이 깨졌는지 화면 위쪽에서 먼저 보이는 편이 낫다.
 RUNNERS = [
     ("오케스트레이터·단계", ROOT / "tests" / "run.py"),
-    ("wanted", ROOT / "job_sites" / "wanted" / "tests" / "run.py"),
-    ("saramin", ROOT / "job_sites" / "saramin" / "tests" / "run.py"),
-    ("jobkorea", ROOT / "job_sites" / "jobkorea" / "tests" / "run.py"),
-    ("jobplanet", ROOT / "job_sites" / "jobplanet" / "tests" / "run.py"),
-    ("jumpit", ROOT / "job_sites" / "jumpit" / "tests" / "run.py"),
+    ("wanted", ROOT / "src" / "job_sites" / "wanted" / "tests" / "run.py"),
+    ("saramin", ROOT / "src" / "job_sites" / "saramin" / "tests" / "run.py"),
+    ("jobkorea", ROOT / "src" / "job_sites" / "jobkorea" / "tests" / "run.py"),
+    ("jobplanet", ROOT / "src" / "job_sites" / "jobplanet" / "tests" / "run.py"),
+    ("jumpit", ROOT / "src" / "job_sites" / "jumpit" / "tests" / "run.py"),
 ]
 
 # 러너가 마지막에 찍는 줄에서 건수를 읽는다 — `N건 전부 통과` 또는 `N건 중 M건 실패`.

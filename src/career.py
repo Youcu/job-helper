@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """**신입이라 적어 놓고 경력을 요구하는 공고**를 뺀다. 파이프라인의 마지막 거르기다.
 
-    python3 career.py
+    python3 src/career.py
 
     csv/merged_core.csv  ──▶  csv/merged_career.csv    남은 공고
                          +    csv/career_report.csv    뺀 이유 전량
@@ -43,17 +43,21 @@ import sys
 from datetime import date
 from pathlib import Path
 
-ROOT_DIR = Path(__file__).resolve().parent
-SITES_DIR = ROOT_DIR / "job_sites"
-INPUT = ROOT_DIR / "csv" / "merged_core.csv"
-OUTPUT = ROOT_DIR / "csv" / "merged_career.csv"
-REPORT = ROOT_DIR / "csv" / "career_report.csv"
-CACHE = ROOT_DIR / "cache" / "career_judge.json"
-LOCK = ROOT_DIR / "csv" / ".career.lock"
+SRC_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SRC_DIR / "job_sites"))
+sys.path.insert(0, str(SRC_DIR))
 
-sys.path.insert(0, str(SITES_DIR))
-sys.path.insert(0, str(ROOT_DIR))
+from paths import CACHE as CACHE_DIR, CSV, HISTORY as HISTORY_DIR  # noqa: E402
+from paths import ROOT, SITES                                      # noqa: E402
+SITES_DIR = SITES
+INPUT = CSV / "merged_core.csv"
+OUTPUT = CSV / "merged_career.csv"
+REPORT = CSV / "career_report.csv"
+CACHE = CACHE_DIR / "career_judge.json"
+LOCK = CSV / ".career.lock"
 
+
+from _common.outcome import gate_line                              # noqa: E402
 from _common.runlock import guarded                                # noqa: E402
 from _common.staleness import confirm, yes_given                   # noqa: E402
 from _common.store import read_csv, write_csv, write_rows          # noqa: E402
@@ -203,6 +207,9 @@ def _run(source: Path | None = None, output: Path | None = None,
         return 1
 
     rows = read_csv(source)
+    print(gate_line(len(rows),
+                    sum(1 for row in rows if career_words.candidate(row)),
+                    "모순을 물어볼 공고"))
     book = load_cache(cache_path)
     asked = failed = 0
     kept, cut = [], []
@@ -260,7 +267,7 @@ def _print(before: int, asked: int, failed: int, kept: list, cut: list,
 
 def _shown(path: Path) -> str:
     try:
-        return str(path.relative_to(ROOT_DIR))
+        return str(path.relative_to(ROOT))
     except ValueError:
         return str(path)
 

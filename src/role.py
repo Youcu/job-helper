@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """**한 공고에 여러 직군이 섞여 있으면, 내 직군 부문만 남기고 나머지는 지운다.**
 
-    python3 role.py
+    python3 src/role.py
 
     csv/merged_read.csv  →  csv/merged_role.csv    남은 공고 (내 직군 내용으로 덮어씀)
     csv/bodies.jsonl     ↗   csv/role_report.csv   **뺀 공고 전량 + 뺀 이유**
@@ -25,7 +25,7 @@
 
 ## 두 겹으로 가른다
 
-    ① 기계  제목·본문의 낱말로 **후보**를 고른다   `role_words.py` · 8%
+    ① 기계  제목·본문의 낱말로 **후보**를 고른다   `src/role_words.py` · 8%
     ② 모델  후보만 `claude` 에게 내 직군 부문을 뽑게 한다
 
 회사가 공고를 어떻게 쓸지 모르므로 ②는 기계로 못 한다 (사용자 판단). 그렇다고
@@ -53,7 +53,7 @@
 
 ## 자리 — 거르기 **앞**이다
 
-낱말 거르기(`filter.py`)의 `EXCLUDE_TECH_STACKS` 가 기술스택을 본다. 직군을
+낱말 거르기(`src/filter.py`)의 `EXCLUDE_TECH_STACKS` 가 기술스택을 본다. 직군을
 먼저 안 가리면 다른 부문의 `PHP`·`jQuery` 를 보고 멀쩡한 공고를 뺀다.
 
 종료 코드
@@ -65,6 +65,8 @@ from __future__ import annotations
 
 import csv
 import json
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import os
 import shutil
 import subprocess
@@ -72,23 +74,27 @@ import sys
 from datetime import date
 from pathlib import Path
 
-ROOT_DIR = Path(__file__).resolve().parent
-SITES_DIR = ROOT_DIR / "job_sites"
-INPUT = ROOT_DIR / "csv" / "merged_read.csv"
-BODIES = ROOT_DIR / "csv" / "bodies.jsonl"
-OUTPUT = ROOT_DIR / "csv" / "merged_role.csv"
-REPORT = ROOT_DIR / "csv" / "role_report.csv"
-CACHE = ROOT_DIR / "cache" / "role_judge.json"
-LOCK = ROOT_DIR / "csv" / ".role.lock"
+SRC_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SRC_DIR / "job_sites"))
+sys.path.insert(0, str(SRC_DIR))
 
-sys.path.insert(0, str(SITES_DIR))
-sys.path.insert(0, str(ROOT_DIR))
+from paths import CACHE as CACHE_DIR, CSV, HISTORY as HISTORY_DIR  # noqa: E402
+from paths import ROOT, SITES                                      # noqa: E402
+SITES_DIR = SITES
+INPUT = CSV / "merged_read.csv"
+BODIES = CSV / "bodies.jsonl"
+OUTPUT = CSV / "merged_role.csv"
+REPORT = CSV / "role_report.csv"
+CACHE = CACHE_DIR / "role_judge.json"
+LOCK = CSV / ".role.lock"
+
 
 from _common import bodies as bodies_module                        # noqa: E402
 from _common import roles                                          # noqa: E402
 from _common.env import ConfigError, read_env                      # noqa: E402
 from _common import corpus_candidates                              # noqa: E402
 from _common.skills import keep_known, split_names, unknown_names  # noqa: E402
+from _common.outcome import gate_line                              # noqa: E402
 from _common.runlock import guarded                                # noqa: E402
 from _common.sections import VALUES_HEADING                        # noqa: E402
 from _common.staleness import confirm, yes_given                   # noqa: E402
@@ -106,7 +112,7 @@ TIMEOUT = 180
 MAX_PROMPT_BODY = 20_000
 
 # **판정 규칙이 바뀌면 옛 판정을 버린다.** 프롬프트를 고쳐도 이미 판정된 공고가
-# 캐시에서 그대로 나오면 고침이 영영 안 먹는다 — `career.py` 에서 실제로 겪었다.
+# 캐시에서 그대로 나오면 고침이 영영 안 먹는다 — `src/career.py` 에서 실제로 겪었다.
 # 규칙(프롬프트)이나 `JOB_ROLES`, 그리고 **`roles.json` 의 설명**을 손대면 이 숫자를
 # 올려라. 설명은 프롬프트에 그대로 실리므로 그것이 바뀌면 판정 기준이 바뀐 것이다 —
 # 실제로 `웹` 의 뜻을 넓혔더니(백엔드·프론트엔드·풀스택) 옛 판정이 어긋났다.
@@ -173,6 +179,52 @@ def build_prompt(row: dict, body: str, wanted: list[str]) -> str:
     )
 
 
+# ── 두 번째 물음: 절을 못 갈랐을 때 ─────────────────────────────────────
+#
+# **첫 물음과 섞지 않는다.** 위 `build_prompt` 는 "어느 부문이 내 직군인가" 를 묻고,
+# 그 답이 `해당=false` 면 행을 **뺀다.** 절을 못 가른 행에까지 그 물음을 던지면,
+# 자격요건을 채우러 갔다가 **행이 사라지는** 일이 생긴다. 후보를 넓히는 대가가
+# "한 번 더 묻는 것" 이어야지 "멀쩡한 공고가 지워지는 것" 이면 안 된다.
+#
+# 그래서 이 물음은 **뽑기만 한다.** 판정하지 않고, 이 답으로는 아무도 안 뺀다.
+def build_fill_prompt(row: dict, body: str) -> str:
+    """이 글에서 네 칸을 뽑아 달라. **고르지 말고 뽑기만.**"""
+    return (
+        "채용공고 본문이다. 우리 절 가르기가 `자격요건` 같은 머리말을 못 찾아\n"
+        "지원자격 칸이 비었다. **글을 직접 읽고 채워라.**\n\n"
+        "[공고명]\n%s\n\n[본문]\n%s\n\n"
+        "할 일\n"
+        "- **머리말 글자에 매이지 마라.** `자격요건` 이라 적혀 있지 않아도, 지원하려면\n"
+        "  갖춰야 할 것이면 `지원자격` 에 담아라. `필요사항` · `이런 분을 찾습니다` ·\n"
+        "  `필수 역량` 처럼 말이 다를 수 있고, 번호 목록이나 문단에 섞여 있을 수도 있다.\n"
+        "- 표 형식이면 열 이름(`담당업무` `자격요건` `우대사항`)을 보고 값을 갈라라.\n"
+        "- `우대사항` 은 없어도 지원할 수 있는 것이다.\n"
+        "- `경력` 은 **공고가 명시한 것만** 적어라. 안 적혀 있으면 빈 문자열이다.\n"
+        "  `경력무관` 같은 값을 **지어내지 마라.**\n"
+        "- `기술스택` 에는 기술 **이름만** 쉼표로 나열하라.\n"
+        "- **담지 마라**: 복지·급여·근무조건·전형절차·접수기간·문의처·회사소개.\n"
+        "- **글에 없는 것을 지어내지 마라.** 못 찾은 칸은 빈 문자열로 둬라.\n\n"
+        "아래 JSON 만 출력하고 다른 말은 하지 마라.\n"
+        '{"지원자격": "", "우대사항": "", "기술스택": "쉼표로 나열", '
+        '"경력": "", "근거": "한 문장"}'
+        % (row.get("공고명", ""), body[:MAX_PROMPT_BODY])
+    )
+
+
+def fill_judge(row: dict, body: str, *, model: str = MODEL, timeout: int = TIMEOUT,
+               runner=None) -> dict:
+    """절을 못 가른 공고 하나에서 네 칸을 뽑는다."""
+    command = [shutil.which("claude") or "claude",
+               "-p", build_fill_prompt(row, body),
+               "--model", model, "--output-format", "json"]
+    try:
+        return parse_output((runner or _call)(command, timeout))
+    except JudgeError:
+        raise
+    except Exception as error:
+        raise JudgeError("%s: %s" % (type(error).__name__, error)) from error
+
+
 def _call(command: list[str], timeout: int) -> str:
     done = subprocess.run(command, capture_output=True, text=True, timeout=timeout,
                           stdin=subprocess.DEVNULL)
@@ -216,6 +268,105 @@ def judge(row: dict, body: str, wanted: list[str], *, model: str = MODEL,
         raise
     except Exception as error:
         raise JudgeError("%s: %s" % (type(error).__name__, error)) from error
+
+
+# 한 번에 띄울 `claude -p` 개수. **그림 판독과 같은 근거다** — 한 건마다 프로세스가
+# 통째로 뜨므로 수십 개를 동시에 띄우면 이 기계가 먼저 힘들어진다.
+#
+# **왜 병렬이 필요해졌나** — 후보 고르기를 화이트리스트로 바꾸면서(2026-09-23
+# 사용자) 물어볼 것이 203행 → 457행이 됐다. 직렬로 두면 첫 실행이 한 시간 가까이
+# 걸린다. 둘째 실행부터는 캐시라 값이 0이지만, **첫 실행이 한 시간이면 아무도 안 돌린다.**
+WORKERS = 8
+
+
+def _prefetch(rows: list[dict], texts: dict, book: dict, cache_path: Path,
+              wanted: list[str], *, ask=None, fill_ask=None) -> None:
+    """**판정만 미리 병렬로 받아 캐시에 채운다.** 뒤의 본 루프는 캐시에서 읽는다.
+
+    루프를 통째로 병렬로 만들지 않는 이유는, 그 루프가 `kept`·`cut` 에 **차례대로**
+    쌓아 결과 CSV 의 행 순서를 정하기 때문이다. 순서가 흔들리면 같은 입력이 매번
+    다른 파일을 낸다 — 되짚기가 어려워진다.
+
+    **못 물어본 것은 조용히 지나간다.** 본 루프가 캐시에 없는 것을 다시 물어보고
+    거기서 실패를 제대로 처리한다(`JudgeError` → 남김 + 보고). 여기서 삼키면 그
+    처리가 두 군데로 갈린다.
+    """
+    lock = threading.Lock()
+    jobs = []
+    for row in rows:
+        url = row.get("URL") or ""
+        body = texts.get(url, "")
+        if not body:
+            continue
+        remembered = book.get(url)
+        fresh = remembered is not None and remembered.get("규칙판") == RULES_VERSION
+        unclear = role_words.title_unclear(row)
+        if (role_words.looks_mixed(row, body) or unclear) and not fresh:
+            jobs.append(("부문", url, row, body))
+        key = "절:" + url
+        held = book.get(key)
+        if (role_words.needs_sections(row, body, VALUES_HEADING)
+                and not (held is not None and held.get("규칙판") == RULES_VERSION)):
+            jobs.append(("절", key, row, body))
+    if not jobs:
+        return
+
+    print("  미리 물어봅니다: %d건 (동시 %d개)" % (len(jobs), WORKERS))
+
+    def one(job):
+        kind, key, row, body = job
+        if kind == "부문":
+            answer = (ask or judge)(row, body, wanted)
+            return key, {"답": answer, "신호": [], "규칙판": RULES_VERSION,
+                         "판정일": date.today().isoformat()}
+        answer = (fill_ask or fill_judge)(row, body)
+        return key, {"답": answer, "규칙판": RULES_VERSION,
+                     "판정일": date.today().isoformat()}
+
+    with ThreadPoolExecutor(max_workers=WORKERS) as pool:
+        futures = [pool.submit(one, job) for job in jobs]
+        done = 0
+        for future in as_completed(futures):
+            try:
+                key, value = future.result()
+            except Exception:
+                continue                  # 본 루프가 다시 물어보고 제대로 처리한다
+            with lock:
+                book[key] = value
+                save_cache(cache_path, book)
+                done += 1
+                if done % 50 == 0:
+                    print("    %d/%d" % (done, len(jobs)))
+
+
+def _fill_sections(row: dict, body: str, url: str, book: dict, cache_path: Path,
+                   *, ask=None) -> tuple[dict, tuple[str, str]]:
+    """절을 못 가른 행을 모델에게 읽혀 채운다. (채운 행, (판정, 근거)).
+
+    **못 물어봐도 행은 그대로 돌려준다.** 채우려다 실패한 것이 행을 없앨 이유는 없다.
+
+    캐시는 `looks_mixed` 쪽과 **열쇠를 나눈다** — 같은 URL 에 물음이 둘이라
+    한 자루에 담으면 나중 답이 앞 답을 덮는다.
+    """
+    key = "절:" + url
+    remembered = book.get(key)
+    if remembered is not None and remembered.get("규칙판") == RULES_VERSION:
+        answer = remembered.get("답") or {}
+    else:
+        try:
+            answer = (ask or fill_judge)(row, body)
+        except JudgeError as error:
+            return row, ("남김 · 절 복구 실패", str(error)[:200])
+        book[key] = {"답": answer, "규칙판": RULES_VERSION,
+                     "판정일": date.today().isoformat()}
+        save_cache(cache_path, book)
+
+    got = {c: str(answer.get(c) or "").strip() for c in OVERWRITE}
+    if not got.get("지원자격"):
+        # **빈 답을 채움으로 세지 않는다.** 모델도 못 찾았다는 뜻이고, 그건
+        # 글에 조건이 없다는 말일 수 있다. 지어내는 것보다 비는 편이 낫다.
+        return row, ("남김 · 절 복구 · 못 찾음", str(answer.get("근거") or "")[:200])
+    return apply(row, answer), ("남김 · 절 복구", str(answer.get("근거") or "")[:200])
 
 
 def clean_techs(value: str, *, url: str = "") -> str:
@@ -326,7 +477,8 @@ def main(argv: list[str] | None = None) -> int:
 def _run(source: Path | None = None, bodies_path: Path | None = None,
          output: Path | None = None, report: Path | None = None,
          cache_path: Path | None = None, env_path: Path | None = None, *,
-         ask=None, have_claude: bool | None = None, assume_yes: bool = False) -> int:
+         ask=None, fill_ask=None, have_claude: bool | None = None,
+         assume_yes: bool = False) -> int:
     """바깥과 닿는 것을 전부 인자로 받는다 — 안 넘기면 진짜를 쓴다."""
     source = source if source is not None else INPUT
     bodies_path = bodies_path if bodies_path is not None else BODIES
@@ -357,16 +509,46 @@ def _run(source: Path | None = None, bodies_path: Path | None = None,
     texts = bodies_module.load(bodies_path)
     book = load_cache(cache_path)
     asked = failed = bodyless = unsure = 0
+    filled = filled_failed = 0
     kept, cut = [], []
 
     print("찾는 직군: %s" % " · ".join(wanted))
+    print(gate_line(len(rows),
+                    sum(1 for row in rows
+                        if role_words.looks_mixed(row, texts.get(row.get("URL") or "", ""))
+                        or role_words.title_unclear(row)),
+                    "직군을 물어볼 공고"))
+    _prefetch(rows, texts, book, cache_path, wanted, ask=ask, fill_ask=fill_ask)
 
     for row in rows:
         url = row.get("URL") or ""
         body = texts.get(url, "")
-        signals = role_words.looks_mixed(row, body)
+        # **두 갈래가 같은 물음으로 온다.**
+        #   looks_mixed    여러 직군을 한 장에 담았나  → 내 직군 부문을 고른다
+        #   looks_foreign  제목이 다른 직군을 말하나    → 내 직군이 맞는지 본다
+        #
+        # 물음이 같아서(`build_prompt`) 프롬프트를 나눌 이유가 없다 — 그 프롬프트는
+        # "부문이 하나뿐인데 내 직군이 아니면 `해당=false`" 를 이미 말한다.
+        #
+        # **이 갈래는 뺄 수 있다.** 절 복구(`needs_sections`)와 다른 점이다 —
+        # 저기는 자격요건을 채우러 가는 길이라 빼면 안 되고, 여기는 애초에 "내 자리가
+        # 맞나" 를 묻는 길이라 아니면 빼는 것이 맞다.
+        unclear = role_words.title_unclear(row)
+        signals = role_words.looks_mixed(row, body) + ([unclear] if unclear else [])
         if not signals:
-            kept.append(row)                      # 후보가 아니다
+            # **두 번째 게이트.** 통합 공고는 아닌데 절을 못 가른 행이 있다 —
+            # 회사가 `자격요건` 이라는 말을 안 쓴 것이다. 규칙이 못 가르면 이상한
+            # 경우로 보고 모델이 직접 읽는다 (2026-09-22 사용자).
+            why = role_words.needs_sections(row, body, VALUES_HEADING)
+            if why:
+                row, note = _fill_sections(
+                    row, body, url, book, cache_path, ask=fill_ask)
+                cut.append((row, note[0], [why], "", "", note[1]))
+                if note[0].startswith("남김 · 절 복구 실패"):
+                    filled_failed += 1
+                elif note[0].startswith("남김 · 절 복구"):
+                    filled += 1
+            kept.append(row)                      # **이 물음으로는 아무도 안 뺀다**
             continue
         if not body:
             # **조용히 칸으로 대신하지 않는다.** 칸은 첫 부문 것이라 판정에 못 쓴다.
@@ -416,7 +598,7 @@ def _run(source: Path | None = None, bodies_path: Path | None = None,
     write_csv(output, kept)
     _write_report(report, cut)
     _print(len(rows), asked, failed, bodyless, unsure, kept, cut, wanted,
-           source, output, report)
+           source, output, report, filled, filled_failed)
     return 0
 
 
@@ -435,7 +617,7 @@ def _write_report(path: Path, cut: list) -> None:
 
 def _print(total: int, asked: int, failed: int, bodyless: int, unsure: int,
            kept: list, cut: list, wanted: list, source: Path, output: Path,
-           report: Path) -> None:
+           report: Path, filled: int = 0, filled_failed: int = 0) -> None:
     dropped = [one for one in cut if one[1].startswith("제외")]
     print("\n물어본 공고 %d건 (캐시에서 바로 나온 것은 안 셉니다)" % asked)
     if failed:
@@ -446,6 +628,12 @@ def _print(total: int, asked: int, failed: int, bodyless: int, unsure: int,
     if unsure:
         print("  부문은 찾았는데 본문에 그 내용이 없는 공고: %d건 — 안 덮고 남겼습니다"
               % unsure)
+    # **채운 것을 찍는다.** 안 찍으면 이 게이트가 도는지 사람이 알 수 없고,
+    # 빈 칸이 조용히 채워지는 것과 조용히 안 채워지는 것이 같아 보인다.
+    if filled:
+        print("  절을 못 갈라 모델이 직접 읽은 공고: %d건 — 지원자격을 채웠습니다" % filled)
+    if filled_failed:
+        print("  그중 못 물어본 공고: %d건 — 빈 채로 남겼습니다" % filled_failed)
     print("%s — %d행 (%s %d행에서 %d행 뺌)"
           % (output, len(kept), source, total, len(dropped)))
     print("%s — %d행 (뺀 이유와 못 판정한 것 전량)" % (report, len(cut)))

@@ -34,16 +34,19 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parent
-SITES_DIR = ROOT_DIR / "job_sites"
-OUTPUT = ROOT_DIR / "csv" / "merged.csv"
+sys.path.insert(0, str(ROOT_DIR / "src"))
+sys.path.insert(0, str(ROOT_DIR / "src" / "job_sites"))
+
+from paths import CSV, HISTORY as HISTORY_DIR, SITES, stage        # noqa: E402
+SITES_DIR = SITES
+OUTPUT = CSV / "merged.csv"
 
 # 합쳐 둔 공고 본문. CSV 칸에 안 들어가는 긴 글이라 옆 파일로 산다 (`_common/bodies.py`).
 BODIES_NAME = "bodies.jsonl"
 
 # 파이프라인 전체를 덮는 락. 단계별 락(`csv/.<단계>.lock`)과 이름이 안 겹쳐야 한다.
-LOCK = ROOT_DIR / "csv" / ".pipeline.lock"
+LOCK = CSV / ".pipeline.lock"
 
-sys.path.insert(0, str(SITES_DIR))
 
 from tqdm import tqdm                                        # noqa: E402
 
@@ -104,7 +107,7 @@ EXIT_MEANING = {
 UNKNOWN = ("알 수 없는 종료 코드", False)
 
 
-IMAGE_STAGE = ROOT_DIR / "job_image_process.py"
+IMAGE_STAGE = stage("job_image_process")
 
 # 이미지 판독 단계가 내는 코드. **스크래퍼의 표를 빌려 쓰면 거짓말이 된다** — 이 단계는
 # 사이트를 긁지 않는데 `2` 에 "차단이거나 상세를 못 받음" 이라고 찍혔다. 코드 숫자는
@@ -118,7 +121,7 @@ IMAGE_EXIT_MEANING = {
 }
 
 
-ROLE_STAGE = ROOT_DIR / "role.py"
+ROLE_STAGE = stage("role")
 
 # 후보(제목·본문 신호에 걸린 것)만 모델에 태운다. 실측 8% 라 전량보다 훨씬 싸지만,
 # 그래도 모델이므로 넉넉히 준다.
@@ -134,7 +137,7 @@ ROLE_EXIT_MEANING = {
     3: ("이미 돌고 있음", False),
 }
 
-FILTER_STAGE = ROOT_DIR / "filter.py"
+FILTER_STAGE = stage("filter")
 
 # 거르기 단계는 그물도 모델도 안 탄다 — 파일 하나를 읽고 정규식을 돌릴 뿐이다.
 # 실측 710행에 0.02초. 5분이면 데이터가 백 배로 늘어도 남는다.
@@ -148,7 +151,7 @@ FILTER_EXIT_MEANING = {
 }
 
 
-RATING_STAGE = ROOT_DIR / "jobplanet_rating.py"
+RATING_STAGE = stage("jobplanet_rating")
 
 # 평점 걷기는 **그물을 탄다.** 잡플래닛이 요청 간격을 보고 403 을 던지므로 5초씩 쉰다.
 # 실측(2026-09-11) 457곳에 요청 660건·70분. 변형 사다리로 회사당 1.5회쯤 묻고,
@@ -161,13 +164,13 @@ RATING_TIMEOUT = 60 * 180
 # 덜 걷힌 평점으로 거른 결과를 온전한 것으로 읽으면 안 된다.
 RATING_EXIT_MEANING = {
     0: ("정상", True),
-    1: ("단계를 못 돌림 — merged_filtered.csv 가 없음", False),
+    1: ("단계를 못 돌림 — merged_nuance.csv 가 없음", False),
     2: ("차단이 실측과 다르게 굴어 덜 걷음 — **출력은 안 바꿨다.** 다시 돌리면 이어감", False),
     3: ("이미 돌고 있음", False),
 }
 
 
-CORE_STACK_STAGE = ROOT_DIR / "core_stack.py"
+CORE_STACK_STAGE = stage("core_stack")
 
 # 파일 하나를 읽고 정규식을 돌릴 뿐이다. 거르기와 같은 값이면 충분하다.
 CORE_STACK_TIMEOUT = 60 * 5
@@ -181,7 +184,7 @@ CORE_STACK_EXIT_MEANING = {
 }
 
 
-CAREER_STAGE = ROOT_DIR / "career.py"
+CAREER_STAGE = stage("career")
 # 후보만 모델에 묻는다 — 실측 66행 중 10행. 한 건에 10초 안팎이라 5분이면 넉넉하다.
 CAREER_TIMEOUT = 60 * 20
 
@@ -193,12 +196,26 @@ CAREER_EXIT_MEANING = {
     3: ("이미 돌고 있음", False),
 }
 
-REPORT_SCRIPT = ROOT_DIR / "report.py"
+NUANCE_STAGE = stage("nuance")
+
+# 낱말이 걸린 공고만 모델에 묻는다 — 실측 406행 중 84행 안팎. 한 건에 10초 안팎이라
+# 첫 실행이 가장 길고, 둘째 실행부터는 캐시에서 바로 나온다.
+NUANCE_TIMEOUT = 60 * 30
+
+# `1` 에 `claude` 를 적는다. 이 단계는 그것으로 판정하므로, 없으면 **거르지 않고
+# 통과시키는 대신 멈춘다.**
+NUANCE_EXIT_MEANING = {
+    0: ("정상", True),
+    1: ("단계를 못 돌림 — merged_filtered.csv 가 없거나 claude 명령을 못 찾음", False),
+    3: ("이미 돌고 있음", False),
+}
+
+REPORT_SCRIPT = stage("report")
 
 # 파일 하나를 읽어 파일 하나를 쓴다. 이만큼 걸릴 일이 없지만, 걸리면 멈춰야 한다.
 REPORT_TIMEOUT = 60
 
-HISTORY_STAGE = ROOT_DIR / "history.py"
+HISTORY_STAGE = stage("history")
 
 # 파일 몇 개를 병합해 쓰고 사이트 CSV 를 지운다. 그물도 모델도 안 탄다.
 HISTORY_TIMEOUT = 60 * 5
@@ -232,8 +249,10 @@ STAGES = (
      "csv/merged_read.csv"),
     (FILTER_STAGE, "거르기", FILTER_EXIT_MEANING, FILTER_TIMEOUT,
      "csv/merged_role.csv"),
-    (RATING_STAGE, "평점 거르기", RATING_EXIT_MEANING, RATING_TIMEOUT,
+    (NUANCE_STAGE, "낱말 뉘앙스 판정", NUANCE_EXIT_MEANING, NUANCE_TIMEOUT,
      "csv/merged_filtered.csv"),
+    (RATING_STAGE, "평점 거르기", RATING_EXIT_MEANING, RATING_TIMEOUT,
+     "csv/merged_nuance.csv"),
     (CORE_STACK_STAGE, "핵심 기술 거르기", CORE_STACK_EXIT_MEANING, CORE_STACK_TIMEOUT,
      "csv/merged_rated.csv"),
     (CAREER_STAGE, "경력 거르기", CAREER_EXIT_MEANING, CAREER_TIMEOUT,
@@ -351,7 +370,7 @@ def _draw_report() -> None:
 
     **단계가 아니다** (D-25) — 그물도 모델도 안 타고 0.1초면 끝난다. 그래서
     `STAGES` 표에 없고, **실패해도 파이프라인을 실패로 만들지 않는다.** 자료는
-    이미 다 나와 있고 못 그린 것은 `python3 report.py` 로 다시 그리면 된다.
+    이미 다 나와 있고 못 그린 것은 `python3 src/report.py` 로 다시 그리면 된다.
     화면 하나 때문에 두 시간짜리 실행을 실패로 보고하면 자동화가 오판한다.
     """
     done = subprocess.run([sys.executable, str(REPORT_SCRIPT)],
@@ -360,7 +379,7 @@ def _draw_report() -> None:
         print("\n%s" % done.stdout.strip())
     else:
         print("\n화면을 못 그렸습니다 — 자료는 csv/ 에 그대로 있습니다.", file=sys.stderr)
-        print("   python3 report.py 로 다시 그릴 수 있습니다.", file=sys.stderr)
+        print("   python3 src/report.py 로 다시 그릴 수 있습니다.", file=sys.stderr)
         for line in _clean_lines(done.stderr)[:3]:
             print("   %s" % line, file=sys.stderr)
 
@@ -563,14 +582,14 @@ def _run_stage(script: Path, name: str, meanings: dict,
 
 
 # 이력이 쌓이는 자리. 합칠 때 여기서 `최초수집일` 을 되살려 넣는다.
-HISTORY_READ = ROOT_DIR / "history" / "history_read.csv"
+HISTORY_READ = HISTORY_DIR / "history_read.csv"
 
 
 def _seed_first_seen(rows: list[dict], history: Path) -> int:
     """이력에서 **진짜 `최초수집일`** 을 되살려 넣는다. 몇 행을 되살렸는지 돌려준다.
 
     사이트별 CSV 가 예전에는 누적 저장소였다 — `store.save()` 가 기존 파일과 병합해
-    처음 본 날을 지켰다. 이제 그 파일을 매 실행 지우므로(`history.py`), 그냥 두면
+    처음 본 날을 지켰다. 이제 그 파일을 매 실행 지우므로(`src/history.py`), 그냥 두면
     **`최초수집일` 이 항상 오늘**이 되어 칸의 뜻이 없어진다.
 
     그래서 누적의 자리를 `history/history_read.csv` 로 옮기고, 합칠 때 URL 로 찾아
@@ -599,7 +618,7 @@ def merge_csvs(paths: list[Path], output: Path, history: Path = HISTORY_READ) ->
     한 곳이 칸을 더하거나 빼도 합친 파일이 어긋나지 않게 여기서 한 번 더 맞춘다.
     """
     # **원자적으로 쓴다** — `store.write_csv` 가 그것까지 한다. 도중에 죽으면 반쯤 쓰인
-    # `merged.csv` 가 남고 그림 판독이 그것을 완성품으로 읽는다. `image_process/README.md`
+    # `merged.csv` 가 남고 그림 판독이 그것을 완성품으로 읽는다. `src/image_process/README.md`
     # 가 금지한 바로 그 상황이다. 한때 **파이프라인의 첫 파일**만 이 규칙에서 빠져 있었다.
     rows = [row for path in paths for row in _read_rows(path)]
     revived = _seed_first_seen(rows, history)
