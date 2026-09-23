@@ -97,7 +97,7 @@ def test_BOUNDARY_every_site_records_a_body():
     — 내일 wanted 에 하나 뜨면 조용히 틀린다. 그래서 다섯을 다 본다.
     """
     no_body = [site for site in SITES
-               if "def body_of(" not in (ROOT / "job_sites" / site / "lib" / "record.py")
+               if "def body_of(" not in (ROOT / "src" / "job_sites" / site / "lib" / "record.py")
                .read_text(encoding="utf-8")]
     assert not no_body, (
         "본문을 안 내는 수집기가 있습니다: %s\n"
@@ -105,7 +105,7 @@ def test_BOUNDARY_every_site_records_a_body():
         % ", ".join(no_body))
 
     unused = [site for site in SITES
-              if "body_of(" not in (ROOT / "job_sites" / site / (site + ".py"))
+              if "body_of(" not in (ROOT / "src" / "job_sites" / site / (site + ".py"))
               .read_text(encoding="utf-8")]
     assert not unused, (
         "`body_of()` 를 만들어 두고 안 부르는 수집기가 있습니다: %s\n"
@@ -116,6 +116,6 @@ def test_BOUNDARY_every_site_records_a_body():
 def test_BOUNDARY_the_site_list_here_matches_what_is_on_disk():
     """위 검사가 도는 사이트 목록도 손으로 적는다 — 새 사이트를 빠뜨리면 검사가 헛돈다."""
     on_disk = {path.parent.parent.name
-               for path in (ROOT / "job_sites").glob("*/lib/record.py")}
+               for path in (ROOT / "src" / "job_sites").glob("*/lib/record.py")}
     assert on_disk == set(SITES), "tests/test_bodies.py 의 SITES 가 디스크와 다릅니다: %s" % (
         sorted(on_disk ^ set(SITES)),)

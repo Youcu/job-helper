@@ -671,3 +671,67 @@ def test_BOUNDARY_an_old_cache_entry_without_a_body_is_read_again():
     old = {"기술스택": ["Java"], "자격요건": [], "우대사항": []}
     check_equal(cache_module.get({cache_module.key(["u"]): old}, ["u"]), None,
                 "본문 없는 옛 항목은 없는 것으로 쳐야 한다")
+
+
+# ── 싼 길: 글에서 다시 추리기 ────────────────────────────────────────────
+#
+# 추리는 규칙만 바뀌었으면 **그림을 다시 볼 이유가 없다.** 본문이 캐시에 남아
+# 있으므로 그 글에서 네 칸만 다시 만든다. 실측(2026-09-22): 이번 실행의 그림 공고
+# 154건 중 133건이 이 길로 간다 — 그림을 보는 것은 21건뿐이다.
+
+def _never(*args, **kwargs):
+    raise AssertionError("여기 오면 안 된다 — 그림을 다시 보고 있다")
+
+
+def test_NORMAL_a_stale_entry_with_a_body_does_not_touch_the_images():
+    book = {}
+    cache.put(book, ["https://img/1.png"], dict(FULL, 인재상=[], 본문="읽어 둔 글"), "sonnet")
+    book[cache.key(["https://img/1.png"])]["규칙판"] = cache.RULES_VERSION - 1
+
+    got = stage.process_one(
+        _row(), cfg=CONFIG, book=book, work_dir=temp_dir(),
+        download_fn=_never, reader_fn=_never,
+        reread_fn=lambda text, **kw: {"기술스택": ["Go"], "자격요건": ["신입"],
+                                      "우대사항": [], "인재상": [], "본문": text})
+    check_equal(got.kind, "글다시", "싼 길로 갔다")
+    check_equal(got.body, "읽어 둔 글", "본문이 그대로 흘러간다")
+    check("Go" in got.row["기술스택"], "새 규칙으로 추린 것이 들어간다")
+
+
+def test_NORMAL_the_rewritten_entry_carries_the_new_rules_version():
+    """다시 추린 것은 **새 규칙판으로 적힌다** — 안 그러면 매 실행 또 묻는다."""
+    book = {}
+    cache.put(book, ["https://img/1.png"], dict(FULL, 인재상=[], 본문="글"), "sonnet")
+    book[cache.key(["https://img/1.png"])]["규칙판"] = cache.RULES_VERSION - 1
+    stage.process_one(_row(), cfg=CONFIG, book=book, work_dir=temp_dir(),
+                      download_fn=_never, reader_fn=_never,
+                      reread_fn=lambda text, **kw: dict(FULL, 인재상=[], 본문=text))
+    check(cache.get(book, ["https://img/1.png"]) is not None, "이제 캐시가 듣는다")
+
+
+def test_EXCEPTION_a_failed_reread_is_not_a_drop():
+    """**못 물어본 것이지 글에 내용이 없는 게 아니다.**
+
+    여기가 뚫리면 모델이 잠깐 막힌 날 멀쩡한 공고가 통째로 사라진다. 이 단계의
+    안전장치는 처음부터 그 구분이다.
+    """
+    def fails(text, **kwargs):
+        raise reader.ReadError("막혔다")
+
+    book = {}
+    cache.put(book, ["https://img/1.png"], dict(FULL, 인재상=[], 본문="글"), "sonnet")
+    book[cache.key(["https://img/1.png"])]["규칙판"] = cache.RULES_VERSION - 1
+    got = stage.process_one(_row(), cfg=CONFIG, book=book, work_dir=temp_dir(),
+                            download_fn=_never, reader_fn=_never, reread_fn=fails)
+    check_equal(got.kind, "못읽음", "버림이 아니다")
+    check(got.row is not None, "행이 살아 있다")
+
+
+def test_BOUNDARY_no_body_means_the_images_must_be_read_again():
+    """**본문이 없으면 싼 길이 없다.** 옛 캐시(2026-09-18 이전)가 그 상태다.
+
+    실측으로 캐시 242건 중 96건에 본문이 없다. 그것을 글 경로로 보내면 빈 글을
+    모델에게 주고 빈 답을 받아 **멀쩡한 공고를 버린다.**
+    """
+    got = _run_one(_row(), answer=dict(FULL, 인재상=[], 본문="그림에서 새로 읽음"))
+    check_equal(got.kind, "채움", "그림을 읽는 길로 갔다")

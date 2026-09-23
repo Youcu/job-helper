@@ -1,7 +1,7 @@
 # 평점 거르기
 
 ```bash
-python3 jobplanet_rating.py
+python3 src/jobplanet_rating.py
 ```
 
 잡플래닛에서 회사 평점을 걷어 **선 아래를 뺀다.**

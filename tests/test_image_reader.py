@@ -13,7 +13,8 @@ from image_process import reader
 
 from .helpers import check, check_equal
 
-ANSWER = {"기술스택": ["Java", "Spring"], "자격요건": ["3년 이상"], "우대사항": [], "본문": ""}
+ANSWER = {"기술스택": ["Java", "Spring"], "자격요건": ["3년 이상"], "우대사항": [],
+          "인재상": [], "본문": ""}
 
 
 def _envelope(result_text: str) -> str:
@@ -92,7 +93,8 @@ def test_BOUNDARY_missing_fields_are_filled_with_empty_lists():
 def test_BOUNDARY_all_empty_is_a_valid_answer_not_an_error():
     # "셋 다 비었다" 는 **결과다.** 예외로 만들면 버림 판정을 못 한다.
     got = reader.parse_output(_envelope('{"기술스택":[],"자격요건":[],"우대사항":[]}'))
-    check_equal(got, {"기술스택": [], "자격요건": [], "우대사항": [], "본문": ""}, "빈 결과도 답이다")
+    check_equal(got, {"기술스택": [], "자격요건": [], "우대사항": [], "인재상": [], "본문": ""},
+                "빈 결과도 답이다")
 
 
 def test_BOUNDARY_non_string_items_are_dropped():
@@ -113,3 +115,54 @@ def test_BOUNDARY_read_uses_the_injected_runner():
     check_equal(got, ANSWER, "결과")
     check_equal(seen["timeout"], 42, "시간제한을 넘겨야 한다")
     check_equal(seen["command"], reader.build_command(paths, "sonnet"), "명령도 검증해야 한다")
+
+
+# ── 글만 다시 추리기 (`reread`) ──────────────────────────────────────────
+#
+# 본문은 그림에서 읽어 낸 것이라 비싸고, 추린 네 칸은 그 글만 있으면 다시 만든다.
+# 추리는 규칙을 고쳤을 때 **본문은 지키고 이 경로로만 다시 만든다.**
+
+def test_NORMAL_reread_asks_without_the_read_tool():
+    """**그림을 안 보므로 `Read` 가 필요 없다.** 주면 모델이 파일을 뒤질 여지가 생긴다."""
+    command = reader.text_command("본문입니다", "sonnet")
+    check("--allowedTools" not in command, "Read 도구를 안 준다: %r" % command)
+    check("-p" in command and "sonnet" in command, "묻기는 한다")
+
+
+def test_NORMAL_reread_keeps_our_own_body():
+    """모델이 본문을 줄여 와도 **우리가 가진 것으로 덮는다.**
+
+    본문이 짧아지면 직군을 가리는 단계가 판단할 재료를 잃는다 — 그 단계가
+    `csv/bodies.jsonl` 로 이 글을 읽는다.
+    """
+    shortened = json.dumps({"본문": "짧게 줄임", "기술스택": ["Java"],
+                            "자격요건": [], "우대사항": [], "인재상": []},
+                           ensure_ascii=False)
+    got = reader.reread("아주 긴 원래 본문", model="sonnet", timeout=5,
+                        runner=lambda command, timeout: _envelope(shortened))
+    check_equal(got["본문"], "아주 긴 원래 본문", "우리 본문이 이긴다")
+    check_equal(got["기술스택"], ["Java"], "추린 것은 모델 것을 쓴다")
+
+
+def test_BOUNDARY_both_paths_carry_the_same_extract_rules():
+    """**두 경로가 같은 말을 들어야 한다.**
+
+    다르면 같은 공고가 어느 길로 왔느냐에 따라 다른 결과를 낸다 — 그림으로 읽힌
+    공고와 글에서 다시 추린 공고가 서로 다른 기준으로 걸러진다.
+    """
+    from_image = reader.build_prompt([Path("/tmp/a.png")])
+    from_text = reader.build_text_prompt("본문")
+    check(reader.EXTRACT_RULES in from_image, "그림 경로에 규칙이 있다")
+    check(reader.EXTRACT_RULES in from_text, "글 경로에도 같은 규칙이 있다")
+
+
+def test_BOUNDARY_the_rules_forbid_welfare_and_company_blurb():
+    """넓히기만 하면 복지와 회사소개가 딸려 온다 — 실측 245줄 중에 그런 것이 있었다."""
+    for word in ("복지", "회사소개", "전형절차"):
+        check(word in reader.EXTRACT_RULES, "%s 는 담지 말라고 적혀 있다" % word)
+
+
+def test_BOUNDARY_the_rules_say_not_to_follow_heading_words():
+    """이 한 줄이 이번 고침의 핵심이다 — 없으면 `자격요건` 글자 아래만 본다."""
+    check("머리말 글자에 매이지 마라" in reader.EXTRACT_RULES, "머리말 규칙이 있다")
+    check("이런 사람을 원합니다" in reader.EXTRACT_RULES, "실측 사례가 예로 적혀 있다")

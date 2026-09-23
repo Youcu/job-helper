@@ -13,8 +13,8 @@ from image_process import cache
 
 from .helpers import check, check_equal, temp_dir
 
-READ = {"기술스택": ["Java"], "자격요건": ["3년 이상"], "우대사항": []}
-OTHER = {"기술스택": ["Go"], "자격요건": ["신입"], "우대사항": []}
+READ = {"기술스택": ["Java"], "자격요건": ["3년 이상"], "우대사항": [], "인재상": []}
+OTHER = {"기술스택": ["Go"], "자격요건": ["신입"], "우대사항": [], "인재상": []}
 
 
 def test_NORMAL_put_then_get():
@@ -107,7 +107,7 @@ def test_BOUNDARY_empty_read_is_cached_too():
     # "셋 다 비었다" 는 **결과이지 실패가 아니다.** 캐시에 안 넣으면 쓰레기 이미지를
     # 30일 동안 매 실행 다시 읽는다.
     book = {}
-    empty = {"기술스택": [], "자격요건": [], "우대사항": [], "본문": ""}
+    empty = {"기술스택": [], "자격요건": [], "우대사항": [], "인재상": [], "본문": ""}
     cache.put(book, ["https://a/blank.png"], empty, "sonnet")
     got = cache.get(book, ["https://a/blank.png"])
     check_equal(got, empty, "빈 결과도 기억한다")
@@ -118,3 +118,47 @@ def test_BOUNDARY_save_creates_missing_directories():
     home = temp_dir() / "없는" / "깊은" / "경로" / "cache.json"
     cache.save(home, {"https://a/1.png": {"기술스택": [], "자격요건": [], "우대사항": [], "본문": ""}})
     check(home.exists(), "디렉터리를 만들어야 한다")
+
+
+# ── 두 층 캐시 (`RULES_VERSION`) ─────────────────────────────────────────
+#
+# 한 항목에 성격이 다른 둘이 들어 있다 — 그림에서 읽어 낸 **본문**(비싸다)과 그
+# 글에서 추린 **네 칸**(싸다). 추리는 규칙을 고쳤을 때 항목을 통째로 버리면 이미
+# 치른 값을 다시 치른다. 실측(2026-09-22): 통째로 버리면 154건을 그림부터 다시
+# 읽고, 본문만 지키면 21건만 그림을 본다.
+
+def test_NORMAL_a_stale_rules_version_is_not_served():
+    book = {}
+    cache.put(book, ["https://a/1.png"], dict(READ, 본문="글"), "sonnet")
+    check(cache.get(book, ["https://a/1.png"]) is not None, "지금 규칙이면 나온다")
+    book[cache.key(["https://a/1.png"])]["규칙판"] = cache.RULES_VERSION - 1
+    check_equal(cache.get(book, ["https://a/1.png"]), None, "옛 규칙이면 안 나온다")
+
+
+def test_NORMAL_the_body_survives_a_rules_change():
+    """**본문은 안 버린다.** 이것이 싼 길이 존재하는 이유 전부다.
+
+    여기가 뚫리면 규칙을 고칠 때마다 그림을 통째로 다시 읽는다 — 내려받고,
+    조각내고, 조각마다 `Read` 를 돌린다.
+    """
+    book = {}
+    cache.put(book, ["https://a/1.png"], dict(READ, 본문="읽어 둔 글"), "sonnet")
+    book[cache.key(["https://a/1.png"])]["규칙판"] = cache.RULES_VERSION - 1
+    check_equal(cache.body(book, ["https://a/1.png"]), "읽어 둔 글",
+                "규칙이 바뀌어도 본문은 남는다")
+
+
+def test_EXCEPTION_body_of_an_unknown_posting_is_empty_not_an_error():
+    check_equal(cache.body({}, ["https://없는/1.png"]), "", "없으면 빈 글자다")
+
+
+def test_BOUNDARY_an_entry_without_a_rules_version_is_stale():
+    """**규칙판이 생기기 전의 항목은 옛것이다.**
+
+    옛 항목에는 이 칸이 아예 없다. `!=` 로 견주므로 `None != 2` 라 옛것으로 잡힌다 —
+    이걸 `.get("규칙판", RULES_VERSION)` 같은 것으로 적으면 옛 추림이 영영 새것 행세를
+    한다. 그러면 고친 규칙이 이미 읽은 공고에는 안 먹는다.
+    """
+    book = {cache.key(["https://a/1.png"]): {**READ, "본문": "글", "읽은날": "2026-09-08"}}
+    check_equal(cache.get(book, ["https://a/1.png"]), None, "규칙판이 없으면 옛것이다")
+    check_equal(cache.body(book, ["https://a/1.png"]), "글", "그래도 본문은 쓴다")

@@ -34,7 +34,25 @@ import json
 from datetime import date
 from pathlib import Path
 
-from .reader import BODY, FIELDS
+from .reader import BODY, FIELDS, VALUES
+
+# **추리는 규칙이 바뀌면 옛 추림만 버린다. 본문은 안 버린다.**
+#
+# 한 항목에 성격이 다른 둘이 들어 있다.
+#
+#     본문              그림에서 읽어 낸 글.  비싸다 — 내려받고, 조각내고,
+#                       조각마다 Read 를 돌린다
+#     추린 네 칸        그 글에서 고른 것.    싸다 — 글만 있으면 다시 만든다
+#
+# 그래서 규칙을 고쳤을 때 항목을 통째로 버리면 **이미 치른 값을 다시 치른다.**
+# 실측(2026-09-22): 캐시 242건 중 본문이 있는 것이 146건이고, 이번 실행의 그림
+# 공고 154건 중 133건이 그 안에 있었다. 통째로 버리면 154건을 다시 그림부터
+# 읽고, 본문만 지키면 21건만 그림을 본다.
+#
+# **추리는 규칙(`reader.EXTRACT_RULES`)을 손대면 이 숫자를 올려라.** 안 올리면
+# 고친 규칙이 이미 읽은 공고에는 영영 안 먹는다 — `career.py` 의 `RULES_VERSION`
+# 이 같은 이유로 있고, 실제로 그 일을 겪었다.
+RULES_VERSION = 2
 # 주소에는 공백이 못 들어간다(RFC 3986 — 공백은 `%20` 으로 적힌다). 그래서 이어 붙여도
 # 어디서 끊긴 것인지 헷갈리지 않는다. 해시로 줄일 수도 있지만, 캐시 파일을 열어 보고
 # "어느 공고의 답인가" 를 눈으로 알아볼 수 있는 편이 낫다.
@@ -63,26 +81,42 @@ def save(path: Path, book: dict) -> None:
 
 
 def get(book: dict, urls: list[str]) -> dict | None:
-    """캐시에 든 답. **본문이 없는 옛 항목은 없는 것으로 친다.**
+    """**지금 규칙으로 추린** 답. 아니면 `None`.
 
-    본문은 나중에 더한 칸이라 그 전에 읽은 항목에는 없다. 그대로 쓰면 그림 공고는
-    영영 본문을 못 갖고, 직군을 가리는 단계가 계속 "본문 없음" 으로 남긴다 —
-    고친 것이 아무 효과가 없다. 한 번 다시 읽고 나면 그 뒤로는 캐시가 듣는다.
+    본문이 없는 옛 항목도 `None` 이다. 본문은 나중에 더한 칸이라 그 전에 읽은
+    항목에는 없는데, 그대로 쓰면 그림 공고가 영영 본문을 못 갖고 직군을 가리는
+    단계가 계속 "본문 없음" 으로 남긴다 — 고친 것이 아무 효과가 없다.
+
+    옛 규칙으로 추린 항목도 `None` 이다. **다만 그때는 본문이 살아 있으므로**
+    부르는 쪽이 `body()` 로 그것을 받아 글만 다시 추리면 된다. 그림은 안 본다.
     """
     entry = book.get(key(urls))
-    if not isinstance(entry, dict):
+    if not isinstance(entry, dict) or BODY not in entry:
         return None
-    if BODY not in entry:
+    if entry.get("규칙판") != RULES_VERSION:
         return None
-    got = {name: list(entry.get(name) or []) for name in FIELDS}
+    got = {name: list(entry.get(name) or []) for name in FIELDS + (VALUES,)}
     got[BODY] = str(entry.get(BODY) or "")
     return got
 
 
+def body(book: dict, urls: list[str]) -> str:
+    """이 공고의 **본문만.** 없으면 빈 문자열.
+
+    `get` 이 `None` 을 냈을 때 "그림부터 다시 읽어야 하나, 글만 다시 추리면 되나"
+    를 가르는 자다. 본문이 있으면 싼 길이 있다.
+    """
+    entry = book.get(key(urls))
+    if not isinstance(entry, dict):
+        return ""
+    return str(entry.get(BODY) or "")
+
+
 def put(book: dict, urls: list[str], read: dict, model: str) -> None:
     book[key(urls)] = {
-        **{name: list(read.get(name) or []) for name in FIELDS},
+        **{name: list(read.get(name) or []) for name in FIELDS + (VALUES,)},
         BODY: str(read.get(BODY) or ""),
         "읽은날": date.today().isoformat(),
         "모델": model,
+        "규칙판": RULES_VERSION,
     }

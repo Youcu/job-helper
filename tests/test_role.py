@@ -11,6 +11,7 @@ import tempfile
 from pathlib import Path
 
 import role
+from _common.sections import VALUES_HEADING
 
 COLUMNS = ["기업명", "공고명", "마감일", "지원자격", "우대사항", "경력", "URL",
            "연봉", "기술스택", "근무지", "사이트명", "평점", "최초수집일", "최종확인일"]
@@ -443,3 +444,125 @@ def test_BOUNDARY_overwriting_runs_the_tech_column_through_the_filter():
                   ask=lambda *a: {"해당": True, "기술스택": "Java, 풀스택, Spring"},
                   have_claude=True, assume_yes=True)
         assert _read(home / "out.csv")[0]["기술스택"] == "Java, Spring"
+
+
+# ── 인재상 표기를 지킨다 ─────────────────────────────────────────────────
+#
+# 이 단계는 `지원자격` 을 통째로 덮어쓴다. 그림 판독이 붙여 둔 인재상 대목이 거기
+# 들어 있어서, 그냥 두면 **바로 앞 단계가 한 일을 여기서 지운다.**
+#
+# 프롬프트에도 지키라고 적었지만 실측으로 안 지켜졌다 (2026-09-22, 274행 중 10행).
+# 둘은 내용까지 잃었고 나머지는 머리말 없이 요건에 섞였다. **그래서 코드가 되붙인다** —
+# 인재상은 부문을 안 가리므로 모델의 부문 고르기를 거칠 이유가 없다.
+
+def test_NORMAL_the_values_block_comes_back_after_an_overwrite():
+    before = "• 고졸 이상\n• 경력 무관\n%s\n• 도전을 좋아하시는 분" % VALUES_HEADING
+    got = role.apply(_row(지원자격=before), {"지원자격": "고졸 이상, 경력 무관"})
+    assert VALUES_HEADING in got["지원자격"], "머리말이 돌아와야 한다"
+    assert "도전을 좋아하시는 분" in got["지원자격"], "내용도 돌아와야 한다"
+    assert got["지원자격"].startswith("고졸 이상, 경력 무관"), \
+        "모델이 고른 부문의 자격요건이 앞에 와야 한다"
+
+
+def test_NORMAL_a_block_the_model_kept_is_not_doubled():
+    before = "• 고졸 이상\n%s\n• 도전을 좋아하시는 분" % VALUES_HEADING
+    got = role.apply(_row(지원자격=before), {"지원자격": before})
+    assert got["지원자격"].count(VALUES_HEADING) == 1, "머리말은 한 번뿐이어야 한다"
+
+
+def test_EXCEPTION_no_values_before_means_nothing_is_added():
+    """**없던 것을 만들지 않는다.** 그림 공고가 아닌 행이 대부분이다."""
+    got = role.apply(_row(지원자격="• 고졸 이상"), {"지원자격": "고졸 이상"})
+    assert VALUES_HEADING not in got["지원자격"], "머리말이 생기면 안 된다"
+
+
+def test_BOUNDARY_an_empty_answer_does_not_lose_the_values():
+    """모델이 `지원자격` 을 못 채우면 원래 칸이 그대로 남는다 — 그때도 인재상이 산다."""
+    before = "• 고졸 이상\n%s\n• 도전을 좋아하시는 분" % VALUES_HEADING
+    got = role.apply(_row(지원자격=before), {"지원자격": ""})
+    assert got["지원자격"] == before, "아무것도 안 바뀌어야 한다"
+
+
+# ── 절을 못 갈랐을 때 모델이 직접 읽는다 ─────────────────────────────────
+#
+# 이 게이트는 **뽑기만 한다.** 부문 고르기와 물음이 달라서 이 답으로는 아무도 안
+# 뺀다 — 자격요건을 채우러 갔다가 행이 사라지면 안 된다.
+
+def _fill_row(**kw):
+    row = _row(지원자격="", 우대사항="", 기술스택="", 경력="", URL="https://x/1")
+    row.update(kw)
+    return row
+
+
+def _fill_run(home: Path, rows: list[dict], texts: dict, fill_ask):
+    """절 복구만 돌린다. 부문 고르기 쪽은 안 타게 제목을 평범하게 둔다."""
+    source = home / "in.csv"
+    _csv(source, rows)
+    code = role._run(source, _bodies(home, texts), **_out(home),
+                     ask=lambda *a, **k: {}, fill_ask=fill_ask,
+                     have_claude=True, assume_yes=True)
+    assert code == 0
+    return _read(home / "out.csv")
+
+
+def test_NORMAL_an_unsectioned_posting_gets_filled_by_the_model():
+    with tempfile.TemporaryDirectory() as home:
+        home = Path(home)
+        seen = []
+
+        def fake(row, body, **kwargs):
+            seen.append(body)
+            return {"지원자격": "설계 및 개발 모두 가능", "우대사항": "",
+                    "기술스택": "Java", "경력": "", "근거": "필요사항에서 뽑았다"}
+
+        out = _fill_run(home, [_fill_row()],
+                        {"https://x/1": "필요사항: 설계 및 개발이 가능하면 좋고 " * 40},
+                        fake)
+        assert seen, "모델에게 본문을 줬어야 한다"
+        assert out[0]["지원자격"] == "설계 및 개발 모두 가능", out[0]["지원자격"]
+        assert "Java" in out[0]["기술스택"], out[0]["기술스택"]
+
+
+def test_NORMAL_a_filled_posting_is_not_asked():
+    with tempfile.TemporaryDirectory() as home:
+        home = Path(home)
+        asked = []
+        _fill_run(home, [_fill_row(지원자격="• 대졸 이상")], {"https://x/1": "글" * 500},
+                  lambda row, body, **k: asked.append(row) or {})
+        assert asked == [], "이미 차 있는데 물어봤다"
+
+
+def test_EXCEPTION_a_failed_fill_keeps_the_row():
+    """**채우려다 실패한 것이 행을 없앨 이유는 없다.**"""
+    with tempfile.TemporaryDirectory() as home:
+        home = Path(home)
+
+        def fails(row, body, **kwargs):
+            raise role.JudgeError("막혔다")
+
+        out = _fill_run(home, [_fill_row()], {"https://x/1": "글" * 500}, fails)
+        assert len(out) == 1, "행이 살아 있어야 한다"
+        assert out[0]["지원자격"] == "", "빈 채로 남는다"
+
+
+def test_BOUNDARY_an_empty_answer_does_not_invent_anything():
+    """모델도 못 찾으면 **비워 둔다.** 지어내는 것보다 비는 편이 낫다."""
+    with tempfile.TemporaryDirectory() as home:
+        home = Path(home)
+        out = _fill_run(home, [_fill_row()], {"https://x/1": "글" * 500},
+                        lambda row, body, **k: {"지원자격": "", "근거": "못 찾음"})
+        assert len(out) == 1
+        assert out[0]["지원자격"] == ""
+
+
+def test_BOUNDARY_this_question_never_drops_a_row():
+    """부문 고르기와 달리 **이 물음으로는 아무도 안 뺀다.**
+
+    두 물음을 한 프롬프트로 합치면 자격요건을 채우러 갔다가 `해당=false` 를 받아
+    멀쩡한 공고가 사라진다. 후보를 넓히는 대가는 "한 번 더 묻는 것" 이어야 한다.
+    """
+    with tempfile.TemporaryDirectory() as home:
+        home = Path(home)
+        out = _fill_run(home, [_fill_row()], {"https://x/1": "글" * 500},
+                        lambda row, body, **k: {"해당": False, "지원자격": ""})
+        assert len(out) == 1, "`해당=false` 가 와도 안 뺀다"

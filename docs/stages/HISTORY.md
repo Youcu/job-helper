@@ -1,7 +1,7 @@
 # 이력 쌓기와 뒷정리
 
 ```bash
-python3 history.py
+python3 src/history.py
 ```
 
 파이프라인이 **최종본까지 만든 뒤** 돈다. 이력을 쌓고 사이트별 수집본을 치운다.

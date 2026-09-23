@@ -43,3 +43,28 @@ def incomplete(stats: dict, rows) -> bool:
     """
     saved = rows if isinstance(rows, int) else len(rows or ())
     return saved == 0 and stats.get("상세실패", 0) > 0
+
+
+def gate_line(total: int, candidates: int, what: str) -> str:
+    """**검사한 것과 안 한 것을 함께 적는다.**
+
+    ## 왜 — 같은 모양의 버그가 세 번 났다 (2026-09-23)
+
+    후보를 좁히는 게이트가 셋 있었고 셋 다 좁았다.
+
+        경력     신입이라 선언한 행만 봄   → 대놓고 `경력 3년이상` 인 공고가 샜다
+        금칙어   세 칸만 보고 본문을 안 봄  → 회사소개에서 자기가 SI 라는 회사가 샜다
+        직군     통합 공고만 봄            → 제목에 다른 직군이 적힌 단일 공고가 샜다
+
+    **셋 다 화면만 봐서는 멀쩡해 보였다.** 단계가 "물어본 공고 N건" 만 찍으므로,
+    게이트가 망가져 후보가 0이어도 캐시에서 다 나왔을 때와 **글자가 똑같다.**
+
+        물어본 공고 0건        ← 후보 8행이 전부 캐시에서 나왔다
+        물어본 공고 0건        ← **게이트가 망가져 후보가 0행이다**
+
+    그래서 세 번 다 사람이 데이터를 직접 뒤져서 찾았다. 이 한 줄이 그것을 드러낸다.
+    """
+    skipped = total - candidates
+    return ("  %s : %d행 중 %d행 (검사 안 함 %d행 · %.0f%%)"
+            % (what, total, candidates, skipped,
+               100 * skipped / total if total else 0))

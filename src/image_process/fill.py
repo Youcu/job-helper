@@ -13,12 +13,22 @@ from __future__ import annotations
 import re
 
 from _common import corpus_candidates                              # noqa: E402
+from _common.sections import VALUES_HEADING                         # noqa: E402
 from _common.skills import keep_known, split_names, unknown_names  # noqa: E402
 
-from .reader import FIELDS
+from .reader import FIELDS, VALUES
 
 # 그림에서 읽은 셋을 CSV 의 어느 칸에 넣는가
 COLUMN = {"기술스택": "기술스택", "자격요건": "지원자격", "우대사항": "우대사항"}
+
+# 인재상은 `지원자격` 칸 안에 `sections.VALUES_HEADING` 아래로 들어간다
+# (2026-09-22 사용자). 머리말 글자를 여기 안 두는 이유는 그 파일의 주석을 보라 —
+# 이것을 아는 곳이 셋이라 각자 적으면 한 곳만 고치는 일이 생긴다.
+#
+# **금칙어 검사는 이 대목을 따로 안 뺀다.** 실측으로 재 보니 인재상 줄만 넣었을 때
+# 새로 빠지는 공고가 **0건**이었다 (2026-09-22, `csv/merged_role.csv` 588행).
+# 오탐이 실제로 생기면 `filter_words.text_of` 가 이 머리말 아래를 건너뛰면 된다 —
+# 그때 넣는다. 쓸 일이 없는데 미리 넣으면 안 쓰이는 표면만 는다.
 _DROP = re.compile(r"[\s\W_]+", re.UNICODE)
 
 # 줄 앞 글머리표. **`o` 는 뒤에 공백이 올 때만 글머리표다.**
@@ -121,4 +131,22 @@ def apply(row: dict, read: dict) -> dict:
     for name in ("자격요건", "우대사항"):
         column = COLUMN[name]
         out[column] = add_missing(out.get(column, ""), read.get(name))
+    out[COLUMN["자격요건"]] = add_values(out[COLUMN["자격요건"]], read.get(VALUES))
     return out
+
+
+def add_values(existing: str, items: list[str]) -> str:
+    """인재상을 `지원자격` 칸 **맨 뒤에** 머리말과 함께 붙인다.
+
+    **맨 뒤여야 한다.** 요구 조건을 읽으러 온 사람도 기계도 앞에서부터 본다 —
+    인재상이 먼저 오면 진짜 자격요건이 뒤로 밀려 잘린 것처럼 보인다.
+
+    이미 머리말이 있으면 다시 붙이지 않는다. 이 단계는 **매 실행 다시 도는데**
+    입력이 앞 실행의 결과일 수 있다(사람이 `merged_read.csv` 를 되먹일 때).
+    """
+    items = _clean(items)
+    if not items or VALUES_HEADING in (existing or ""):
+        return existing
+    base = (existing or "").strip()
+    tail = VALUES_HEADING + "\n" + "\n".join("• %s" % one for one in items)
+    return base + "\n" + tail if base else tail

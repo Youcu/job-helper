@@ -1,4 +1,4 @@
-# 화면 그리기 — `report.py`
+# 화면 그리기 — `src/report.py`
 
 최종본을 **사람이 보고 판단하는 화면**으로 그린다.
 
@@ -8,7 +8,7 @@ report_template.html   ──┘
 ```
 
 ```bash
-python3 report.py
+python3 src/report.py
 ```
 
 ---

@@ -104,3 +104,94 @@ def test_BOUNDARY_a_later_line_still_counts():
            "지원자격": "• 신입 / 경력 2년 이상\n• 소프트웨어 개발 경력 2년 이상 보유하신 분"}
     got = words.candidate(row)
     check(got and "보유하신 분" in got, "뒷줄을 찾아야 한다: %r" % got)
+
+
+# ── 대놓고 경력직인 공고 (`closed_to_newbie`) ────────────────────────────
+#
+# 여기 문자열은 전부 `csv/merged_role.csv` 588행에서 나온 것이다 — **`role.py` 가
+# 고친 뒤의 값**이다. 사이트가 준 값에는 이런 모양이 안 나온다.
+
+def test_NORMAL_a_career_only_field_is_closed():
+    for value in ("경력 3년 이상", "경력 3년이상", "5년 이상", "4년 이상",
+                  "경력 5년 이상", "서버관리 경력 5년 이상", "경력(5년 이상)",
+                  "3~5년 경력자", "4년 ~ 10년", "4년~6년 이하", "경력(6년~12년)",
+                  "3년이상 7년이하", "5년 이상 15년 이하", "경력 4년 이상 ~ 20년 이하"):
+        check(words.closed_to_newbie(value), "경력직이다: %r" % value)
+
+
+def test_NORMAL_every_part_must_be_closed():
+    """부문이 여럿이면 **전부** 닫혀 있어야 뺀다. 실측 2건(청오디피케이·도미노피자)."""
+    value = ("정보전략팀-백엔드: 6년 이상 / 플랫폼개발팀-백엔드: 3년 이상 / "
+             "플랫폼개선팀-Java백엔드: 5년 이상 / 플랫폼개선팀-ReactJS프론트엔드: 8년 이상")
+    check(words.closed_to_newbie(value), "네 부문이 다 경력직이다")
+
+
+# ── 예외 ────────────────────────────────────────────────────────────────
+
+def test_EXCEPTION_a_blank_career_field_is_not_a_career_posting():
+    """**안 적힌 것을 경력직으로 읽으면 안 된다.**
+
+    실측으로 `csv/merged_role.csv` 588행 중 20행이 빈 칸인데, 그건 수집이 본문을
+    못 가져온 것이지 회사가 경력직이라고 말한 것이 아니다. 여기가 뚫리면 그 20행이
+    근거 없이 사라진다.
+    """
+    for value in ("", "   ", None):
+        check_equal(words.closed_to_newbie(value), None,
+                    "빈 칸은 판단하지 않는다: %r" % value)
+
+
+def test_EXCEPTION_a_field_without_years_is_not_closed():
+    """연수가 없으면 닫혔다고 못 한다. `경력` 한 글자로는 아무것도 모른다."""
+    for value in ("경력", "경력자", "개발자"):
+        check_equal(words.closed_to_newbie(value), None, "연수가 없다: %r" % value)
+
+
+# ── 경계 ────────────────────────────────────────────────────────────────
+
+def test_BOUNDARY_one_open_part_keeps_the_whole_posting():
+    """한 부문이라도 신입을 받으면 **그 자리로 지원한다.** 실측 5건."""
+    for value in ("[Web 개발] 유관 경력 2년 이상 / [SW 개발(Server)] 신입 또는 경력 3년 이상",
+                  "컨버전스개발팀(서버파트): 5년 이상 / "
+                  "해외AP개발팀(SE파트): 신입 또는 경력(소프트웨어 개발) 2년 이상",
+                  "경력(3년 이내) / 신입",
+                  "경력 1년 이상 또는 신입",
+                  "경력자 및 신입"):
+        check_equal(words.closed_to_newbie(value), None, "신입 경로가 있다: %r" % value)
+
+
+def test_BOUNDARY_a_slash_without_spaces_is_not_a_part_break():
+    """`React/Spring Boot` 를 두 부문으로 가르면 안 된다.
+
+    가르면 `React` 라는 빈 부문이 생기고 판단이 흔들린다. 실측 1건.
+    """
+    value = "React/Spring Boot 개발자: 4년 이상 경력자 (웹개발자·Backend 개발자는 경력 미기재)"
+    check_equal(words.closed_to_newbie(value), None, "미기재가 있으니 남긴다")
+
+
+def test_BOUNDARY_ambiguous_fields_are_kept():
+    """**애매하면 남긴다** (2026-09-13 사용자). 지우는 판단에 "모르겠으면" 은 없다.
+
+    `8~9년차 우대` 는 연수를 요구하는 것인지 선호하는 것인지 가를 신호가 없다.
+    `경력 년수 무관` 은 무관이라 적었으니 열려 있다.
+    """
+    for value in ("8~9년차 우대", "경력 년수 무관"):
+        check_equal(words.closed_to_newbie(value), None, "애매하면 남긴다: %r" % value)
+
+
+def test_BOUNDARY_site_supplied_values_are_never_closed():
+    """**사이트가 준 값에는 작동하지 않는다.**
+
+    실측으로 `history/history_read.csv` 949행에 이 규칙을 대면 0건이다. 수집이
+    검색에서 이미 신입으로 좁히기 때문이다. 이 성질이 깨지면 이 규칙이 예전
+    파이프라인까지 거슬러 올라가 멀쩡한 행을 지운다.
+    """
+    for value in ("신입", "신입 · 경력", "신입·경력", "경력무관", "경력 무관",
+                  "신입~5년", "신입~10년", "신입/경력", "신입, 경력"):
+        check_equal(words.closed_to_newbie(value), None,
+                    "사이트 값은 안 걸린다: %r" % value)
+
+
+def test_BOUNDARY_the_reason_names_the_part_that_closed_it():
+    """보고 CSV 에서 되짚으려면 **어느 부문이 닫았는지**가 나와야 한다."""
+    check_equal(words.closed_to_newbie("경력 3년이상"), "경력 3년이상",
+                "걸린 부문을 그대로 돌려준다")

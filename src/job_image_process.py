@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """합본에서 **본문이 그림인 공고**만 골라 그림을 읽는다.
 
-    python3 job_image_process.py
+    python3 src/job_image_process.py
 
 `csv/merged.csv` 를 읽어 `csv/merged_read.csv` 를 낸다. **원본은 고치지 않는다** — 이
 단계는 행을 없애기 때문에, 제자리에서 고치면 없어진 공고의 원본이 어디에도 안 남는다.
@@ -21,7 +21,7 @@
 ## 캐시는 공고 하나에 열쇠 하나다
 
 한 공고의 그림들을 합쳐 한 번 읽으므로, 그 답은 **주소 목록 전체**의 답이다. 낱장 주소를
-열쇠로 쓰면 같은 그림을 쓰는 다른 공고가 남의 답을 받아 간다(`image_process/cache.py`).
+열쇠로 쓰면 같은 그림을 쓰는 다른 공고가 남의 답을 받아 간다(`src/image_process/cache.py`).
 그래서 옛 캐시 파일의 낱장 열쇠는 **전부 빗나가고**, 첫 실행에서 공고 단위로 다시 채워진다.
 캐시는 편의지 진실이 아니므로 그래도 된다.
 """
@@ -38,17 +38,20 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 
-ROOT_DIR = Path(__file__).resolve().parent
-INPUT = ROOT_DIR / "csv" / "merged.csv"
-OUTPUT = ROOT_DIR / "csv" / "merged_read.csv"
+SRC_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SRC_DIR / "job_sites"))
+sys.path.insert(0, str(SRC_DIR))
+
+from paths import CACHE as CACHE_DIR, CSV, HISTORY as HISTORY_DIR  # noqa: E402
+from paths import ROOT, SITES                                      # noqa: E402
+INPUT = CSV / "merged.csv"
+OUTPUT = CSV / "merged_read.csv"
 
 # 공고 본문. 수집기가 쓴 것 옆에 그림에서 읽은 글을 더한다 (`_common/bodies.py`).
-BODIES = ROOT_DIR / "csv" / "bodies.jsonl"
-LOCK = ROOT_DIR / "csv" / ".image_process.lock"
+BODIES = CSV / "bodies.jsonl"
+LOCK = CSV / ".image_process.lock"
 RETRY_PAUSE = 5      # 다시 걸기 전에 쉬는 시간(초)
 
-sys.path.insert(0, str(ROOT_DIR / "job_sites"))
-sys.path.insert(0, str(ROOT_DIR))
 
 from tqdm import tqdm                                              # noqa: E402
 
@@ -147,7 +150,7 @@ def _download_once_more_if_needed(url: str, target: Path, download_fn=None) -> N
 
 
 def process_one(row: dict, *, cfg, book: dict, work_dir: Path,
-                reader_fn=None, download_fn=None) -> Outcome:
+                reader_fn=None, download_fn=None, reread_fn=None) -> Outcome:
     """**그물을 타는 둘을 인자로 받는다.** 그림 내려받기와 모델 호출이다.
 
     기본값은 진짜를 쓰므로 부르는 쪽이 아무것도 안 넘겨도 된다. 테스트는 이 둘만
@@ -156,6 +159,7 @@ def process_one(row: dict, *, cfg, book: dict, work_dir: Path,
     """
     urls = image_urls(row)
     read_fn = reader_fn or (lambda paths, **kw: reader.read(paths, **kw))
+    reread = reread_fn or (lambda text, **kw: reader.reread(text, **kw))
     if not urls:
         # 그림 행이 아닌데 불렸다. **행을 건드리지 않고 돌려준다** — 여기서 껍데기로
         # 흘러가면 그림도 아닌 행이 버려지고, 빈 주소 목록이 캐시 열쇠가 된다.
@@ -167,6 +171,21 @@ def process_one(row: dict, *, cfg, book: dict, work_dir: Path,
         if not fill.has_anything(cached):
             return Outcome("버림", None, "캐시: 쓸 게 없음")
         return Outcome("캐시", fill.apply(row, cached), body=cached.get(reader.BODY, ""))
+
+    # **그림을 다시 읽기 전에 글이 남아 있는지 본다.** 추리는 규칙만 바뀐 것이라면
+    # 이미 읽어 둔 본문에서 다시 추리면 된다 — 내려받기도 조각내기도 필요 없다
+    # (`src/image_process/cache.py` 의 `RULES_VERSION`).
+    text = cache.body(book, urls)
+    if text:
+        try:
+            got = reread(text, model=cfg.model, timeout=cfg.timeout)
+        except reader.ReadError as error:
+            # **못 물어본 것이지 글에 내용이 없는 게 아니다.** 캐시에도 안 넣는다.
+            return Outcome("못읽음", dict(row), "글 재추출: %s" % error)
+        cache.put(book, urls, got, cfg.model)
+        if not fill.has_anything(got):
+            return Outcome("버림", None, "글에서 다시 추렸는데 쓸 게 없음")
+        return Outcome("글다시", fill.apply(row, got), body=got.get(reader.BODY, ""))
 
     work = Path(work_dir) / "그림"
     work.mkdir(parents=True, exist_ok=True)
@@ -222,7 +241,7 @@ def main(argv: list[str] | None = None) -> int:
 
 def _run(source: Path | None = None, output: Path | None = None,
          cache_path: Path | None = None, bodies_path: Path | None = None, *,
-         cfg=None, download=None, read=None,
+         cfg=None, download=None, read=None, reread=None,
          have_claude: bool | None = None, assume_yes: bool = False) -> int:
     """**바깥과 닿는 것을 전부 인자로 받는다.** 안 넘기면 진짜를 쓴다.
 
@@ -233,6 +252,7 @@ def _run(source: Path | None = None, output: Path | None = None,
     | `bodies_path` | `BODIES` | 진짜 `csv/bodies.jsonl` |
     | `cfg` | `config.load_config()` | 진짜 `.env` |
     | `download` · `read` | `fetch.download` · `reader.read` | 그물과 모델 |
+    | `reread` | `reader.reread` | 모델 (글만 다시 추리는 싼 길) |
     | `have_claude` | `shutil.which("claude")` | 이 컴퓨터의 PATH |
 
     다른 단계들(`filter` · `core_stack` · `history`)은 진작 이 모양인데 여기만
@@ -267,7 +287,7 @@ def _run(source: Path | None = None, output: Path | None = None,
           % (len(targets), cfg.workers, cfg.model))
 
     book = cache.load(cache_path)
-    stats = {"채움": 0, "캐시": 0, "버림": 0, "껍데기": 0, "못읽음": 0}
+    stats = {"채움": 0, "캐시": 0, "글다시": 0, "버림": 0, "껍데기": 0, "못읽음": 0}
     kept: dict[int, dict | None] = {}
     texts: dict[str, str] = {}
     work_root = Path(tempfile.mkdtemp(prefix="image_process_"))
@@ -277,7 +297,8 @@ def _run(source: Path | None = None, output: Path | None = None,
             futures = {
                 pool.submit(process_one, rows[index], cfg=cfg, book=book,
                             work_dir=work_root / str(index),
-                            reader_fn=read, download_fn=download): index
+                            reader_fn=read, download_fn=download,
+                            reread_fn=reread): index
                 for index in targets
             }
             # **`as_completed` 여야 실제로 기다린다.** dict 를 그냥 돌면 제출만 하고 지나간다.
@@ -324,7 +345,8 @@ def _run(source: Path | None = None, output: Path | None = None,
     # **`2` 는 "아무것도 못 해냈다" 는 뜻이다.** 캐시 적중도 해낸 것이다 — 안 그러면
     # 정상 상태(거의 전부 캐시)에서 새 공고 하나가 시간 초과만 나도 실행 전체가 실패로
     # 보고되고, 오케스트레이터는 여덟 분짜리 수집을 실패로 적는다.
-    usable = stats["채움"] + stats["캐시"] + stats["버림"] + stats["껍데기"]
+    usable = (stats["채움"] + stats["캐시"] + stats["글다시"]
+              + stats["버림"] + stats["껍데기"])
     if stats["못읽음"] and not usable:
         print("\n%d건을 시도해 하나도 못 읽었습니다 — 온전한 결과가 아닙니다."
               % stats["못읽음"], file=sys.stderr)
@@ -356,6 +378,9 @@ def _keep_bodies(path: Path, texts: dict[str, str]) -> None:
 def _report(stats: dict, before: int, after: int,
             source: Path, output: Path) -> None:
     print("  캐시에서 바로       : %d건" % stats["캐시"])
+    # **이 줄이 싼 길이 실제로 쓰였는지를 말한다.** 안 찍으면 규칙을 고쳐 놓고
+    # 그림을 다시 읽고 있어도 화면만 보고는 알 수 없다.
+    print("  글에서 다시 추림     : %d건 (그림을 안 봤다)" % stats["글다시"])
     print("  껍데기라 안 부름     : %d건 → 버림" % stats["껍데기"])
     print("  읽어서 채움         : %d건" % stats["채움"])
     print("  읽었는데 쓸 게 없음  : %d건 → 버림" % stats["버림"])
@@ -372,7 +397,7 @@ def _shown(path: Path) -> str:
     요약을 찍다가 터진다.
     """
     try:
-        return str(path.relative_to(ROOT_DIR))
+        return str(path.relative_to(ROOT))
     except ValueError:
         return str(path)
 

@@ -218,3 +218,50 @@ def test_BOUNDARY_what_the_collector_already_had_is_not_re_filtered():
     got = fill.apply(row, {"기술스택": [], "자격요건": [], "우대사항": []})["기술스택"]
     check_equal(got, "듣도보도못한DB",
                 "이미 있던 값은 그대로 두고, 읽은 뒤의 그림 주소만 뺀다")
+
+
+# ── 인재상 별도표기 ──────────────────────────────────────────────────────
+#
+# 인재상은 `지원자격` 칸 안에 머리말과 함께 들어간다 (2026-09-22 사용자). 버리지
+# 않는 이유는 분석에 쓰기 때문이고, 섞지 않는 이유는 무엇이 **요구**이고 무엇이
+# **바람**인지 갈려야 하기 때문이다.
+
+def test_NORMAL_values_go_under_their_own_heading():
+    got = fill.apply(_row(지원자격="• 전문대졸이상"),
+                     {"기술스택": [], "자격요건": ["경력 3년이상"], "우대사항": [],
+                      "인재상": ["도전을 좋아하시는 분", "협업을 즐기시는 분"]})
+    lines = got["지원자격"].split("\n")
+    check_equal(lines[0], "• 전문대졸이상", "원래 것이 맨 앞에 남는다")
+    check(fill.VALUES_HEADING in lines, "머리말이 들어간다")
+    check(lines.index("• 경력 3년이상") < lines.index(fill.VALUES_HEADING),
+          "**진짜 자격요건이 인재상보다 앞이다** — 읽는 쪽도 기계도 앞부터 본다")
+
+
+def test_EXCEPTION_no_values_means_no_heading():
+    """**빈 머리말을 남기지 않는다.** 남기면 사람이 내용이 잘렸다고 읽는다."""
+    for values in ([], None, ["", "  "]):
+        got = fill.apply(_row(지원자격="• 전문대졸이상"),
+                         {"기술스택": [], "자격요건": [], "우대사항": [], "인재상": values})
+        check(fill.VALUES_HEADING not in got["지원자격"],
+              "인재상이 없으면 머리말도 없다: %r" % (values,))
+
+
+def test_BOUNDARY_running_twice_does_not_stack_the_heading():
+    """이 단계는 **매 실행 다시 돈다.** 사람이 결과물을 되먹이는 일도 있다.
+
+    두 번 붙으면 머리말이 쌓이고, 그 칸을 읽는 다음 단계가 같은 인재상을 두 번 본다.
+    """
+    read = {"기술스택": [], "자격요건": [], "우대사항": [], "인재상": ["도전하시는 분"]}
+    once = fill.apply(_row(), read)
+    twice = fill.apply(once, read)
+    check_equal(twice["지원자격"].count(fill.VALUES_HEADING), 1, "머리말은 한 번뿐")
+
+
+def test_BOUNDARY_the_heading_is_the_shared_one():
+    """**글자를 여기 따로 적어 두면 안 된다.**
+
+    이것을 아는 곳이 셋이다 — 붙이는 `fill`, 지켜야 하는 `role.py`, 보여 주는
+    리포트. 각자 적으면 한 곳만 고치는 일이 반드시 생긴다.
+    """
+    from _common.sections import VALUES_HEADING
+    check_equal(fill.VALUES_HEADING, VALUES_HEADING, "공용 자리에서 온 것이다")
