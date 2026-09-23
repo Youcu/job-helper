@@ -96,7 +96,7 @@ def test_NORMAL_the_model_decides_not_the_word():
             [_row(URL="https://x/1", 기업명="가회사", 지원자격="SI 프로젝트 경험"),
              _row(URL="https://x/2", 기업명="나회사", 지원자격="SI 프로젝트 경험")],
             {},
-            ask=lambda row, hits, body: (row["URL"].endswith("1"), False, False, "판정"))
+            ask=lambda row, hits, body: (row["URL"].endswith("1"), False, False, False, "판정"))
         check_equal([r["URL"] for r in out], ["https://x/2"], "모델이 가른다")
         check_equal({r["URL"]: r["판정"] for r in report},
                     {"https://x/1": "제외 · 피할 자리",
@@ -125,7 +125,7 @@ def test_EXCEPTION_a_posting_without_any_word_is_never_asked():
     with tempfile.TemporaryDirectory() as home:
         home = Path(home)
         out, report = _run(home, [_row(지원자격="Java 경험")], {},
-                           ask=lambda *a: asked.append(a) or (True, False, False, ""))
+                           ask=lambda *a: asked.append(a) or (True, False, False, False, ""))
         check_equal(asked, [], "후보가 아닌데 물어봤다")
         check_equal(len(out), 1, "그대로 남는다")
         check_equal(report, [], "적을 것도 없다")
@@ -135,7 +135,7 @@ def test_EXCEPTION_a_missing_body_does_not_crash():
     with tempfile.TemporaryDirectory() as home:
         home = Path(home)
         out, _ = _run(home, [_row(지원자격="SI 프로젝트")], {},
-                      ask=lambda row, hits, body: (False, False, False, "본문 없이도 판정했다"))
+                      ask=lambda row, hits, body: (False, False, False, False, "본문 없이도 판정했다"))
         check_equal(len(out), 1, "남는다")
 
 
@@ -150,7 +150,7 @@ def test_BOUNDARY_a_kept_posting_is_still_written_to_the_report():
     with tempfile.TemporaryDirectory() as home:
         home = Path(home)
         out, report = _run(home, [_row(지원자격="SI 프로젝트")], {},
-                           ask=lambda row, hits, body: (False, False, False, "부정하는 문장이다"))
+                           ask=lambda row, hits, body: (False, False, False, False, "부정하는 문장이다"))
         check_equal(len(out), 1, "남는다")
         check_equal(len(report), 1, "남긴 것도 적힌다")
         check("부정하는" in report[0]["근거"], "근거가 실린다: %r" % report[0])
@@ -194,7 +194,7 @@ def test_BOUNDARY_the_cache_is_keyed_by_rules_version():
     with tempfile.TemporaryDirectory() as home:
         home = Path(home)
         rows = [_row(지원자격="SI 프로젝트")]
-        _run(home, rows, {}, ask=lambda *a: (True, False, False, "첫 판정"))
+        _run(home, rows, {}, ask=lambda *a: (True, False, False, False, "첫 판정"))
         book = json.loads((home / "cache.json").read_text(encoding="utf-8"))
         check_equal(book["https://x/1"]["규칙판"], nuance.RULES_VERSION, "%r" % book)
 
@@ -202,7 +202,7 @@ def test_BOUNDARY_the_cache_is_keyed_by_rules_version():
         (home / "cache.json").write_text(json.dumps(book, ensure_ascii=False),
                                          encoding="utf-8")
         again = []
-        _run(home, rows, {}, ask=lambda *a: again.append(a) or (False, False, False, "다시 판정"))
+        _run(home, rows, {}, ask=lambda *a: again.append(a) or (False, False, False, False, "다시 판정"))
         check_equal(len(again), 1, "옛 규칙판이면 다시 묻는다")
 
 
@@ -223,7 +223,7 @@ def test_NORMAL_a_company_verdict_spreads_to_its_other_postings():
                 _row(URL="https://x/2", 공고명="프론트엔드", 지원자격="SI 프로젝트")]
         out, report = _run(home, rows, {},
                            ask=lambda row, hits, body: (row["URL"].endswith("1"),
-                                                        False, False, "판정"))
+                                                        False, False, False, "판정"))
         check_equal(out, [], "둘 다 빠진다 — 회사가 SI 라면 그 회사 공고는 다 그렇다")
         spread = [r for r in report if "같은 회사" in r["빠진이유"]]
         check_equal(len(spread), 1, "물려받았다고 적는다: %r" % [r["빠진이유"] for r in report])
@@ -236,7 +236,7 @@ def test_NORMAL_a_legal_form_does_not_split_a_company():
         rows = [_row(URL="https://x/1", 기업명="(주)클릭비", 지원자격="SI 프로젝트"),
                 _row(URL="https://x/2", 기업명="㈜클릭비", 지원자격="SI 프로젝트")]
         out, _ = _run(home, rows, {},
-                      ask=lambda row, hits, body: (row["URL"].endswith("1"), False, False, "판정"))
+                      ask=lambda row, hits, body: (row["URL"].endswith("1"), False, False, False, "판정"))
         check_equal(out, [], "법인 표기가 달라도 같은 회사다")
 
 
@@ -251,7 +251,7 @@ def test_EXCEPTION_a_posting_level_verdict_does_not_spread():
         rows = [_row(URL="https://x/1", 지원자격="SI 프로젝트"),
                 _row(URL="https://x/2", 지원자격="SI 프로젝트")]
         out, _ = _run(home, rows, {},
-                      ask=lambda row, hits, body: (False, row["URL"].endswith("1"), False, "상주"))
+                      ask=lambda row, hits, body: (False, row["URL"].endswith("1"), False, False, "상주"))
         check_equal([r["URL"] for r in out], ["https://x/2"], "한 자리만 빠진다")
 
 
@@ -264,7 +264,7 @@ def test_BOUNDARY_the_report_tells_the_reason_apart_from_the_word():
     with tempfile.TemporaryDirectory() as home:
         home = Path(home)
         out, report = _run(home, [_row(지원자격="전문연구요원 편입 가능")], {},
-                           ask=lambda row, hits, body: (False, True, False, "제휴사 오피스로 출근"))
+                           ask=lambda row, hits, body: (False, True, False, False, "제휴사 오피스로 출근"))
         check_equal(out, [], "빠진다")
         check_equal(report[0]["걸린낱말"], "전문연구요원", "%r" % report[0])
         check_equal(report[0]["빠진이유"], "상주·파견", "%r" % report[0])
@@ -283,10 +283,10 @@ def test_BOUNDARY_a_broken_answer_is_asked_once_more():
         if len(calls) == 1:
             return "이건 JSON 이 아니다"
         return json.dumps({"result": json.dumps(
-            {"회사가SI": True, "자리가상주": False, "병역특례전용": False, "근거": "ok"}, ensure_ascii=False)})
+            {"회사가SI": True, "자리가상주": False, "병역특례전용": False, "헤드헌팅": False, "근거": "ok"}, ensure_ascii=False)})
 
     got = nuance.judge(_row(지원자격="SI"), [("SI", "공고 칸", "SI")], "", runner=flaky)
-    check_equal(got, (True, False, False, "ok"), "두 번째에 통과한다")
+    check_equal(got, (True, False, False, False, "ok"), "두 번째에 통과한다")
     check_equal(len(calls), 2, "두 번만 묻는다")
 
 
@@ -303,17 +303,9 @@ def test_NORMAL_a_military_only_posting_is_cut():
     with tempfile.TemporaryDirectory() as home:
         home = Path(home)
         out, report = _run(home, [_row(지원자격="전문연구요원 자격 보유자만 지원 가능")], {},
-                           ask=lambda row, hits, body: (False, False, True, "전용 공고"))
+                           ask=lambda row, hits, body: (False, False, True, False, "전용 공고"))
         check_equal(out, [], "빠진다")
         check_equal(report[0]["빠진이유"], "병역특례 전용", "%r" % report[0])
-
-
-def test_NORMAL_the_prompt_asks_all_three():
-    """**셋을 다 묻는지 프롬프트에서 확인한다.** 하나가 빠지면 조용히 안 걸러진다."""
-    prompt = nuance.build_prompt(_row(), [("전문연구요원", "공고 칸", "x")], "")
-    for flag in ("회사가SI", "자리가상주", "병역특례전용"):
-        check(flag in prompt, "프롬프트가 %s 를 묻지 않는다" % flag)
-    check("셋 중 하나라도" in prompt, "셋 다 뺌 사유라고 적혀 있어야 한다")
 
 
 def test_EXCEPTION_a_military_verdict_does_not_spread_to_the_company():
@@ -328,7 +320,7 @@ def test_EXCEPTION_a_military_verdict_does_not_spread_to_the_company():
                 _row(URL="https://x/2", 지원자격="전문연구요원 가능")]
         out, _ = _run(home, rows, {},
                       ask=lambda row, hits, body: (False, False,
-                                                   row["URL"].endswith("1"), "판정"))
+                                                   row["URL"].endswith("1"), False, "판정"))
         check_equal([r["URL"] for r in out], ["https://x/2"], "한 자리만 빠진다")
 
 
@@ -341,3 +333,63 @@ def test_BOUNDARY_the_prompt_says_a_product_company_is_not_si():
     prompt = nuance.build_prompt(_row(), [("고객사", "본문", "고객사 구축")], "")
     check("자사 제품을 만들어 파는 회사는 SI 업체가 아니다" in prompt, "%r" % prompt[-1400:])
     check("서로 다른" in prompt, "가르는 선이 적혀 있어야 한다")
+
+
+# ── 헤드헌팅 공고 (넷째 깃발) ────────────────────────────────────────────
+#
+# **신입 경력직에서는 거를 항목이다** (2026-09-23 사용자). 실제 고용주가 공고에
+# 안 드러난다 — 굿커리어의 실측 문구가 `고객사 : 유명 스타트기업` 이다.
+#
+# **낱말로는 못 자른다.** 실측(656행) — 넓게 잡으면 10곳인데 절반이 복지의
+# `인재 추천 보상금` 이고, 좁게 잡아도 2곳 중 하나가 이노스페이스의
+# `채용 플랫폼·서치펌 선정·계약 관리`(서치펌을 **쓰는** 회사의 HR 자리)다.
+
+def test_NORMAL_a_headhunting_posting_is_cut():
+    with tempfile.TemporaryDirectory() as home:
+        home = Path(home)
+        out, report = _run(home, [_row(지원자격="저희는 헤드헌터입니다")], {},
+                           ask=lambda row, hits, body: (False, False, False, True, "서치펌"))
+        check_equal(out, [], "빠진다")
+        check_equal(report[0]["빠진이유"], "헤드헌팅", "%r" % report[0])
+
+
+def test_NORMAL_a_headhunting_verdict_spreads_to_the_company():
+    """**헤드헌팅은 회사 단위다.** 그 회사가 내는 공고는 전부 그렇다.
+
+    실측으로 굿커리어가 네 건을 냈는데 본문에 `헤드헌터` 가 적힌 것은 셋이었다.
+    """
+    with tempfile.TemporaryDirectory() as home:
+        home = Path(home)
+        rows = [_row(URL="https://x/1", 지원자격="헤드헌터 유창덕입니다"),
+                _row(URL="https://x/2", 지원자격="서치펌 소개")]
+        out, report = _run(home, rows, {},
+                           ask=lambda row, hits, body: (False, False, False,
+                                                        row["URL"].endswith("1"), "판정"))
+        check_equal(out, [], "둘 다 빠진다")
+        spread = [r for r in report if "같은 회사" in r["빠진이유"]]
+        check_equal(len(spread), 1, "%r" % [r["빠진이유"] for r in report])
+
+
+def test_NORMAL_the_prompt_asks_all_four():
+    """**넷을 다 묻는지 본다.** 하나가 빠지면 조용히 안 걸러진다 — 실제로 겪었다."""
+    prompt = nuance.build_prompt(_row(), [("헤드헌팅", "본문", "헤드헌터")], "")
+    for flag in ("회사가SI", "자리가상주", "병역특례전용", "헤드헌팅"):
+        check(flag in prompt, "프롬프트가 %s 를 묻지 않는다" % flag)
+    check("넷 중 하나라도" in prompt, "넷 다 뺌 사유라고 적혀 있어야 한다")
+
+
+def test_EXCEPTION_a_referral_bonus_is_not_headhunting():
+    """`인재 추천 보상금` 은 **복지의 사내 추천 제도**다 — 후보조차 아니어야 한다.
+
+    실측으로 클래스101·누리미디어·더즌·모비젠·엔키화이트햇이 그 문구를 갖고 있다.
+    후보로 올리면 다섯을 더 물어 다섯 번 "아니다" 를 듣는다 — 값만 든다.
+    """
+    hits = nuance.hits_of(_row(), "인재 추천 보상금 최대 200만원 지급")
+    check_equal([n for n, _, _ in hits], [], "%r" % hits)
+
+
+def test_BOUNDARY_the_prompt_names_both_false_positives():
+    """오탐 둘을 프롬프트에 못 박는다 — 사내 추천 제도와 서치펌을 **쓰는** 회사."""
+    prompt = nuance.build_prompt(_row(), [("헤드헌팅", "본문", "서치펌")], "")
+    check("사내 추천 제도" in prompt, "%r" % prompt[-1500:])
+    check("서치펌을 **쓰는** 회사" in prompt, "%r" % prompt[-1500:])

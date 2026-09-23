@@ -95,7 +95,7 @@ TIMEOUT = 120
 
 # **판정 규칙이 바뀌면 옛 판정을 버린다.** 프롬프트를 고쳐도 이미 판정된 공고가
 # 캐시에서 그대로 나오면 고침이 영영 안 먹는다 — `src/career.py` 에서 실제로 겪었다.
-RULES_VERSION = 3
+RULES_VERSION = 4
 
 # 본문을 이만큼까지만 프롬프트에 싣는다. 회사소개·복지·전형절차가 다 들어 있어
 # 길다 — 실측 평균 2,100자 · 최대 11,358자.
@@ -118,13 +118,16 @@ def hits_of(row: dict, body: str = "") -> list[tuple[str, str, str]]:
     """
     found: list[tuple[str, str, str]] = []
     seen: set[str] = set()
+    # **헤드헌팅 어휘도 같은 자리에서 본다.** 낱말은 후보를 좁히는 자일 뿐이고
+    # 판정은 아래 프롬프트가 한다 — SI 와 같은 이유로 같은 자리에 선다.
+    words = filter_words.BANNED + filter_words.HEADHUNT
     columns = filter_words.text_of(row)
-    for name, pattern in filter_words.BANNED:
+    for name, pattern in words:
         match = pattern.search(columns)
         if match:
             found.append((name, "공고 칸", _around(columns, match)))
             seen.add(name)
-    for name, pattern in filter_words.BANNED:
+    for name, pattern in words:
         if name in seen or not body:
             continue
         match = pattern.search(body)
@@ -151,7 +154,8 @@ def build_prompt(row: dict, hits: list[tuple[str, str, str]], body: str) -> str:
         "아래 종류의 자리는 **피하고 싶다.**\n"
         "- SI/SM 을 업으로 하는 회사, 또는 그런 일을 하게 되는 자리\n"
         "- 고객사에 상주하거나 파견되는 자리\n"
-        "- 병역특례(산업기능요원·전문연구요원·보충역) **전용** 공고\n\n"
+        "- 병역특례(산업기능요원·전문연구요원·보충역) **전용** 공고\n"
+        "- **헤드헌팅·채용대행 공고** — 실제 고용주가 공고에 안 드러나는 자리\n\n"
         "이 공고에서 그 낱말들이 이렇게 걸렸다:\n%s\n\n"
         "[공고명]\n%s\n\n[지원자격]\n%s\n\n[우대사항]\n%s\n\n[본문]\n%s\n\n"
         "**세 가지를 따로 답하라.**\n"
@@ -162,7 +166,9 @@ def build_prompt(row: dict, hits: list[tuple[str, str, str]], body: str) -> str:
         "  `병역특례전용` — 이 **자리**가 병역특례 대상자만 뽑는가. 제목이나 지원자격에\n"
         "               `[병역특례]`·`[전문연구요원]` 을 달았거나 `…자격 보유자만 지원\n"
         "               가능` 처럼 못 박았으면 true 다.\n"
-        "셋 중 하나라도 true 면 피할 자리다.\n\n"
+        "  `헤드헌팅` — 글을 쓴 곳이 **헤드헌팅·채용대행 회사**인가. 자기를 헤드헌터·\n"
+        "               서치펌이라 소개하고 **다른 회사 자리를 대신 뽑아 주면** true 다.\n"
+        "넷 중 하나라도 true 면 피할 자리다.\n\n"
         "**왜 갈라 묻는가** — 회사 판단은 그 회사의 모든 공고에 같아야 하고, 자리\n"
         "판단은 공고마다 다르다. 한 답에 섞으면 같은 회사의 두 공고가 다르게 갈린다 —\n"
         "실측으로 클릭비·풀링포레스트·마드라스체크가 그렇게 갈렸다.\n\n"
@@ -175,6 +181,9 @@ def build_prompt(row: dict, hits: list[tuple[str, str, str]], body: str) -> str:
         "  · `2,000개 이상의 **고객사**를 유치` 처럼 자사 제품·플랫폼의 **고객 수**\n"
         "  · `**고객사** 상위 시스템과 연동` 처럼 자사 제품이 **연동하는 대상**\n"
         "  · 헤드헌팅 회사가 아니라 **일반 기업의 평범한 고객 언급**\n"
+        "- 헤드헌팅은 **글을 쓴 곳이 그 회사일 때만** 피한다. `인재 추천 보상금` 은\n"
+        "  **사내 추천 제도(복지)**이고, `채용 플랫폼·서치펌 선정·계약 관리` 는\n"
+        "  서치펌을 **쓰는** 회사의 HR 자리다 — 둘 다 피할 자리가 **아니다**.\n"
         "- 병역특례는 **전용 공고만** 피한다. `※ 산업기능요원 보충역 지원 가능합니다`\n"
         "  처럼 **일반 지원자도 그대로 지원할 수 있으면 피할 자리가 아니다** —\n"
         "  그것은 요구가 아니라 **혜택 안내**다 (2026-09-22 사용자).\n"
@@ -190,7 +199,7 @@ def build_prompt(row: dict, hits: list[tuple[str, str, str]], body: str) -> str:
         "  은 말만 다른 SI/SM 이다 (2026-09-22 사용자).\n\n"
         "아래 JSON 만 출력하고 다른 말은 하지 마라. 따옴표 안에 큰따옴표를 쓰지 마라.\n"
         '{"회사가SI": true/false, "자리가상주": true/false, '
-        '"병역특례전용": true/false, "근거": "한 문장"}'
+        '"병역특례전용": true/false, "헤드헌팅": true/false, "근거": "한 문장"}'
         % (listed, row.get("공고명", ""), (row.get("지원자격") or "")[:800],
            (row.get("우대사항") or "")[:500], (body or "")[:MAX_BODY])
     )
@@ -216,18 +225,19 @@ def _first_object(text: str) -> dict:
     return obj
 
 
-def parse_output(text: str) -> tuple[bool, bool, bool, str]:
-    """`claude -p …` 의 출력 → (회사가 SI, 자리가 상주, 병역특례 전용, 근거)."""
+def parse_output(text: str) -> tuple[bool, bool, bool, bool, str]:
+    """`claude -p …` 의 출력 → (회사가 SI, 자리가 상주, 병역특례 전용, 헤드헌팅, 근거)."""
     answer = _first_object(text).get("result")
     if not isinstance(answer, str):
         raise JudgeError("답이 비었습니다: %r" % text[:200])
     body = _first_object(answer)
     return (bool(body.get("회사가SI")), bool(body.get("자리가상주")),
-            bool(body.get("병역특례전용")), str(body.get("근거") or "")[:200])
+            bool(body.get("병역특례전용")), bool(body.get("헤드헌팅")),
+            str(body.get("근거") or "")[:200])
 
 
 def judge(row: dict, hits: list, body: str, *, model: str = MODEL,
-          timeout: int = TIMEOUT, runner=None) -> tuple[bool, bool, bool, str]:
+          timeout: int = TIMEOUT, runner=None) -> tuple[bool, bool, bool, bool, str]:
     """**한 번만 다시 묻는다.**
 
     실측(2026-09-22)으로 154건 중 1건이 JSON 이 깨져 판정을 못 받았다 —
@@ -323,7 +333,8 @@ def _run(source: Path | None = None, bodies_path: Path | None = None,
         remembered = book.get(url)
         if remembered is not None and remembered.get("규칙판") == RULES_VERSION:
             got = (bool(remembered.get("회사가SI")), bool(remembered.get("자리가상주")),
-                   bool(remembered.get("병역특례전용")), remembered.get("근거", ""))
+                   bool(remembered.get("병역특례전용")), bool(remembered.get("헤드헌팅")),
+                   remembered.get("근거", ""))
         else:
             try:
                 got = (ask or judge)(row, hits, body)
@@ -335,11 +346,11 @@ def _run(source: Path | None = None, bodies_path: Path | None = None,
                 continue
             asked += 1
             book[url] = {"회사가SI": got[0], "자리가상주": got[1],
-                         "병역특례전용": got[2], "근거": got[3],
+                         "병역특례전용": got[2], "헤드헌팅": got[3], "근거": got[4],
                          "규칙판": RULES_VERSION, "판정일": date.today().isoformat()}
             save_cache(cache_path, book)
         verdicts[url] = {"hits": hits, "회사": got[0], "자리": got[1],
-                         "병역": got[2], "근거": got[3]}
+                         "병역": got[2], "헤드헌팅": got[3], "근거": got[4]}
 
     # ── 2번 지나기: **회사 판단을 그 회사의 모든 공고에 퍼뜨린다** ────────
     #
@@ -354,6 +365,10 @@ def _run(source: Path | None = None, bodies_path: Path | None = None,
     # (상주·파견)은 공고마다 다르므로 안 퍼뜨린다.
     si_firms = {company_of(row) for row in rows
                 if verdicts.get(row.get("URL") or "", {}).get("회사")}
+    # **헤드헌팅도 회사 단위다.** 헤드헌팅 회사가 내는 공고는 전부 그렇다 —
+    # 실측으로 굿커리어가 네 건을 냈는데 본문에 `헤드헌터` 가 적힌 것은 셋이었다.
+    hh_firms = {company_of(row) for row in rows
+                if verdicts.get(row.get("URL") or "", {}).get("헤드헌팅")}
 
     kept, lines = [], []
     spread = 0
@@ -369,15 +384,16 @@ def _run(source: Path | None = None, bodies_path: Path | None = None,
             continue
 
         firm = company_of(row) in si_firms
-        if firm and not seen["회사"]:
+        head = company_of(row) in hh_firms
+        if (firm and not seen["회사"]) or (head and not seen["헤드헌팅"]):
             spread += 1                           # 형제 공고의 판단을 물려받았다
-        if firm or seen["자리"] or seen["병역"]:
+        if firm or head or seen["자리"] or seen["병역"]:
             # **병역특례 전용은 회사 단위가 아니다.** 같은 회사가 전용 공고와 일반
             # 공고를 함께 내는 일이 흔하다 — 실측으로 파이오링크·메디인테크가 그랬다.
             reason = " · ".join(part for part, on in (
                 ("SI/SM 업체", firm), ("상주·파견", seen["자리"]),
-                ("병역특례 전용", seen["병역"])) if on)
-            if firm and not seen["회사"]:
+                ("병역특례 전용", seen["병역"]), ("헤드헌팅", head)) if on)
+            if (firm and not seen["회사"]) or (head and not seen["헤드헌팅"]):
                 reason += " (같은 회사의 다른 공고에서 판정)"
             lines.append(_line(row, seen["hits"], "제외 · 피할 자리",
                                reason, seen["근거"]))
