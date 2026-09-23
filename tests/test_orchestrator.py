@@ -18,6 +18,7 @@ import io
 import sys
 
 import job_crawling_ochestrator as orch
+from _common import outcome as orch_outcome
 
 from .helpers import check, check_equal, read_csv, temp_dir, write_csv
 
@@ -46,7 +47,7 @@ def _fakes_with_csvs():
 
 
 def _main_with(fake_results, image, roled=None, filtered=None, rated=None,
-               cored=None, careered=None, historied=None):
+               cored=None, careered=None, historied=None, nuanced=None):
     """`main()` 을 **통째로** 돌린다. 자식 프로세스는 하나도 안 띄운다.
 
     스크래퍼(`_run_one`)와 수집 뒤 단계(`_run_stage`)만 가짜로 바꾸고 **합치기는
@@ -63,6 +64,7 @@ def _main_with(fake_results, image, roled=None, filtered=None, rated=None,
     stages = {orch.IMAGE_STAGE.name: ("이미지", image),
               orch.ROLE_STAGE.name: ("직군", roled or _stage("직군", code=0)),
               orch.FILTER_STAGE.name: ("거르기", filtered or _stage("거르기", code=0)),
+              orch.NUANCE_STAGE.name: ("뉘앙스", nuanced or _stage("뉘앙스", code=0)),
               orch.RATING_STAGE.name: ("평점", rated or _stage("평점", code=0)),
               orch.CORE_STACK_STAGE.name: ("핵심기술",
                                            cored or _stage("핵심기술", code=0)),
@@ -298,7 +300,7 @@ def test_NORMAL_stages_run_in_order_after_merging():
     통과하거나 `ValueError` 로 터진다 — 실패가 아니라 오류로. 그래서 진짜로 돌린다.
     """
     code, events, merged, _ = _main_with(_fakes_with_csvs(), _image(code=0))
-    check_equal(events, ["합치기", "이미지", "직군", "거르기", "평점", "핵심기술", "경력", "이력"],
+    check_equal(events, ["합치기", "이미지", "직군", "거르기", "뉘앙스", "평점", "핵심기술", "경력", "이력"],
                 "차례가 이것이다: %r" % events)
     check_equal(code, 0, "일곱 다 멀쩡하면 0")
     check_equal(len(read_csv(merged)), len(orch.SITES), "합본에 여섯 행이 들어 있다")
@@ -452,7 +454,7 @@ def test_EXCEPTION_partly_collected_rating_is_not_counted_as_success():
                                                None, None, _stage("평점", code=2))
     check("핵심기술" not in events, "평점이 덜 걷혔으면 핵심 기술도 안 부른다: %r" % events)
     check_equal(code, 1, "덜 걷었으면 성공이 아니다")
-    check("csv/merged_filtered.csv 는 그대로 있습니다" in screen,
+    check("csv/merged_nuance.csv 는 그대로 있습니다" in screen,
           "무엇이 안 지워졌는지 말해 준다")
 
 
@@ -674,3 +676,31 @@ def test_BOUNDARY_the_announcement_says_why_it_runs_alone():
     printed = buffer.getvalue()
     check("혼자 : saramin" in printed, "혼자 도는 곳을 말한다: %r" % printed)
     check("막힌다" in printed, "왜인지 말한다: %r" % printed)
+
+
+# ── 게이트가 얼마나 좁은지 화면에 찍는다 ─────────────────────────────────
+#
+# **같은 모양의 버그가 세 번 났다** (2026-09-23) — 경력·금칙어·직군 셋 다 후보를
+# 좁히는 게이트가 좁았고, **셋 다 화면만 봐서는 멀쩡해 보였다.**
+#
+#     물어본 공고 0건        ← 후보 8행이 전부 캐시에서 나왔다
+#     물어본 공고 0건        ← **게이트가 망가져 후보가 0행이다**
+#
+# 글자가 똑같아서 구별이 안 된다. 그래서 세 번 다 사람이 데이터를 직접 뒤져 찾았다.
+
+def test_NORMAL_the_gate_line_shows_both_sides():
+    line = orch_outcome.gate_line(656, 203, "직군을 물어볼 공고")
+    check("656" in line and "203" in line, "양쪽 다 적힌다: %r" % line)
+    check("453" in line, "**안 한 것을 직접 적는다** — 빼서 계산하게 두면 안 본다: %r" % line)
+    check("69%" in line, "비중도 적는다: %r" % line)
+
+
+def test_EXCEPTION_an_empty_input_does_not_divide_by_zero():
+    line = orch_outcome.gate_line(0, 0, "무엇")
+    check("0%" in line, "0행이어도 안 터진다: %r" % line)
+
+
+def test_BOUNDARY_a_full_gate_says_zero_skipped():
+    """전부 검사했으면 **`검사 안 함 0행`** 이라고 적힌다 — 그게 정상이라는 신호다."""
+    line = orch_outcome.gate_line(40, 40, "무엇")
+    check("검사 안 함 0행" in line, "%r" % line)

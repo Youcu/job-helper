@@ -43,24 +43,33 @@ def test_NORMAL_same_posting_on_two_sites_becomes_one():
     check_equal(len(dropped), 1, "뺀 행은 보고에 남길 수 있게 돌려줘야 한다")
 
 
-def test_NORMAL_banned_word_in_any_of_three_columns():
+def test_NORMAL_a_banned_word_is_no_longer_dropped_here():
+    """**낱말로는 이 단계가 안 자른다** (2026-09-22 사용자).
+
+    같은 낱말이 정반대를 뜻한다 — `단순 SI가 **아닌**` · `2,000개 이상의 고객사를
+    **유치**` · `보충역 **지원 가능합니다**`. 여기서 자르면 그 오탐이 조용히
+    삭제가 된다. 탐지는 `filter_words` 가 하고 **판정은 `nuance.py` 가 모델에게
+    묻는다.** 낱말 검사 자체는 `tests/test_nuance.py` 에 있다.
+    """
     for column in ("공고명", "지원자격", "우대사항"):
         kept, dropped = flt.screen([_row(**{column: "SI 프로젝트 경험"})])
-        check_equal(len(kept), 0, "%s 에서도 걸려야 한다" % column)
-        check_equal(dropped[0][1][0][0], "SI", "걸린 낱말 이름")
+        check_equal(len(kept), 1, "%s 에 낱말이 있어도 남긴다" % column)
+        check_equal(dropped, [], "뺀 것이 없다")
 
 
 def test_NORMAL_report_holds_every_dropped_row():
     home = temp_dir()
     rows = [_row(기업명="가", 공고명="A", 사이트명="wanted", URL="w/1"),
             _row(기업명="가", 공고명="A", 사이트명="saramin", URL="s/1"),
-            _row(기업명="나", 공고명="B", URL="w/2", 지원자격="고객사 상주")]
+            _row(기업명="나", 공고명="B", URL="w/2", 경력="경력 5년 이상"),
+            _row(기업명="다", 공고명="C", URL="w/3", 기술스택="PHP")]
     write_csv(home / "in.csv", rows, COLUMNS)
     flt._run(home / "in.csv", home / "out.csv", home / "report.csv", _env(home))
     check_equal(len(read_csv(home / "out.csv")), 1, "남는 것은 한 행")
     report = read_csv(home / "report.csv")
-    check_equal(len(report), 2, "**뺀 행은 하나도 빠짐없이 보고에 있어야 한다**")
-    check_equal({r["판정"] for r in report}, {"제외 · 중복", "제외 · 낱말"}, "판정 두 갈래")
+    check_equal(len(report), 3, "**뺀 행은 하나도 빠짐없이 보고에 있어야 한다**")
+    check_equal({r["판정"] for r in report},
+                {"제외 · 중복", "제외 · 경력직", "제외 · 낱말"}, "판정 세 갈래")
 
 
 def test_NORMAL_output_keeps_the_thirteen_column_schema():
@@ -156,24 +165,15 @@ def test_BOUNDARY_dates_stretch_to_the_widest_span():
 
 
 def test_BOUNDARY_dedup_runs_before_screening():
-    # 순서가 뒤집히면 사본마다 따로 판정돼, 본문이 짧은 쪽만 살아남는 일이 생긴다.
+    """순서가 뒤집히면 사본마다 따로 판정돼, 본문이 짧은 쪽만 살아남는 일이 생긴다."""
     home = temp_dir()
     rows = [_row(기업명="가", 공고명="A", 사이트명="wanted", URL="w/1",
-                 지원자격="고객사 상주가 필요합니다"),
-            _row(기업명="가", 공고명="A", 사이트명="saramin", URL="s/1", 지원자격="짧다")]
+                 기술스택="PHP, Java"),
+            _row(기업명="가", 공고명="A", 사이트명="saramin", URL="s/1", 기술스택="")]
     write_csv(home / "in.csv", rows, COLUMNS)
     flt._run(home / "in.csv", home / "out.csv", home / "report.csv", _env(home))
     check_equal(read_csv(home / "out.csv"), [],
                 "먼저 묶어 **가장 온전한 본문 하나로** 판정해야 한다")
-
-
-def test_BOUNDARY_report_records_where_the_word_was_found():
-    home = temp_dir()
-    write_csv(home / "in.csv",
-              [_row(지원자격="여러 줄 중에\n고객사 상주 근무가 있습니다\n끝")], COLUMNS)
-    flt._run(home / "in.csv", home / "out.csv", home / "report.csv", _env(home))
-    why = read_csv(home / "report.csv")[0]["근거"]
-    check("고객사" in why, "**근거에 그 자리의 글이 있어야** 오탐을 되짚을 수 있다: %r" % why)
 
 
 def test_NORMAL_tech_stack_exclusion_from_env():
@@ -252,7 +252,7 @@ def test_NORMAL_the_report_tells_career_apart_from_banned_words():
     source = home / "csv" / "merged_role.csv"
     write_csv(source, [
         _row(경력="경력 3년이상", URL="https://example.com/경력"),
-        _row(공고명="SI 개발자", URL="https://example.com/낱말"),
+        _row(기술스택="PHP", URL="https://example.com/낱말"),
         _row(경력="신입", URL="https://example.com/남김"),
     ], list(COLUMNS))
     out, report = home / "csv" / "out.csv", home / "csv" / "report.csv"
