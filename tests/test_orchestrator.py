@@ -704,3 +704,42 @@ def test_BOUNDARY_a_full_gate_says_zero_skipped():
     """전부 검사했으면 **`검사 안 함 0행`** 이라고 적힌다 — 그게 정상이라는 신호다."""
     line = orch_outcome.gate_line(40, 40, "무엇")
     check("검사 안 함 0행" in line, "%r" % line)
+
+
+# ── 저장소 뿌리를 세는 곳이 어긋나지 않는가 ──────────────────────────────
+#
+# **리팩터링이 회귀를 하나 남겼다** (2026-09-23). `_common/env.py` 가
+# `parent.parent.parent` 로 뿌리를 셌는데 `src/` 가 생기면서 한 칸이 모자랐다.
+# `.env` 를 `src/` 에서 찾았고, 핵심 기술 단계가 **조용히 설정 오류로 멈췄다.**
+#
+# 그 단계만 옛 파일을 남겨 두어, 뉘앙스에서 빠진 헤드헌팅 공고가 **최종본에
+# 되살아났다.** 파이프라인은 단방향인데 중간 한 칸이 안 돌면 그렇게 된다.
+#
+# **테스트가 이걸 못 잡은 이유** — 시험은 `.env` 를 안 탄다(CI 에 그 파일이 없다).
+# 그래서 자리 계산이 틀려도 드러나지 않았다. 여기서 **자리만** 따로 굳힌다.
+
+def test_NORMAL_every_root_anchor_points_at_the_same_root():
+    """자리를 아는 곳이 여럿이면 **같은 곳을 가리켜야 한다.**"""
+    from _common import env as common_env
+    from paths import ROOT
+    check_equal(common_env.ENV_PATH.parent, ROOT,
+                "env.py 가 다른 뿌리를 본다: %s" % common_env.ENV_PATH)
+
+
+def test_NORMAL_the_image_cache_lives_under_the_common_package():
+    from image_process.cache import CACHE_PATH
+    from paths import SITES
+    check_equal(CACHE_PATH.parent.parent, SITES / "_common",
+                "그림 캐시가 엉뚱한 곳에 있다: %s" % CACHE_PATH)
+
+
+def test_BOUNDARY_every_stage_file_the_orchestrator_names_exists():
+    """**오케스트레이터가 부르는 파일이 전부 제자리에 있는가.**
+
+    파일을 옮기고 `STAGES` 를 안 고치면 단계가 통째로 안 돈다 — 그런데 그것도
+    "단계를 못 돌림" 한 줄로만 찍혀 옛 파일이 남는다.
+    """
+    for script, name, _meanings, _timeout, _kept in orch.STAGES:
+        check(script.exists(), "%s 의 파일이 없다: %s" % (name, script))
+    for site, path in orch._find_scrapers().items():
+        check(path.exists(), "%s 수집기가 없다: %s" % (site, path))
