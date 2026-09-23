@@ -26,10 +26,25 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+import importlib.util
+
 from dotenv import dotenv_values
 
-# `job_sites/_common/env.py` → 저장소 뿌리
-ENV_PATH = (Path(__file__).resolve().parent.parent.parent / ".env").resolve()
+# **자리는 `src/paths.py` 가 정한다.** 여기서 `parent` 를 세지 않는다.
+#
+# 전에는 `parent.parent.parent` 로 뿌리를 셌다. `src/` 가 생기면서 한 칸이 모자라
+# **`.env` 를 `src/` 에서 찾았고**, 핵심 기술 단계가 조용히 설정 오류로 멈췄다.
+# 그 단계만 옛 파일을 남겨 두어 최종본에 헤드헌팅 공고가 되살아났다 (2026-09-23).
+#
+# `paths` 는 `src/` 에 있고 이 파일은 `src/job_sites/_common/` 에 있다. 수집기는
+# 자기 폴더를 `sys.path` 맨 앞에 넣고 도므로 `import paths` 가 늘 되지는 않는다.
+# 그래서 **경로로 직접 찾아 읽는다** — 뿌리를 세는 일은 그래도 한 곳에만 남는다.
+_PATHS = Path(__file__).resolve().parent.parent.parent / "paths.py"
+_SPEC = importlib.util.spec_from_file_location("_analyze_paths", _PATHS)
+_paths = importlib.util.module_from_spec(_SPEC)
+_SPEC.loader.exec_module(_paths)
+
+ENV_PATH = (_paths.ROOT / ".env").resolve()
 
 
 class ConfigError(Exception):
